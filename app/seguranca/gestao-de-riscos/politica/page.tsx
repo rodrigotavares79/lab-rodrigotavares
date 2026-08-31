@@ -204,6 +204,24 @@ export default function Politica() {
               Documento aprovado por Renato Bousquet, CISO da Monstros
               S.A., em 01/03/2026.
             </p>
+
+            <div className="download-card">
+              <div>
+                <span className="download-card-label">Documento para download</span>
+                <p className="download-card-title">Política de Gerenciamento de Riscos (.pdf)</p>
+                <p className="download-card-desc">
+                  Versão em papel timbrado, pronta para impressão ou
+                  compartilhamento formal.
+                </p>
+              </div>
+              <a
+                href="/Politica_Gerenciamento_de_Riscos.pdf"
+                download="Politica_Gerenciamento_de_Riscos.pdf"
+                className="btn-primary"
+              >
+                Baixar PDF
+              </a>
+            </div>
           </div>
 
           <a href="/seguranca/gestao-de-riscos" className="status-tag">
