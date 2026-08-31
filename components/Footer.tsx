@@ -3,7 +3,6 @@ export default function Footer() {
     <footer className="site-footer">
       <div className="container">
         <span>© {new Date().getFullYear()} Rodrigo Tavares</span>
-        <a href="https://rodrigotavares.com.br">rodrigotavares.com.br</a>
       </div>
     </footer>
   );
