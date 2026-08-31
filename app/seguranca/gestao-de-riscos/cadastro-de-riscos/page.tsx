@@ -21,14 +21,61 @@ function classificarImpacto(score: number) {
 export default function CadastroDeRiscos() {
   const [impacto, setImpacto] = useState(0);
   const [probabilidade, setProbabilidade] = useState(0);
+  const [enviando, setEnviando] = useState(false);
   const [enviado, setEnviado] = useState(false);
+  const [emailEnviadoPara, setEmailEnviadoPara] = useState("");
+  const [erro, setErro] = useState<string | null>(null);
 
   const score = impacto && probabilidade ? impacto * probabilidade : 0;
   const classificacao = score ? classificarImpacto(score) : null;
+  const impactoLabel = NIVEIS.find((n) => n.value === impacto)?.label ?? "";
+  const probabilidadeLabel = NIVEIS.find((n) => n.value === probabilidade)?.label ?? "";
 
-  function handleSubmit(e: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setEnviado(true);
+    setErro(null);
+    setEnviado(false);
+
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+    const levantadoPor = String(formData.get("levantadoPor") || "");
+
+    const payload = {
+      categoria: formData.get("categoria"),
+      gatilho: formData.get("gatilho"),
+      resultado: formData.get("resultado"),
+      levantadoPor,
+      dataLevantamento: formData.get("dataLevantamento"),
+      fonte: formData.get("fonte"),
+      impactoLabel,
+      probabilidadeLabel,
+      matrixScore: score,
+      classificacaoLabel: classificacao?.label,
+    };
+
+    setEnviando(true);
+    try {
+      const res = await fetch("/api/cadastro-risco", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || "Não foi possível enviar o e-mail de confirmação.");
+      }
+
+      setEmailEnviadoPara(levantadoPor);
+      setEnviado(true);
+      form.reset();
+      setImpacto(0);
+      setProbabilidade(0);
+    } catch (err) {
+      setErro(err instanceof Error ? err.message : "Erro ao enviar.");
+    } finally {
+      setEnviando(false);
+    }
   }
 
   return (
@@ -74,9 +121,14 @@ export default function CadastroDeRiscos() {
                   <input
                     id="levantadoPor"
                     name="levantadoPor"
-                    type="text"
-                    placeholder="Nome do responsável"
+                    type="email"
+                    required
+                    placeholder="nome@empresa.com"
                   />
+                  <p className="field-helper">
+                    Um e-mail de confirmação com os dados deste risco será
+                    enviado automaticamente para este endereço.
+                  </p>
                 </div>
 
                 <div className="form-field">
@@ -175,15 +227,30 @@ export default function CadastroDeRiscos() {
             </fieldset>
 
             <div className="form-actions">
-              <button type="submit" className="btn-primary">
-                Cadastrar Risco
+              <button type="submit" className="btn-primary" disabled={enviando}>
+                {enviando ? "Enviando..." : "Cadastrar Risco"}
               </button>
-              {enviado && (
-                <span className="form-note">
-                  Front-end apenas — integração com base de dados em desenvolvimento.
-                </span>
-              )}
             </div>
+
+            {enviado && (
+              <div className="success-banner">
+                <span className="success-icon">✓</span>
+                <span className="success-text">
+                  <strong>Risco cadastrado com sucesso.</strong>
+                  <span>Uma cópia dos dados foi enviada para {emailEnviadoPara}.</span>
+                </span>
+              </div>
+            )}
+
+            {erro && (
+              <div className="error-banner">
+                <span className="success-icon error-icon">!</span>
+                <span className="success-text">
+                  <strong>Não foi possível enviar o e-mail.</strong>
+                  <span>{erro}</span>
+                </span>
+              </div>
+            )}
           </form>
 
           <a
