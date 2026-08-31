@@ -316,6 +316,88 @@ h1, h2, h3 {
   color: var(--text);
 }
 
+.content-block .body.policy-body {
+  max-width: 52rem;
+}
+
+.content-block .body.wide-body {
+  max-width: 56rem;
+}
+
+.flow-diagram-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  padding: 1rem;
+  margin: 0.5rem 0 1.5rem;
+}
+
+.flow-diagram-wrap svg {
+  display: block;
+  width: 100%;
+}
+
+.content-block .body h2 {
+  font-size: 1.05rem;
+  margin: 2.25rem 0 0.85rem;
+  color: var(--text);
+}
+
+.content-block .body h2:first-child {
+  margin-top: 0;
+}
+
+.content-block .body ol {
+  margin: 0 0 1.1rem;
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.policy-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 2rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  padding: 0.85rem 1.25rem;
+  margin-top: 1.25rem;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  max-width: 52rem;
+}
+
+.policy-meta strong {
+  color: var(--text);
+}
+
+.doc-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 1.5rem;
+  font-size: 0.82rem;
+}
+
+.doc-table th,
+.doc-table td {
+  border: 1px solid var(--border);
+  padding: 0.55rem 0.75rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+.doc-table th {
+  background: var(--bg);
+  font-weight: 600;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+}
+
 .status-tag {
   display: inline-block;
   font-size: 0.7rem;
