@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { ClerkProvider, UserButton } from "@clerk/nextjs";
+import { ClerkProvider, UserButton, SignedIn } from "@clerk/nextjs";
 import { ptBR } from "@clerk/localizations";
 import Nav from "@/components/Nav";
 import "./globals.css";
@@ -30,10 +30,7 @@ export default function RootLayout({
               <a href="/" className="wordmark">
                 Rodrigo Tavares <span className="tag">/ lab</span>
               </a>
-              <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
-                <Nav />
-                <UserButton afterSignOutUrl="/sign-in" />
-              </div>
+              <SignedIn> <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}> <Nav /> <UserButton afterSignOutUrl="/sign-in" /> </div> </SignedIn>
             </div>
           </header>
           {children}
