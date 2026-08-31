@@ -312,6 +312,47 @@ h1, h2, h3 {
   margin-top: 1.5rem;
 }
 
+/* --- Submenu interno de página --- */
+
+.page-submenu {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 2rem;
+  padding: 0.4rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  max-width: fit-content;
+}
+
+.page-submenu a {
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-decoration: none;
+  color: var(--text);
+  padding: 0.55rem 1rem;
+  border-radius: 3px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.page-submenu a:hover {
+  background: var(--bg);
+  color: var(--accent);
+}
+
+@media (max-width: 30rem) {
+  .page-submenu {
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .page-submenu a {
+    flex: 1 1 auto;
+    text-align: center;
+  }
+}
+
 /* --- Footer --- */
 
 .site-footer {
