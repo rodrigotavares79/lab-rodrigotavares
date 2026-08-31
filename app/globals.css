@@ -338,6 +338,45 @@ h1, h2, h3 {
   width: 100%;
 }
 
+.download-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  padding: 1.25rem 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.download-card-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.download-card-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0.25rem 0 0.35rem;
+}
+
+.download-card-desc {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: 0;
+  max-width: 28rem;
+}
+
+.download-card .btn-primary {
+  text-decoration: none;
+  white-space: nowrap;
+}
+
 .content-block .body h2 {
   font-size: 1.05rem;
   margin: 2.25rem 0 0.85rem;
