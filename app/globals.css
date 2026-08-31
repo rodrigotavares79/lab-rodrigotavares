@@ -366,6 +366,59 @@ h1, h2, h3 {
   }
 }
 
+.page-sidebar-layout {
+  display: grid;
+  grid-template-columns: 12rem 1fr;
+  gap: 2.5rem;
+  align-items: start;
+  margin-top: 2rem;
+}
+
+.page-submenu-vertical {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.page-submenu-vertical a {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  padding: 0.75rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-decoration: none;
+  color: var(--text);
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.page-submenu-vertical a:hover {
+  background: var(--bg);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.page-sidebar-content .lede {
+  margin-top: 0;
+}
+
+@media (max-width: 40rem) {
+  .page-sidebar-layout {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+
+  .page-submenu-vertical {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .page-submenu-vertical a {
+    flex: 1 1 auto;
+    text-align: center;
+  }
+}
+
 /* --- Formulário de cadastro de riscos --- */
 
 .risk-form {
