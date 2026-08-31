@@ -7,12 +7,10 @@ export default function LabHome() {
         <div className="container">
           <span className="eyebrow">Lab</span>
           <h1 style={{ marginTop: "0.75rem" }}>
-            [placeholder] Uma linha curta sobre o que esse espaço reúne
+            Laboratório de idéias e projetos
           </h1>
           <p className="lede">
-            [placeholder] Duas frases sobre o propósito do lab — projetos e
-            conteúdo técnico nas áreas de gestão de condomínio e segurança da
-            informação.
+            Espaço privado de idéias, inovação e desenvovimento de aplicações.
           </p>
         </div>
       </section>
@@ -21,13 +19,13 @@ export default function LabHome() {
         <a className="section-card" href="/condominio">
           <span className="eyebrow">Projeto</span>
           <h3>Gestão de Condomínio</h3>
-          <p>[placeholder] Uma linha resumindo o sistema de chamados em desenvolvimento.</p>
+          <p>Sistema de gerenciamento de chamados para síndicos e condomínios.</p>
         </a>
 
         <a className="section-card" href="/seguranca/gestao-de-riscos">
           <span className="eyebrow">Área</span>
           <h3>Segurança da Informação</h3>
-          <p>[placeholder] Conteúdo e projetos em GRC, testes de segurança e conscientização.</p>
+          <p>Conteúdo e projetos em GRC, testes de segurança e conscientização.</p>
           <div className="sublist">
             <span>→ Gestão de Riscos</span>
             <span>→ Penteste</span>
@@ -40,3 +38,4 @@ export default function LabHome() {
     </>
   );
 }
+
