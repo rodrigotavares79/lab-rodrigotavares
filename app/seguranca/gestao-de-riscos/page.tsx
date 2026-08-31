@@ -6,30 +6,34 @@ export default function GestaoDeRiscos() {
       <section className="content-block">
         <div className="container">
           <span className="eyebrow">Segurança da Informação</span>
-          <div className="page-header-row">
-            <h1>Gestão de Riscos</h1>
-            <nav className="page-submenu" aria-label="Navegação de Gestão de Riscos">
+          <h1>Gestão de Riscos</h1>
+
+          <div className="page-sidebar-layout">
+            <nav className="page-submenu-vertical" aria-label="Navegação de Gestão de Riscos">
               <a href="/seguranca/gestao-de-riscos/politica">Política</a>
               <a href="/seguranca/gestao-de-riscos/processo">Processo</a>
               <a href="/seguranca/gestao-de-riscos/cadastro-de-riscos">Cadastro de Riscos</a>
               <a href="/seguranca/gestao-de-riscos/dashboard">Dashboard</a>
             </nav>
-          </div>
-          <p className="lede">
-            [placeholder] Uma linha sobre a abordagem de análise e gestão de
-            riscos de segurança da informação.
-          </p>
 
-          <div className="body">
-            <p>
-              [placeholder] Metodologia usada para identificação,
-              classificação e priorização de riscos — e como isso se traduz
-              em planos de ação e relatórios executivos.
-            </p>
-            <p className="text-muted">
-              [placeholder] Exemplos, templates ou aprendizados que você
-              queira compartilhar publicamente.
-            </p>
+            <div className="page-sidebar-content">
+              <p className="lede">
+                [placeholder] Uma linha sobre a abordagem de análise e gestão
+                de riscos de segurança da informação.
+              </p>
+
+              <div className="body">
+                <p>
+                  [placeholder] Metodologia usada para identificação,
+                  classificação e priorização de riscos — e como isso se
+                  traduz em planos de ação e relatórios executivos.
+                </p>
+                <p className="text-muted">
+                  [placeholder] Exemplos, templates ou aprendizados que você
+                  queira compartilhar publicamente.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -37,4 +41,3 @@ export default function GestaoDeRiscos() {
     </>
   );
 }
-
