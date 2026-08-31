@@ -170,6 +170,24 @@ export default function Processo() {
               só então o risco é encerrado. Isso garante que mesmo a decisão
               de não agir fique documentada e rastreável.
             </p>
+
+            <div className="download-card">
+              <div>
+                <span className="download-card-label">Modelo para download</span>
+                <p className="download-card-title">Carta de Risco (.docx)</p>
+                <p className="download-card-desc">
+                  Modelo pronto, em papel timbrado, para formalizar a
+                  aceitação de um risco sem plano de ação.
+                </p>
+              </div>
+              <a
+                href="/modelo-carta-de-risco.docx"
+                download="Carta_de_Risco.docx"
+                className="btn-primary"
+              >
+                Baixar modelo
+              </a>
+            </div>
           </div>
 
           <a href="/seguranca/gestao-de-riscos" className="status-tag">
