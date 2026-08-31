@@ -642,11 +642,76 @@ h1, h2, h3 {
   }
 }
 
+.field-helper {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-style: italic;
+  margin: 0.4rem 0 0;
+  line-height: 1.5;
+}
+
+.success-banner,
+.error-banner {
+  display: flex;
+  gap: 0.7rem;
+  align-items: flex-start;
+  border-radius: 6px;
+  padding: 0.9rem 1.1rem;
+  margin-top: 1.25rem;
+  max-width: 34rem;
+}
+
+.success-banner {
+  background: #eef5f0;
+  border: 1px solid #bfd9c8;
+}
+
+.error-banner {
+  background: #faeceb;
+  border: 1px solid #e3b5b0;
+}
+
+.success-icon {
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 50%;
+  background: #3f7d58;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+.success-icon.error-icon {
+  background: #a3242f;
+}
+
+.success-text strong {
+  display: block;
+  font-size: 0.88rem;
+  margin-bottom: 0.2rem;
+  color: var(--text);
+}
+
+.success-text span {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
 .form-actions {
   display: flex;
   align-items: center;
   gap: 1rem;
   flex-wrap: wrap;
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .btn-primary {
