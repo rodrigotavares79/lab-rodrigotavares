@@ -314,16 +314,29 @@ h1, h2, h3 {
 
 /* --- Submenu interno de página --- */
 
+.page-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  margin-top: 0.5rem;
+}
+
+.page-header-row h1 {
+  margin-top: 0;
+}
+
 .page-submenu {
   display: flex;
   flex-wrap: wrap;
   gap: 0.25rem;
-  margin-top: 2rem;
   padding: 0.4rem;
   border: 1px solid var(--border);
   border-radius: 4px;
   background: var(--surface);
   max-width: fit-content;
+  flex-shrink: 0;
 }
 
 .page-submenu a {
