@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, useEffect, FormEvent } from "react";
 import Footer from "@/components/Footer";
 
 const NIVEIS = [
@@ -11,11 +11,23 @@ const NIVEIS = [
   { value: 5, label: "5 — Muito Alto" },
 ];
 
+type Projeto = { id: number; nome: string };
+type SistemaCritico = {
+  id: number;
+  nome: string;
+  custo_indisponibilidade_hora: string;
+  custo_restauracao_hora_homem: string;
+};
+
 function classificarImpacto(score: number) {
   if (score <= 4) return { label: "Baixo", className: "badge-baixo" };
   if (score <= 9) return { label: "Médio", className: "badge-medio" };
   if (score <= 15) return { label: "Alto", className: "badge-alto" };
   return { label: "Crítico", className: "badge-critico" };
+}
+
+function formatBRL(value: number): string {
+  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
 export default function CadastroDeRiscos() {
@@ -26,10 +38,63 @@ export default function CadastroDeRiscos() {
   const [emailEnviadoPara, setEmailEnviadoPara] = useState("");
   const [erro, setErro] = useState<string | null>(null);
 
+  const [projetos, setProjetos] = useState<Projeto[]>([]);
+  const [projetoId, setProjetoId] = useState("");
+
+  const [sistemas, setSistemas] = useState<SistemaCritico[]>([]);
+  const [sistemaCriticoId, setSistemaCriticoId] = useState("");
+  const [duracaoHoras, setDuracaoHoras] = useState("");
+  const [percentualDegradacao, setPercentualDegradacao] = useState("30");
+  const [restauracaoPessoas, setRestauracaoPessoas] = useState("");
+  const [restauracaoHoras, setRestauracaoHoras] = useState("");
+
   const score = impacto && probabilidade ? impacto * probabilidade : 0;
   const classificacao = score ? classificarImpacto(score) : null;
   const impactoLabel = NIVEIS.find((n) => n.value === impacto)?.label ?? "";
   const probabilidadeLabel = NIVEIS.find((n) => n.value === probabilidade)?.label ?? "";
+
+  useEffect(() => {
+    fetch("/api/projetos")
+      .then((r) => r.json())
+      .then((d) => setProjetos(d.projetos || []))
+      .catch(() => setProjetos([]));
+  }, []);
+
+  useEffect(() => {
+    if (!projetoId) {
+      setSistemas([]);
+      setSistemaCriticoId("");
+      return;
+    }
+    fetch(`/api/sistemas-criticos?projetoId=${projetoId}`)
+      .then((r) => r.json())
+      .then((d) => setSistemas(d.sistemas || []))
+      .catch(() => setSistemas([]));
+    setSistemaCriticoId("");
+  }, [projetoId]);
+
+  const sistemaSelecionado = sistemas.find((s) => String(s.id) === sistemaCriticoId);
+
+  let previewCriticoIndisp = 0;
+  let previewCriticoRestauracao = 0;
+  let previewAltoIndisp = 0;
+  let previewAltoRestauracao = 0;
+
+  if (sistemaSelecionado) {
+    const custoIndisp = Number(sistemaSelecionado.custo_indisponibilidade_hora) || 0;
+    const custoRestauracao = Number(sistemaSelecionado.custo_restauracao_hora_homem) || 0;
+    const horas = Number(duracaoHoras) || 0;
+    const pct = Number(percentualDegradacao) || 0;
+    const pessoas = Number(restauracaoPessoas) || 0;
+    const horasRestauracao = Number(restauracaoHoras) || 0;
+
+    previewCriticoIndisp = custoIndisp * horas;
+    previewCriticoRestauracao = custoRestauracao * pessoas * horasRestauracao;
+    previewAltoIndisp = custoIndisp * horas * (pct / 100);
+    previewAltoRestauracao = custoRestauracao * pessoas * horasRestauracao;
+  }
+  const previewCriticoTotal = previewCriticoIndisp + previewCriticoRestauracao;
+  const previewAltoTotal = previewAltoIndisp + previewAltoRestauracao;
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -41,16 +106,24 @@ export default function CadastroDeRiscos() {
     const levantadoPor = String(formData.get("levantadoPor") || "");
 
     const payload = {
+      projetoId,
       categoria: formData.get("categoria"),
       gatilho: formData.get("gatilho"),
       resultado: formData.get("resultado"),
       levantadoPor,
       dataLevantamento: formData.get("dataLevantamento"),
       fonte: formData.get("fonte"),
+      impacto,
+      probabilidade,
       impactoLabel,
       probabilidadeLabel,
       matrixScore: score,
       classificacaoLabel: classificacao?.label,
+      sistemaCriticoId: sistemaCriticoId || null,
+      duracaoHoras: duracaoHoras || null,
+      percentualDegradacao: percentualDegradacao || null,
+      restauracaoPessoas: restauracaoPessoas || null,
+      restauracaoHoras: restauracaoHoras || null,
     };
 
     setEnviando(true);
@@ -71,6 +144,12 @@ export default function CadastroDeRiscos() {
       form.reset();
       setImpacto(0);
       setProbabilidade(0);
+      setProjetoId("");
+      setSistemaCriticoId("");
+      setDuracaoHoras("");
+      setPercentualDegradacao("30");
+      setRestauracaoPessoas("");
+      setRestauracaoHoras("");
     } catch (err) {
       setErro(err instanceof Error ? err.message : "Erro ao enviar.");
     } finally {
@@ -92,6 +171,22 @@ export default function CadastroDeRiscos() {
             <fieldset className="form-section">
               <legend>Identificação do Risco</legend>
               <div className="form-grid">
+                <div className="form-field">
+                  <label htmlFor="projeto">Projeto</label>
+                  <select
+                    id="projeto"
+                    name="projeto"
+                    value={projetoId}
+                    onChange={(e) => setProjetoId(e.target.value)}
+                    required
+                  >
+                    <option value="" disabled>Selecione</option>
+                    {projetos.map((p) => (
+                      <option key={p.id} value={p.id}>{p.nome}</option>
+                    ))}
+                  </select>
+                </div>
+
                 <div className="form-field">
                   <label htmlFor="categoria">Categoria do Risco</label>
                   <select id="categoria" name="categoria" defaultValue="">
@@ -223,6 +318,105 @@ export default function CadastroDeRiscos() {
                     </span>
                   )}
                 </div>
+              </div>
+            </fieldset>
+
+            <fieldset className="form-section">
+              <legend>Impacto Financeiro (opcional)</legend>
+              <div className="form-grid">
+                <div className="form-field">
+                  <label htmlFor="sistemaCritico">Sistema Crítico vinculado</label>
+                  <select
+                    id="sistemaCritico"
+                    value={sistemaCriticoId}
+                    onChange={(e) => setSistemaCriticoId(e.target.value)}
+                    disabled={!projetoId}
+                  >
+                    <option value="">Nenhum</option>
+                    {sistemas.map((s) => (
+                      <option key={s.id} value={s.id}>{s.nome}</option>
+                    ))}
+                  </select>
+                  {!projetoId && (
+                    <p className="field-helper">Selecione um Projeto primeiro.</p>
+                  )}
+                </div>
+
+                {sistemaCriticoId && (
+                  <>
+                    <div className="form-field">
+                      <label htmlFor="duracaoHoras">Duração Estimada da Indisponibilidade (horas)</label>
+                      <input
+                        id="duracaoHoras"
+                        type="number"
+                        min="0"
+                        step="0.5"
+                        value={duracaoHoras}
+                        onChange={(e) => setDuracaoHoras(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="form-field">
+                      <label htmlFor="percentualDegradacao">
+                        % de Degradação (cenário Alto Impacto)
+                      </label>
+                      <input
+                        id="percentualDegradacao"
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="5"
+                        value={percentualDegradacao}
+                        onChange={(e) => setPercentualDegradacao(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="form-field">
+                      <label htmlFor="restauracaoPessoas">Pessoas na Restauração</label>
+                      <input
+                        id="restauracaoPessoas"
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={restauracaoPessoas}
+                        onChange={(e) => setRestauracaoPessoas(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="form-field">
+                      <label htmlFor="restauracaoHoras">Horas de Restauração (por pessoa)</label>
+                      <input
+                        id="restauracaoHoras"
+                        type="number"
+                        min="0"
+                        step="0.5"
+                        value={restauracaoHoras}
+                        onChange={(e) => setRestauracaoHoras(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="form-field form-field-wide">
+                      <div className="financial-preview">
+                        <div className="financial-scenario">
+                          <span className="financial-scenario-title">Evento Crítico (Indisponibilidade)</span>
+                          <span className="financial-scenario-total">{formatBRL(previewCriticoTotal)}</span>
+                          <span className="financial-scenario-detail">
+                            {formatBRL(previewCriticoIndisp)} perda por indisponibilidade;{" "}
+                            {formatBRL(previewCriticoRestauracao)} perda por restauração (homem/hora)
+                          </span>
+                        </div>
+                        <div className="financial-scenario">
+                          <span className="financial-scenario-title">Evento Alto Impacto (Degradação)</span>
+                          <span className="financial-scenario-total">{formatBRL(previewAltoTotal)}</span>
+                          <span className="financial-scenario-detail">
+                            {formatBRL(previewAltoIndisp)} perda por indisponibilidade;{" "}
+                            {formatBRL(previewAltoRestauracao)} perda por restauração (homem/hora)
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             </fieldset>
 
