@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
+import { calcularImpactoFinanceiro } from "@/lib/riscoUtils";
 
 function escapeHtml(value: unknown): string {
   const str = String(value ?? "");
@@ -49,37 +50,32 @@ export async function POST(request: NextRequest) {
     const sql = neon(process.env.DATABASE_URL!);
 
     // ---- Cálculo do impacto financeiro (feito no servidor, nunca confiando no cliente) ----
-    let impactoCriticoIndisponibilidade = 0;
-    let impactoCriticoRestauracao = 0;
-    let impactoAltoIndisponibilidade = 0;
-    let impactoAltoRestauracao = 0;
     let sistemaNome: string | null = null;
+    type SistemaRow = { nome: string; custo_indisponibilidade_hora: number; custo_restauracao_hora_homem: number };
+    let sistema: SistemaRow | null = null;
 
     if (sistemaCriticoId) {
       const sistemaRows = await sql`
         SELECT nome, custo_indisponibilidade_hora, custo_restauracao_hora_homem
         FROM sistemas_criticos WHERE id = ${sistemaCriticoId}
       `;
-      const sistema = sistemaRows[0];
-      if (sistema) {
-        sistemaNome = sistema.nome;
-        const custoIndisp = Number(sistema.custo_indisponibilidade_hora) || 0;
-        const custoRestauracao = Number(sistema.custo_restauracao_hora_homem) || 0;
-        const horas = Number(duracaoHoras) || 0;
-        const pct = Number(percentualDegradacao) || 0;
-        const pessoas = Number(restauracaoPessoas) || 0;
-        const horasRestauracao = Number(restauracaoHoras) || 0;
-
-        impactoCriticoIndisponibilidade = custoIndisp * horas;
-        impactoCriticoRestauracao = custoRestauracao * pessoas * horasRestauracao;
-
-        impactoAltoIndisponibilidade = custoIndisp * horas * (pct / 100);
-        impactoAltoRestauracao = custoRestauracao * pessoas * horasRestauracao;
-      }
+      sistema = (sistemaRows[0] as SistemaRow) ?? null;
+      if (sistema) sistemaNome = sistema.nome;
     }
 
-    const impactoCriticoTotal = impactoCriticoIndisponibilidade + impactoCriticoRestauracao;
-    const impactoAltoTotal = impactoAltoIndisponibilidade + impactoAltoRestauracao;
+    const {
+      impactoCriticoIndisponibilidade,
+      impactoCriticoRestauracao,
+      impactoCriticoTotal,
+      impactoAltoIndisponibilidade,
+      impactoAltoRestauracao,
+      impactoAltoTotal,
+    } = calcularImpactoFinanceiro(sistema, {
+      duracaoHoras,
+      percentualDegradacao,
+      restauracaoPessoas,
+      restauracaoHoras,
+    });
 
     // ---- Gravação no banco ----
     const projetoRows = await sql`SELECT nome FROM projetos WHERE id = ${projetoId}`;
