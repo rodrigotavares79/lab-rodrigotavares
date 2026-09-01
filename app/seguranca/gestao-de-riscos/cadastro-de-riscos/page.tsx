@@ -2,6 +2,7 @@
 
 import { useState, useEffect, FormEvent } from "react";
 import Footer from "@/components/Footer";
+import ImportarRiscosCSV from "@/components/ImportarRiscosCSV";
 
 const NIVEIS = [
   { value: 1, label: "1 — Muito Baixo" },
@@ -31,6 +32,7 @@ function formatBRL(value: number): string {
 }
 
 export default function CadastroDeRiscos() {
+  const [modo, setModo] = useState<"form" | "csv">("form");
   const [impacto, setImpacto] = useState(0);
   const [probabilidade, setProbabilidade] = useState(0);
   const [enviando, setEnviando] = useState(false);
@@ -167,6 +169,26 @@ export default function CadastroDeRiscos() {
             Formulário de cadastro de riscos de TI — identificação e análise.
           </p>
 
+          <div className="mode-tabs">
+            <button
+              type="button"
+              className={modo === "form" ? "mode-tab mode-tab-active" : "mode-tab"}
+              onClick={() => setModo("form")}
+            >
+              Cadastro Individual
+            </button>
+            <button
+              type="button"
+              className={modo === "csv" ? "mode-tab mode-tab-active" : "mode-tab"}
+              onClick={() => setModo("csv")}
+            >
+              Importação em Lote (CSV)
+            </button>
+          </div>
+
+          {modo === "csv" ? (
+            <ImportarRiscosCSV />
+          ) : (
           <form className="risk-form" onSubmit={handleSubmit}>
             <fieldset className="form-section">
               <legend>Identificação do Risco</legend>
@@ -446,6 +468,7 @@ export default function CadastroDeRiscos() {
               </div>
             )}
           </form>
+          )}
 
           <a
             href="/seguranca/gestao-de-riscos"
