@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { neon } from "@neondatabase/serverless";
 
 function escapeHtml(value: unknown): string {
   const str = String(value ?? "");
@@ -9,26 +10,98 @@ function escapeHtml(value: unknown): string {
     .replace(/"/g, "&quot;");
 }
 
+function formatBRL(value: number): string {
+  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json();
 
     const {
+      projetoId,
       categoria,
       gatilho,
       resultado,
       levantadoPor,
       dataLevantamento,
       fonte,
+      impacto,
+      probabilidade,
       impactoLabel,
       probabilidadeLabel,
       matrixScore,
       classificacaoLabel,
+      sistemaCriticoId,
+      duracaoHoras,
+      percentualDegradacao,
+      restauracaoPessoas,
+      restauracaoHoras,
     } = data ?? {};
 
     if (!levantadoPor || typeof levantadoPor !== "string" || !levantadoPor.includes("@")) {
       return NextResponse.json({ error: "E-mail de 'Levantado Por' inválido." }, { status: 400 });
     }
+    if (!projetoId) {
+      return NextResponse.json({ error: "Projeto é obrigatório." }, { status: 400 });
+    }
+
+    const sql = neon(process.env.DATABASE_URL!);
+
+    // ---- Cálculo do impacto financeiro (feito no servidor, nunca confiando no cliente) ----
+    let impactoCriticoIndisponibilidade = 0;
+    let impactoCriticoRestauracao = 0;
+    let impactoAltoIndisponibilidade = 0;
+    let impactoAltoRestauracao = 0;
+    let sistemaNome: string | null = null;
+
+    if (sistemaCriticoId) {
+      const sistemaRows = await sql`
+        SELECT nome, custo_indisponibilidade_hora, custo_restauracao_hora_homem
+        FROM sistemas_criticos WHERE id = ${sistemaCriticoId}
+      `;
+      const sistema = sistemaRows[0];
+      if (sistema) {
+        sistemaNome = sistema.nome;
+        const custoIndisp = Number(sistema.custo_indisponibilidade_hora) || 0;
+        const custoRestauracao = Number(sistema.custo_restauracao_hora_homem) || 0;
+        const horas = Number(duracaoHoras) || 0;
+        const pct = Number(percentualDegradacao) || 0;
+        const pessoas = Number(restauracaoPessoas) || 0;
+        const horasRestauracao = Number(restauracaoHoras) || 0;
+
+        impactoCriticoIndisponibilidade = custoIndisp * horas;
+        impactoCriticoRestauracao = custoRestauracao * pessoas * horasRestauracao;
+
+        impactoAltoIndisponibilidade = custoIndisp * horas * (pct / 100);
+        impactoAltoRestauracao = custoRestauracao * pessoas * horasRestauracao;
+      }
+    }
+
+    const impactoCriticoTotal = impactoCriticoIndisponibilidade + impactoCriticoRestauracao;
+    const impactoAltoTotal = impactoAltoIndisponibilidade + impactoAltoRestauracao;
+
+    // ---- Gravação no banco ----
+    const projetoRows = await sql`SELECT nome FROM projetos WHERE id = ${projetoId}`;
+    const projetoNome = projetoRows[0]?.nome ?? "—";
+
+    await sql`
+      INSERT INTO riscos (
+        projeto_id, categoria, gatilho, resultado_potencial, levantado_por,
+        data_levantamento, fonte, impacto, probabilidade, matrix_score, impacto_qualitativo,
+        sistema_critico_id, duracao_horas, percentual_degradacao, restauracao_pessoas, restauracao_horas,
+        impacto_critico_indisponibilidade, impacto_critico_restauracao, impacto_critico_total,
+        impacto_alto_indisponibilidade, impacto_alto_restauracao, impacto_alto_total
+      ) VALUES (
+        ${projetoId}, ${categoria || null}, ${gatilho || null}, ${resultado || null}, ${levantadoPor},
+        ${dataLevantamento || null}, ${fonte || null}, ${impacto || null}, ${probabilidade || null},
+        ${matrixScore || null}, ${classificacaoLabel || null},
+        ${sistemaCriticoId || null}, ${duracaoHoras || null}, ${percentualDegradacao || null},
+        ${restauracaoPessoas || null}, ${restauracaoHoras || null},
+        ${impactoCriticoIndisponibilidade || null}, ${impactoCriticoRestauracao || null}, ${impactoCriticoTotal || null},
+        ${impactoAltoIndisponibilidade || null}, ${impactoAltoRestauracao || null}, ${impactoAltoTotal || null}
+      )
+    `;
 
     const apiKey = process.env.RESEND_API_KEY;
     if (!apiKey) {
@@ -36,6 +109,7 @@ export async function POST(request: NextRequest) {
     }
 
     const linhas: [string, string][] = [
+      ["Projeto", projetoNome],
       ["Categoria do Risco", categoria || "—"],
       ["Ponto de Gatilho", gatilho || "—"],
       ["Resultado Potencial", resultado || "—"],
@@ -47,6 +121,18 @@ export async function POST(request: NextRequest) {
       ["Pontuação da Matriz", matrixScore ? String(matrixScore) : "—"],
       ["Impacto Qualitativo", classificacaoLabel || "—"],
     ];
+
+    if (sistemaNome) {
+      linhas.push(["Sistema Crítico", sistemaNome]);
+      linhas.push([
+        "Impacto Financeiro — Evento Crítico",
+        `${formatBRL(impactoCriticoTotal)} (indisponibilidade: ${formatBRL(impactoCriticoIndisponibilidade)}; restauração: ${formatBRL(impactoCriticoRestauracao)})`,
+      ]);
+      linhas.push([
+        "Impacto Financeiro — Alto Impacto",
+        `${formatBRL(impactoAltoTotal)} (indisponibilidade: ${formatBRL(impactoAltoIndisponibilidade)}; restauração: ${formatBRL(impactoAltoRestauracao)})`,
+      ]);
+    }
 
     const linhasHtml = linhas
       .map(
@@ -102,7 +188,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Falha ao enviar o e-mail." }, { status: 502 });
     }
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({
+      ok: true,
+      impactoCritico: { indisponibilidade: impactoCriticoIndisponibilidade, restauracao: impactoCriticoRestauracao, total: impactoCriticoTotal },
+      impactoAlto: { indisponibilidade: impactoAltoIndisponibilidade, restauracao: impactoAltoRestauracao, total: impactoAltoTotal },
+    });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: "Erro interno ao processar o envio." }, { status: 500 });
