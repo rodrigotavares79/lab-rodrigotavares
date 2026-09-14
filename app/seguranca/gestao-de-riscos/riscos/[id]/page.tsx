@@ -35,14 +35,23 @@ type RiscoDetalhe = {
   criado_em: string;
 };
 
-type PlanoAcao = {
+type Acao = {
   id: number;
-  risco_id: number;
+  plano_acao_id: number;
   descricao: string;
   responsavel: string | null;
   prazo: string | null;
   status: string;
   criado_em: string;
+};
+
+type PlanoAcao = {
+  id: number;
+  risco_id: number;
+  titulo: string;
+  status: string;
+  criado_em: string;
+  acoes: Acao[];
 };
 
 const BADGE_POR_NIVEL: Record<string, string> = {
@@ -53,12 +62,17 @@ const BADGE_POR_NIVEL: Record<string, string> = {
 };
 
 function classeStatus(status: string | null): string {
-  if (status === "Resolvido") return "status-resolved";
+  if (status === "Mitigado") return "status-resolved";
   if (status === "Identificado") return "status-identified";
   return "status-pending";
 }
 
 function classeStatusPlano(status: string): string {
+  if (status === "Concluído") return "status-resolved";
+  return "status-pending";
+}
+
+function classeStatusAcao(status: string): string {
   if (status === "Concluído") return "status-resolved";
   if (status === "Em andamento") return "status-identified";
   return "status-pending";
@@ -79,7 +93,7 @@ function formatBRL(value: number | null): string {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-const STATUS_OPCOES = ["Identificado", "Em Tratamento", "Resolvido"];
+const STATUS_OPCOES = ["Identificado", "Em Tratamento", "Mitigado"];
 
 function LinhaCampo({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -87,6 +101,223 @@ function LinhaCampo({ label, value }: { label: string; value: React.ReactNode })
       <td style={{ color: "var(--text-muted)", width: "40%", whiteSpace: "normal" }}>{label}</td>
       <td style={{ fontWeight: 500, whiteSpace: "normal" }}>{value}</td>
     </tr>
+  );
+}
+
+/* ---------- Card de um Plano de Ação, com suas Ações dentro ---------- */
+
+function PlanoAcaoCard({
+  plano,
+  riscoMitigado,
+  onAtualizado,
+}: {
+  plano: PlanoAcao;
+  riscoMitigado: boolean;
+  onAtualizado: () => void;
+}) {
+  const [descricaoAcao, setDescricaoAcao] = useState("");
+  const [responsavelAcao, setResponsavelAcao] = useState("");
+  const [prazoAcao, setPrazoAcao] = useState("");
+  const [salvandoAcao, setSalvandoAcao] = useState(false);
+  const [erroAcao, setErroAcao] = useState<string | null>(null);
+  const [concluindo, setConcluindo] = useState(false);
+  const [erroConcluir, setErroConcluir] = useState<string | null>(null);
+
+  const planoAberto = plano.status !== "Concluído";
+  const podeAdicionarAcao = planoAberto && !riscoMitigado;
+  const todasConcluidas = plano.acoes.length > 0 && plano.acoes.every((a) => a.status === "Concluído");
+  const podeConcluirPlano = planoAberto && !riscoMitigado && todasConcluidas;
+
+  async function handleAdicionarAcao(e: React.FormEvent) {
+    e.preventDefault();
+    setSalvandoAcao(true);
+    setErroAcao(null);
+    try {
+      const res = await fetch("/api/acoes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          planoAcaoId: plano.id,
+          descricao: descricaoAcao,
+          responsavel: responsavelAcao || null,
+          prazo: prazoAcao || null,
+        }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || "Falha ao cadastrar a ação.");
+      setDescricaoAcao("");
+      setResponsavelAcao("");
+      setPrazoAcao("");
+      onAtualizado();
+    } catch (err) {
+      setErroAcao(err instanceof Error ? err.message : "Erro ao cadastrar a ação.");
+    } finally {
+      setSalvandoAcao(false);
+    }
+  }
+
+  async function handleAtualizarStatusAcao(acaoId: number, novoStatus: string) {
+    try {
+      const res = await fetch(`/api/acoes/${acaoId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: novoStatus }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || "Falha ao atualizar a ação.");
+      onAtualizado();
+    } catch (err) {
+      setErroAcao(err instanceof Error ? err.message : "Erro ao atualizar a ação.");
+    }
+  }
+
+  async function handleConcluirPlano() {
+    setConcluindo(true);
+    setErroConcluir(null);
+    try {
+      const res = await fetch(`/api/planos-acao/${plano.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "Concluído" }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || "Falha ao concluir o plano de ação.");
+      onAtualizado();
+    } catch (err) {
+      setErroConcluir(err instanceof Error ? err.message : "Erro ao concluir o plano de ação.");
+    } finally {
+      setConcluindo(false);
+    }
+  }
+
+  return (
+    <div className="dash-panel" style={{ marginBottom: "1rem" }}>
+      <div
+        className="dash-panel-header"
+        style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.75rem" }}
+      >
+        <span>{plano.titulo}</span>
+        <span
+          className={classeStatusPlano(plano.status)}
+          style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.04em", background: "rgba(255,255,255,0.15)", padding: "0.15rem 0.5rem", borderRadius: "3px", color: "#fff" }}
+        >
+          {plano.status}
+        </span>
+      </div>
+      <div className="dash-panel-body">
+        {plano.acoes.length === 0 ? (
+          <p className="text-muted" style={{ fontSize: "0.85rem", marginTop: 0 }}>
+            Nenhuma ação cadastrada neste plano ainda.
+          </p>
+        ) : (
+          <div className="dash-table-scroll" style={{ marginBottom: "1.25rem" }}>
+            <table className="dash-table">
+              <thead>
+                <tr>
+                  <th>Descrição</th>
+                  <th>Responsável</th>
+                  <th>Prazo</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {plano.acoes.map((a) => (
+                  <tr key={a.id}>
+                    <td style={{ whiteSpace: "normal", minWidth: "14rem" }}>{a.descricao}</td>
+                    <td>{a.responsavel || "—"}</td>
+                    <td>{formatData(a.prazo)}</td>
+                    <td>
+                      <select
+                        value={a.status}
+                        disabled={riscoMitigado}
+                        onChange={(e) => handleAtualizarStatusAcao(a.id, e.target.value)}
+                        className={classeStatusAcao(a.status)}
+                        style={{ fontSize: "0.8rem", border: "1px solid var(--border)", borderRadius: "3px", padding: "0.3rem 0.4rem", background: "var(--bg)" }}
+                      >
+                        {["Não iniciado", "Em andamento", "Concluído"].map((s) => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
+                      </select>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {riscoMitigado && (
+          <p className="field-helper" style={{ margin: 0 }}>
+            Este risco foi mitigado — este plano está congelado e não pode mais ser alterado.
+          </p>
+        )}
+
+        {!riscoMitigado && !planoAberto && (
+          <p className="field-helper" style={{ margin: 0 }}>
+            Plano concluído — não é possível cadastrar novas ações nele.
+          </p>
+        )}
+
+        {podeAdicionarAcao && (
+          <>
+            <p style={{ fontSize: "0.8rem", fontWeight: 600, marginTop: "0.5rem", marginBottom: "0.75rem" }}>
+              Nova ação
+            </p>
+            <form onSubmit={handleAdicionarAcao} className="form-grid" style={{ maxWidth: "32rem" }}>
+              <div className="form-field form-field-wide">
+                <label>Descrição</label>
+                <textarea
+                  value={descricaoAcao}
+                  onChange={(e) => setDescricaoAcao(e.target.value)}
+                  placeholder="Ex.: Contratar link redundante com operadora alternativa."
+                  required
+                />
+              </div>
+              <div className="form-field">
+                <label>Responsável</label>
+                <input
+                  type="text"
+                  value={responsavelAcao}
+                  onChange={(e) => setResponsavelAcao(e.target.value)}
+                  placeholder="Nome ou e-mail"
+                />
+              </div>
+              <div className="form-field">
+                <label>Prazo</label>
+                <input type="date" value={prazoAcao} onChange={(e) => setPrazoAcao(e.target.value)} />
+              </div>
+              <div className="form-field-wide form-actions">
+                <button type="submit" className="btn-primary" disabled={salvandoAcao}>
+                  {salvandoAcao ? "Salvando..." : "Adicionar ação"}
+                </button>
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={handleConcluirPlano}
+                  disabled={!podeConcluirPlano || concluindo}
+                  title={!todasConcluidas ? "Todas as ações precisam estar concluídas" : ""}
+                  style={{ background: "var(--text-muted)" }}
+                >
+                  {concluindo ? "Concluindo..." : "Concluir plano de ação"}
+                </button>
+              </div>
+              {erroAcao && (
+                <div className="error-banner form-field-wide" style={{ marginTop: 0 }}>
+                  <span className="success-icon error-icon">!</span>
+                  <span className="success-text">{erroAcao}</span>
+                </div>
+              )}
+              {erroConcluir && (
+                <div className="error-banner form-field-wide" style={{ marginTop: 0 }}>
+                  <span className="success-icon error-icon">!</span>
+                  <span className="success-text">{erroConcluir}</span>
+                </div>
+              )}
+            </form>
+          </>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -152,12 +383,9 @@ export default function DetalheDoRisco() {
     }
   }
 
-
   const [planos, setPlanos] = useState<PlanoAcao[]>([]);
   const [carregandoPlanos, setCarregandoPlanos] = useState(true);
-  const [descricaoPlano, setDescricaoPlano] = useState("");
-  const [responsavelPlano, setResponsavelPlano] = useState("");
-  const [prazoPlano, setPrazoPlano] = useState("");
+  const [tituloPlano, setTituloPlano] = useState("");
   const [salvandoPlano, setSalvandoPlano] = useState(false);
   const [erroPlano, setErroPlano] = useState<string | null>(null);
 
@@ -185,18 +413,11 @@ export default function DetalheDoRisco() {
       const res = await fetch("/api/planos-acao", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          riscoId: risco.id,
-          descricao: descricaoPlano,
-          responsavel: responsavelPlano || null,
-          prazo: prazoPlano || null,
-        }),
+        body: JSON.stringify({ riscoId: risco.id, titulo: tituloPlano }),
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || "Falha ao cadastrar o plano de ação.");
-      setDescricaoPlano("");
-      setResponsavelPlano("");
-      setPrazoPlano("");
+      setTituloPlano("");
       carregarPlanos();
     } catch (err) {
       setErroPlano(err instanceof Error ? err.message : "Erro ao cadastrar o plano de ação.");
@@ -205,21 +426,7 @@ export default function DetalheDoRisco() {
     }
   }
 
-  async function handleAtualizarStatusPlano(planoId: number, novoStatus: string) {
-    try {
-      const res = await fetch(`/api/planos-acao/${planoId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: novoStatus }),
-      });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.error || "Falha ao atualizar o plano de ação.");
-      carregarPlanos();
-    } catch (err) {
-      setErroPlano(err instanceof Error ? err.message : "Erro ao atualizar o plano de ação.");
-    }
-  }
-
+  const riscoMitigado = risco?.status === "Mitigado";
 
   return (
     <>
@@ -344,51 +551,61 @@ export default function DetalheDoRisco() {
                     </div>
                   </div>
 
-                  <p className="field-helper" style={{ marginTop: 0, marginBottom: "1rem" }}>
-                    Depois de implementar uma medida de mitigação, reavalie impacto e/ou
-                    probabilidade abaixo. O nível inicial não muda — ele fica registrado como
-                    referência histórica de antes da mitigação.
-                  </p>
+                  {riscoMitigado ? (
+                    <div className="field-helper" style={{ margin: 0 }}>
+                      Este risco foi mitigado e não pode mais ser alterado.
+                    </div>
+                  ) : (
+                    <>
+                      <p className="field-helper" style={{ marginTop: 0, marginBottom: "1rem" }}>
+                        Depois de implementar uma medida de mitigação, reavalie impacto e/ou
+                        probabilidade abaixo. Ao marcar o status como <strong>Mitigado</strong>, o risco
+                        é congelado — não poderá mais ser alterado, nem novos planos de ação
+                        cadastrados nele. O nível inicial não muda — ele fica registrado como
+                        referência histórica de antes da mitigação.
+                      </p>
 
-                  <form onSubmit={handleReavaliar} className="form-grid" style={{ maxWidth: "30rem" }}>
-                    <div className="form-field">
-                      <label htmlFor="impactoForm">Impacto (1–5)</label>
-                      <select id="impactoForm" value={impactoForm} onChange={(e) => setImpactoForm(e.target.value)}>
-                        <option value="">—</option>
-                        {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}
-                      </select>
-                    </div>
-                    <div className="form-field">
-                      <label htmlFor="probabilidadeForm">Probabilidade (1–5)</label>
-                      <select id="probabilidadeForm" value={probabilidadeForm} onChange={(e) => setProbabilidadeForm(e.target.value)}>
-                        <option value="">—</option>
-                        {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}
-                      </select>
-                    </div>
-                    <div className="form-field form-field-wide">
-                      <label htmlFor="statusForm">Status</label>
-                      <select id="statusForm" value={statusForm} onChange={(e) => setStatusForm(e.target.value)}>
-                        {STATUS_OPCOES.map((s) => <option key={s} value={s}>{s}</option>)}
-                      </select>
-                    </div>
-                    <div className="form-field-wide form-actions">
-                      <button type="submit" className="btn-primary" disabled={salvando}>
-                        {salvando ? "Salvando..." : "Salvar reavaliação"}
-                      </button>
-                      {sucessoSalvar && <span className="text-muted" style={{ fontSize: "0.85rem" }}>Reavaliação salva.</span>}
-                    </div>
-                    {erroSalvar && (
-                      <div className="error-banner form-field-wide" style={{ marginTop: 0 }}>
-                        <span className="success-icon error-icon">!</span>
-                        <span className="success-text">{erroSalvar}</span>
-                      </div>
-                    )}
-                  </form>
+                      <form onSubmit={handleReavaliar} className="form-grid" style={{ maxWidth: "30rem" }}>
+                        <div className="form-field">
+                          <label htmlFor="impactoForm">Impacto (1–5)</label>
+                          <select id="impactoForm" value={impactoForm} onChange={(e) => setImpactoForm(e.target.value)}>
+                            <option value="">—</option>
+                            {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}
+                          </select>
+                        </div>
+                        <div className="form-field">
+                          <label htmlFor="probabilidadeForm">Probabilidade (1–5)</label>
+                          <select id="probabilidadeForm" value={probabilidadeForm} onChange={(e) => setProbabilidadeForm(e.target.value)}>
+                            <option value="">—</option>
+                            {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}
+                          </select>
+                        </div>
+                        <div className="form-field form-field-wide">
+                          <label htmlFor="statusForm">Status</label>
+                          <select id="statusForm" value={statusForm} onChange={(e) => setStatusForm(e.target.value)}>
+                            {STATUS_OPCOES.map((s) => <option key={s} value={s}>{s}</option>)}
+                          </select>
+                        </div>
+                        <div className="form-field-wide form-actions">
+                          <button type="submit" className="btn-primary" disabled={salvando}>
+                            {salvando ? "Salvando..." : "Salvar reavaliação"}
+                          </button>
+                          {sucessoSalvar && <span className="text-muted" style={{ fontSize: "0.85rem" }}>Reavaliação salva.</span>}
+                        </div>
+                        {erroSalvar && (
+                          <div className="error-banner form-field-wide" style={{ marginTop: 0 }}>
+                            <span className="success-icon error-icon">!</span>
+                            <span className="success-text">{erroSalvar}</span>
+                          </div>
+                        )}
+                      </form>
+                    </>
+                  )}
                 </div>
               </div>
 
               <div className="dash-panel">
-                <div className="dash-panel-header">Plano de Ação</div>
+                <div className="dash-panel-header">Planos de Ação</div>
                 <div className="dash-panel-body">
                   {carregandoPlanos && <p className="text-muted" style={{ fontSize: "0.85rem" }}>Carregando planos...</p>}
 
@@ -398,93 +615,51 @@ export default function DetalheDoRisco() {
                     </p>
                   )}
 
-                  {!carregandoPlanos && planos.length > 0 && (
-                    <div className="dash-table-scroll" style={{ marginBottom: "1.5rem" }}>
-                      <table className="dash-table">
-                        <thead>
-                          <tr>
-                            <th>Descrição</th>
-                            <th>Responsável</th>
-                            <th>Prazo</th>
-                            <th>Status</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {planos.map((p) => (
-                            <tr key={p.id}>
-                              <td style={{ whiteSpace: "normal", minWidth: "16rem" }}>{p.descricao}</td>
-                              <td>{p.responsavel || "—"}</td>
-                              <td>{formatData(p.prazo)}</td>
-                              <td>
-                                <select
-                                  value={p.status}
-                                  onChange={(e) => handleAtualizarStatusPlano(p.id, e.target.value)}
-                                  className={classeStatusPlano(p.status)}
-                                  style={{ fontSize: "0.8rem", border: "1px solid var(--border)", borderRadius: "3px", padding: "0.3rem 0.4rem", background: "var(--bg)" }}
-                                >
-                                  {["Não iniciado", "Em andamento", "Concluído"].map((s) => (
-                                    <option key={s} value={s}>{s}</option>
-                                  ))}
-                                </select>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
+                  {!carregandoPlanos && planos.map((p) => (
+                    <PlanoAcaoCard key={p.id} plano={p} riscoMitigado={riscoMitigado} onAtualizado={carregarPlanos} />
+                  ))}
 
-                  <p style={{ fontSize: "0.8rem", fontWeight: 600, marginBottom: "0.75rem" }}>
-                    Novo plano de ação
-                  </p>
-                  <form onSubmit={handleCadastrarPlano} className="form-grid" style={{ maxWidth: "34rem" }}>
-                    <div className="form-field form-field-wide">
-                      <label htmlFor="descricaoPlano">Descrição</label>
-                      <textarea
-                        id="descricaoPlano"
-                        value={descricaoPlano}
-                        onChange={(e) => setDescricaoPlano(e.target.value)}
-                        placeholder="Ex.: Implantar redundância de link de internet no site principal."
-                        required
-                      />
-                    </div>
-                    <div className="form-field">
-                      <label htmlFor="responsavelPlano">Responsável</label>
-                      <input
-                        id="responsavelPlano"
-                        type="text"
-                        value={responsavelPlano}
-                        onChange={(e) => setResponsavelPlano(e.target.value)}
-                        placeholder="Nome ou e-mail"
-                      />
-                    </div>
-                    <div className="form-field">
-                      <label htmlFor="prazoPlano">Prazo</label>
-                      <input
-                        id="prazoPlano"
-                        type="date"
-                        value={prazoPlano}
-                        onChange={(e) => setPrazoPlano(e.target.value)}
-                      />
-                    </div>
-                    <div className="form-field-wide form-actions">
-                      <button type="submit" className="btn-primary" disabled={salvandoPlano}>
-                        {salvandoPlano ? "Salvando..." : "Adicionar plano de ação"}
-                      </button>
-                    </div>
-                    {erroPlano && (
-                      <div className="error-banner form-field-wide" style={{ marginTop: 0 }}>
-                        <span className="success-icon error-icon">!</span>
-                        <span className="success-text">{erroPlano}</span>
-                      </div>
-                    )}
-                  </form>
+                  {riscoMitigado ? (
+                    <p className="field-helper" style={{ margin: "1rem 0 0" }}>
+                      Este risco foi mitigado — não é possível cadastrar novos planos de ação.
+                    </p>
+                  ) : (
+                    <>
+                      <p style={{ fontSize: "0.8rem", fontWeight: 600, marginTop: "1rem", marginBottom: "0.75rem" }}>
+                        Novo plano de ação
+                      </p>
+                      <form onSubmit={handleCadastrarPlano} className="form-grid" style={{ maxWidth: "30rem" }}>
+                        <div className="form-field form-field-wide">
+                          <label htmlFor="tituloPlano">Título</label>
+                          <input
+                            id="tituloPlano"
+                            type="text"
+                            value={tituloPlano}
+                            onChange={(e) => setTituloPlano(e.target.value)}
+                            placeholder="Ex.: Redundância de link de internet"
+                            required
+                          />
+                        </div>
+                        <div className="form-field-wide form-actions">
+                          <button type="submit" className="btn-primary" disabled={salvandoPlano}>
+                            {salvandoPlano ? "Salvando..." : "Criar plano de ação"}
+                          </button>
+                        </div>
+                        {erroPlano && (
+                          <div className="error-banner form-field-wide" style={{ marginTop: 0 }}>
+                            <span className="success-icon error-icon">!</span>
+                            <span className="success-text">{erroPlano}</span>
+                          </div>
+                        )}
+                      </form>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
           )}
 
-          <a
+          
             href="/seguranca/gestao-de-riscos/riscos"
             className="status-tag"
             style={{ marginTop: "2.5rem", display: "inline-block" }}
