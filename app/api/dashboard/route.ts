@@ -10,8 +10,8 @@ export async function GET(request: NextRequest) {
       ? await sql`
           SELECT
             COUNT(*)::int AS total,
-            COUNT(*) FILTER (WHERE status = 'Resolvido')::int AS mitigados,
-            COUNT(*) FILTER (WHERE impacto_qualitativo = 'Crítico' AND status != 'Resolvido')::int AS criticos_abertos,
+            COUNT(*) FILTER (WHERE status = 'Mitigado')::int AS mitigados,
+            COUNT(*) FILTER (WHERE impacto_qualitativo = 'Crítico' AND status != 'Mitigado')::int AS criticos_abertos,
             COUNT(*) FILTER (WHERE status = 'Identificado')::int AS em_aberto,
             COALESCE(SUM(impacto_critico_total), 0)::float AS exposicao_critica,
             COALESCE(SUM(impacto_alto_total), 0)::float AS exposicao_alta
@@ -20,8 +20,8 @@ export async function GET(request: NextRequest) {
       : await sql`
           SELECT
             COUNT(*)::int AS total,
-            COUNT(*) FILTER (WHERE status = 'Resolvido')::int AS mitigados,
-            COUNT(*) FILTER (WHERE impacto_qualitativo = 'Crítico' AND status != 'Resolvido')::int AS criticos_abertos,
+            COUNT(*) FILTER (WHERE status = 'Mitigado')::int AS mitigados,
+            COUNT(*) FILTER (WHERE impacto_qualitativo = 'Crítico' AND status != 'Mitigado')::int AS criticos_abertos,
             COUNT(*) FILTER (WHERE status = 'Identificado')::int AS em_aberto,
             COALESCE(SUM(impacto_critico_total), 0)::float AS exposicao_critica,
             COALESCE(SUM(impacto_alto_total), 0)::float AS exposicao_alta
