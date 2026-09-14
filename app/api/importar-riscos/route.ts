@@ -21,6 +21,17 @@ type LinhaCsv = {
   restauracaoHoras?: string;
 };
 
+// mesma normalização usada no componente de upload (ImportarRiscosCSV.tsx),
+// aplicada agora também no servidor para não rejeitar linhas por acento/espaço
+function normalizarTexto(valor: string | undefined | null): string {
+  if (!valor) return "";
+  return valor
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
 function parseNumero(valor: string | undefined): number | null {
   if (valor === undefined || valor === null || valor.trim() === "") return null;
   const normalizado = valor.trim().replace(",", ".");
@@ -46,6 +57,11 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const linhas: LinhaCsv[] = Array.isArray(body?.linhas) ? body.linhas : [];
+    // números de linha (base 2, já contando o cabeçalho) que o usuário já
+    // confirmou explicitamente que quer importar mesmo suspeitando de duplicidade
+    const confirmarLinhas = new Set<number>(
+      Array.isArray(body?.confirmarLinhas) ? body.confirmarLinhas : []
+    );
 
     if (linhas.length === 0) {
       return NextResponse.json({ error: "Nenhuma linha para importar." }, { status: 400 });
@@ -61,7 +77,7 @@ export async function POST(request: NextRequest) {
 
     const projetoRows = await sql`SELECT id, nome FROM projetos`;
     const projetoPorNome = new Map<string, number>(
-      projetoRows.map((p: any) => [String(p.nome).trim().toLowerCase(), p.id])
+      projetoRows.map((p: any) => [normalizarTexto(String(p.nome)), p.id])
     );
 
     const sistemaRows = await sql`
@@ -69,11 +85,21 @@ export async function POST(request: NextRequest) {
       FROM sistemas_criticos
     `;
     const sistemaPorProjetoNome = new Map<string, any>(
-      sistemaRows.map((s: any) => [`${s.projeto_id}::${String(s.nome).trim().toLowerCase()}`, s])
+      sistemaRows.map((s: any) => [`${s.projeto_id}::${normalizarTexto(String(s.nome))}`, s])
     );
+
+    // Riscos já existentes no banco, para detectar suspeita de duplicidade.
+    // Critério: mesmo Projeto + mesmo Ponto de Gatilho (nome normalizado).
+    const riscosExistentes = await sql`SELECT projeto_id, gatilho FROM riscos WHERE gatilho IS NOT NULL`;
+    const chavesExistentes = new Set<string>(
+      riscosExistentes.map((r: any) => `${r.projeto_id}::${normalizarTexto(String(r.gatilho))}`)
+    );
+    // chaves já usadas dentro deste próprio arquivo (linha anterior do mesmo CSV)
+    const chavesNoBatch = new Set<string>();
 
     const erros: { linha: number; motivo: string }[] = [];
     const avisos: { linha: number; motivo: string }[] = [];
+    const suspeitas: { linha: number; motivo: string }[] = [];
     const paraInserir: any[] = [];
 
     linhas.forEach((linha, idx) => {
@@ -85,7 +111,7 @@ export async function POST(request: NextRequest) {
         erros.push({ linha: numeroLinha, motivo: "Projeto não informado." });
         return;
       }
-      const projetoId = projetoPorNome.get(projetoNome.toLowerCase());
+      const projetoId = projetoPorNome.get(normalizarTexto(projetoNome));
       if (!projetoId) {
         erros.push({ linha: numeroLinha, motivo: `Projeto "${projetoNome}" não encontrado.` });
         return;
@@ -120,7 +146,7 @@ export async function POST(request: NextRequest) {
       let sistema: any = null;
       const sistemaNome = (linha.sistemaCritico || "").trim();
       if (sistemaNome) {
-        sistema = sistemaPorProjetoNome.get(`${projetoId}::${sistemaNome.toLowerCase()}`);
+        sistema = sistemaPorProjetoNome.get(`${projetoId}::${normalizarTexto(sistemaNome)}`);
         if (!sistema) {
           avisos.push({
             linha: numeroLinha,
@@ -149,6 +175,24 @@ export async function POST(request: NextRequest) {
         });
       }
 
+      // Suspeita de duplicidade: mesmo Projeto + mesmo Ponto de Gatilho, seja
+      // contra um risco já existente no banco, seja contra outra linha deste
+      // mesmo arquivo. Se o usuário já confirmou esta linha numa segunda
+      // chamada (confirmarLinhas), a suspeita é ignorada e a linha é inserida.
+      const gatilhoNormalizado = normalizarTexto(linha.gatilho);
+      if (gatilhoNormalizado) {
+        const chave = `${projetoId}::${gatilhoNormalizado}`;
+        const suspeita = chavesExistentes.has(chave) || chavesNoBatch.has(chave);
+        if (suspeita && !confirmarLinhas.has(numeroLinha)) {
+          suspeitas.push({
+            linha: numeroLinha,
+            motivo: `Já existe um risco com o mesmo Projeto e Ponto de Gatilho ("${(linha.gatilho || "").trim()}"). Confirme se quer importar mesmo assim.`,
+          });
+          return;
+        }
+        chavesNoBatch.add(chave);
+      }
+
       paraInserir.push({
         projetoId,
         categoria: linha.categoria || null,
@@ -174,13 +218,15 @@ export async function POST(request: NextRequest) {
       await sql`
         INSERT INTO riscos (
           projeto_id, categoria, gatilho, resultado_potencial, levantado_por,
-          data_levantamento, fonte, impacto, probabilidade, matrix_score, impacto_qualitativo,
+          data_levantamento, fonte, impacto, probabilidade, matrix_score,
+          nivel_inicial, impacto_qualitativo,
           sistema_critico_id, duracao_horas, percentual_degradacao, restauracao_pessoas, restauracao_horas,
           impacto_critico_indisponibilidade, impacto_critico_restauracao, impacto_critico_total,
           impacto_alto_indisponibilidade, impacto_alto_restauracao, impacto_alto_total
         ) VALUES (
           ${r.projetoId}, ${r.categoria}, ${r.gatilho}, ${r.resultado}, ${r.levantadoPor},
-          ${r.dataLevantamento}, ${r.fonte}, ${r.impacto}, ${r.probabilidade}, ${r.matrixScore}, ${r.classificacao},
+          ${r.dataLevantamento}, ${r.fonte}, ${r.impacto}, ${r.probabilidade}, ${r.matrixScore},
+          ${r.classificacao}, ${r.classificacao},
           ${r.sistemaCriticoId}, ${r.duracaoHoras}, ${r.percentualDegradacao}, ${r.restauracaoPessoas}, ${r.restauracaoHoras},
           ${r.impactoCriticoIndisponibilidade || null}, ${r.impactoCriticoRestauracao || null}, ${r.impactoCriticoTotal || null},
           ${r.impactoAltoIndisponibilidade || null}, ${r.impactoAltoRestauracao || null}, ${r.impactoAltoTotal || null}
@@ -193,6 +239,7 @@ export async function POST(request: NextRequest) {
       inseridos: paraInserir.length,
       erros,
       avisos,
+      suspeitas,
     });
   } catch (err) {
     console.error(err);
