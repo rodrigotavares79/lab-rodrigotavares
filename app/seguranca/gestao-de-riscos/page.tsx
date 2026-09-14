@@ -13,6 +13,7 @@ export default function GestaoDeRiscos() {
               <a href="/seguranca/gestao-de-riscos/politica">Política</a>
               <a href="/seguranca/gestao-de-riscos/processo">Processo</a>
               <a href="/seguranca/gestao-de-riscos/cadastro-de-riscos">Cadastro de Riscos</a>
+              <a href="/seguranca/gestao-de-riscos/riscos">Lista de Riscos</a>
               <a href="/seguranca/gestao-de-riscos/dashboard">Dashboard</a>
             </nav>
 
@@ -47,6 +48,11 @@ export default function GestaoDeRiscos() {
                     <strong>Cadastro de Riscos</strong> — o formulário onde
                     os riscos são registrados individualmente, com sua
                     identificação e análise de impacto.
+                  </li>
+                  <li>
+                    <strong>Lista de Riscos</strong> — todos os riscos
+                    cadastrados individualmente, com acesso ao detalhe, nível
+                    atual e plano de ação de cada um.
                   </li>
                   <li>
                     <strong>Dashboard</strong> — a visão executiva com
