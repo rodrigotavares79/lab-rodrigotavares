@@ -40,6 +40,52 @@ export async function GET(request: NextRequest) {
           GROUP BY impacto_qualitativo
         `;
 
+    // Mesma distribuição, mas pelo NÍVEL INICIAL (o que foi calculado na
+    // criação do risco, antes de qualquer mitigação) — para comparar lado a
+    // lado com a distribuição atual no gráfico "Nível Inicial x Atual".
+    const niveisIniciais = projetoId
+      ? await sql`
+          SELECT nivel_inicial AS nivel, COUNT(*)::int AS total
+          FROM riscos WHERE nivel_inicial IS NOT NULL AND projeto_id = ${projetoId}
+          GROUP BY nivel_inicial
+        `
+      : await sql`
+          SELECT nivel_inicial AS nivel, COUNT(*)::int AS total
+          FROM riscos WHERE nivel_inicial IS NOT NULL
+          GROUP BY nivel_inicial
+        `;
+
+    // Compara nível inicial x nível atual, risco a risco, convertendo cada
+    // nível em um rank numérico (Baixo=1 ... Crítico=4) para saber se o risco
+    // melhorou, se manteve ou piorou desde que foi criado.
+    const mitigacaoRows = projetoId
+      ? await sql`
+          SELECT
+            COUNT(*) FILTER (WHERE rank_atual < rank_inicial)::int AS melhorou,
+            COUNT(*) FILTER (WHERE rank_atual = rank_inicial)::int AS manteve,
+            COUNT(*) FILTER (WHERE rank_atual > rank_inicial)::int AS piorou
+          FROM (
+            SELECT
+              CASE nivel_inicial WHEN 'Baixo' THEN 1 WHEN 'Médio' THEN 2 WHEN 'Alto' THEN 3 WHEN 'Crítico' THEN 4 END AS rank_inicial,
+              CASE impacto_qualitativo WHEN 'Baixo' THEN 1 WHEN 'Médio' THEN 2 WHEN 'Alto' THEN 3 WHEN 'Crítico' THEN 4 END AS rank_atual
+            FROM riscos
+            WHERE projeto_id = ${projetoId} AND nivel_inicial IS NOT NULL AND impacto_qualitativo IS NOT NULL
+          ) t
+        `
+      : await sql`
+          SELECT
+            COUNT(*) FILTER (WHERE rank_atual < rank_inicial)::int AS melhorou,
+            COUNT(*) FILTER (WHERE rank_atual = rank_inicial)::int AS manteve,
+            COUNT(*) FILTER (WHERE rank_atual > rank_inicial)::int AS piorou
+          FROM (
+            SELECT
+              CASE nivel_inicial WHEN 'Baixo' THEN 1 WHEN 'Médio' THEN 2 WHEN 'Alto' THEN 3 WHEN 'Crítico' THEN 4 END AS rank_inicial,
+              CASE impacto_qualitativo WHEN 'Baixo' THEN 1 WHEN 'Médio' THEN 2 WHEN 'Alto' THEN 3 WHEN 'Crítico' THEN 4 END AS rank_atual
+            FROM riscos
+            WHERE nivel_inicial IS NOT NULL AND impacto_qualitativo IS NOT NULL
+          ) t
+        `;
+
     const categorias = projetoId
       ? await sql`
           SELECT categoria, COUNT(*)::int AS total
@@ -93,6 +139,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       kpis: kpisRows[0],
       niveis,
+      niveisIniciais,
+      mitigacao: mitigacaoRows[0],
       categorias,
       evolucao,
       ranking,
