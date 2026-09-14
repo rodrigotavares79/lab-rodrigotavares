@@ -13,6 +13,7 @@ type Kpis = {
   exposicao_alta: number;
 };
 type NivelRisco = { nivel: string; total: number };
+type Mitigacao = { melhorou: number; manteve: number; piorou: number };
 type Categoria = { categoria: string; total: number };
 type Evolucao = { mes: string; total: number };
 type RankingItem = {
@@ -28,6 +29,8 @@ type ConsolidadoItem = { projeto: string; total: number; criticos: number; expos
 type DashboardData = {
   kpis: Kpis;
   niveis: NivelRisco[];
+  niveisIniciais: NivelRisco[];
+  mitigacao: Mitigacao;
   categorias: Categoria[];
   evolucao: Evolucao[];
   ranking: RankingItem[];
@@ -118,6 +121,16 @@ export default function Dashboard() {
   const evolucao = data?.evolucao || [];
   const ranking = data?.ranking || [];
   const consolidado = data?.consolidado || [];
+  const mitigacao = data?.mitigacao;
+
+  const ORDEM_NIVEIS = ["Baixo", "Médio", "Alto", "Crítico"];
+  const totalPorNivelAtual = new Map((data?.niveis || []).map((n) => [n.nivel, n.total]));
+  const totalPorNivelInicial = new Map((data?.niveisIniciais || []).map((n) => [n.nivel, n.total]));
+  const comparativoNiveis = ORDEM_NIVEIS.map((nivel) => ({
+    nivel,
+    inicial: totalPorNivelInicial.get(nivel) || 0,
+    atual: totalPorNivelAtual.get(nivel) || 0,
+  }));
 
   const donut = donutSegments(niveis, 70);
 
@@ -129,6 +142,13 @@ export default function Dashboard() {
   const catMax = Math.max(1, ...categorias.map((c) => c.total));
   const barGap = 14;
   const barWidth = categorias.length ? (barW - barGap * (categorias.length - 1)) / categorias.length : barW;
+
+  const compW = 600, compH = 160;
+  const compMax = Math.max(1, ...comparativoNiveis.flatMap((c) => [c.inicial, c.atual]));
+  const compGroupGap = 20;
+  const compSubGap = 4;
+  const compGroupWidth = (compW - compGroupGap * (comparativoNiveis.length - 1)) / comparativoNiveis.length;
+  const compSubWidth = (compGroupWidth - compSubGap) / 2;
 
   const semDados = !carregando && !erro && kpis?.total === 0;
 
@@ -310,6 +330,63 @@ export default function Dashboard() {
                       {projetoId ? " neste projeto" : ""}.
                     </p>
                   </div>
+                </div>
+              </div>
+
+              <div className="dash-panel">
+                <div className="dash-panel-header">Nível Inicial x Nível Atual</div>
+                <div className="dash-panel-body">
+                  <p className="text-muted" style={{ fontSize: "0.82rem", marginTop: 0, marginBottom: "1rem" }}>
+                    Compara o nível calculado na criação de cada risco com o nível atual, depois de
+                    eventuais reavaliações pós-mitigação{projetoId ? " neste projeto" : ""}.
+                  </p>
+
+                  {mitigacao && (
+                    <div className="kpi-grid" style={{ gridTemplateColumns: "repeat(3, 1fr)", marginBottom: "1.5rem" }}>
+                      <div className="kpi-card">
+                        <div className="kpi-card-header" style={{ background: "#3f7d58" }}>Melhoraram de nível</div>
+                        <div className="kpi-card-value">{mitigacao.melhorou}</div>
+                      </div>
+                      <div className="kpi-card">
+                        <div className="kpi-card-header" style={{ background: "#6b6b66" }}>Sem mudança de nível</div>
+                        <div className="kpi-card-value">{mitigacao.manteve}</div>
+                      </div>
+                      <div className="kpi-card">
+                        <div className="kpi-card-header" style={{ background: "#a3242f" }}>Pioraram de nível</div>
+                        <div className="kpi-card-value">{mitigacao.piorou}</div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="legend-row">
+                    <span><span className="legend-dot" style={{ background: "#c7cdd3" }} />Nível inicial</span>
+                    <span><span className="legend-dot" style={{ background: "#2b3a4a" }} />Nível atual</span>
+                  </div>
+
+                  {comparativoNiveis.every((c) => c.inicial === 0 && c.atual === 0) ? (
+                    <p className="text-muted" style={{ margin: 0, fontSize: "0.85rem" }}>Sem dados suficientes.</p>
+                  ) : (
+                    <svg viewBox={`0 0 ${compW} ${compH + 24}`} width="100%" role="img" aria-label="Comparativo entre nível inicial e nível atual dos riscos">
+                      {comparativoNiveis.map((c, i) => {
+                        const x = i * (compGroupWidth + compGroupGap);
+                        const hIni = (c.inicial / compMax) * compH;
+                        const hAtu = (c.atual / compMax) * compH;
+                        return (
+                          <g key={c.nivel}>
+                            <rect x={x} y={compH - hIni} width={compSubWidth} height={hIni} fill="#c7cdd3" rx="2" />
+                            {c.inicial > 0 && (
+                              <text x={x + compSubWidth / 2} y={compH - hIni - 6} fontSize="10" fill="#1a1a18" textAnchor="middle">{c.inicial}</text>
+                            )}
+                            <rect x={x + compSubWidth + compSubGap} y={compH - hAtu} width={compSubWidth} height={hAtu} fill="#2b3a4a" rx="2" />
+                            {c.atual > 0 && (
+                              <text x={x + compSubWidth + compSubGap + compSubWidth / 2} y={compH - hAtu - 6} fontSize="10" fill="#1a1a18" textAnchor="middle">{c.atual}</text>
+                            )}
+                            <text x={x + compGroupWidth / 2} y={compH + 16} fontSize="9" fill="#6b6b66" textAnchor="middle">{c.nivel}</text>
+                          </g>
+                        );
+                      })}
+                    </svg>
+                  )}
                 </div>
               </div>
 
