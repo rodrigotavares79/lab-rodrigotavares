@@ -66,8 +66,11 @@ function classeStatusPlano(status: string): string {
 
 function formatData(iso: string | null): string {
   if (!iso) return "—";
-  const [ano, mes, dia] = iso.split("-");
-  if (!ano || !mes || !dia) return iso;
+  // colunas DATE podem vir do driver como "2026-08-24" ou como
+  // "2026-08-24T00:00:00.000Z" (quando o driver as trata como Date) —
+  // pegamos só os 10 primeiros caracteres (YYYY-MM-DD) em ambos os casos.
+  const [ano, mes, dia] = String(iso).slice(0, 10).split("-");
+  if (!ano || !mes || !dia) return String(iso);
   return `${dia}/${mes}/${ano}`;
 }
 
