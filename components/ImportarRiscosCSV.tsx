@@ -46,11 +46,14 @@ function normalizarTexto(t: string) {
     .replace(/[\u0300-\u036f]/g, "");
 }
 
+type Suspeita = { linha: number; motivo: string };
+
 type ResultadoImportacao = {
   totalLinhas: number;
   inseridos: number;
   erros: { linha: number; motivo: string }[];
   avisos: { linha: number; motivo: string }[];
+  suspeitas: Suspeita[];
 };
 
 export default function ImportarRiscosCSV() {
@@ -59,6 +62,7 @@ export default function ImportarRiscosCSV() {
   const [erroParse, setErroParse] = useState<string | null>(null);
   const [importando, setImportando] = useState(false);
   const [resultado, setResultado] = useState<ResultadoImportacao | null>(null);
+  const [selecionadasParaConfirmar, setSelecionadasParaConfirmar] = useState<Set<number>>(new Set());
 
   function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -67,6 +71,7 @@ export default function ImportarRiscosCSV() {
 
     setErroParse(null);
     setResultado(null);
+    setSelecionadasParaConfirmar(new Set());
     setNomeArquivo(file.name);
 
     Papa.parse<Record<string, string>>(file, {
@@ -122,21 +127,22 @@ export default function ImportarRiscosCSV() {
     });
   }
 
-  async function handleImportar() {
+  async function handleImportar(confirmarLinhas: number[] = []) {
     setImportando(true);
     setResultado(null);
     try {
       const res = await fetch("/api/importar-riscos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ linhas }),
+        body: JSON.stringify({ linhas, confirmarLinhas }),
       });
       const body = await res.json();
       if (!res.ok) {
         throw new Error(body.error || "Falha na importação.");
       }
       setResultado(body);
-      if (body.erros?.length === 0) {
+      setSelecionadasParaConfirmar(new Set());
+      if (body.erros?.length === 0 && (body.suspeitas?.length ?? 0) === 0) {
         setLinhas([]);
         setNomeArquivo("");
       }
@@ -145,6 +151,15 @@ export default function ImportarRiscosCSV() {
     } finally {
       setImportando(false);
     }
+  }
+
+  function toggleSuspeita(linha: number) {
+    setSelecionadasParaConfirmar((prev) => {
+      const nova = new Set(prev);
+      if (nova.has(linha)) nova.delete(linha);
+      else nova.add(linha);
+      return nova;
+    });
   }
 
   function limpar() {
@@ -225,7 +240,7 @@ export default function ImportarRiscosCSV() {
           )}
 
           <div className="form-actions" style={{ marginTop: "1rem" }}>
-            <button type="button" className="btn-primary" onClick={handleImportar} disabled={importando}>
+            <button type="button" className="btn-primary" onClick={() => handleImportar()} disabled={importando}>
               {importando ? "Importando..." : `Importar ${linhas.length} registro${linhas.length > 1 ? "s" : ""}`}
             </button>
             <button
@@ -252,6 +267,9 @@ export default function ImportarRiscosCSV() {
               {resultado.erros.length > 0 && (
                 <span>{resultado.erros.length} linha{resultado.erros.length > 1 ? "s" : ""} com erro, não importada{resultado.erros.length > 1 ? "s" : ""}.</span>
               )}
+              {resultado.suspeitas.length > 0 && (
+                <span>{resultado.suspeitas.length} linha{resultado.suspeitas.length > 1 ? "s" : ""} com suspeita de duplicidade — aguardando sua confirmação abaixo.</span>
+              )}
             </span>
           </div>
 
@@ -271,9 +289,51 @@ export default function ImportarRiscosCSV() {
             </ul>
           )}
 
-          <button type="button" className="btn-primary" onClick={limpar} style={{ marginTop: "1rem" }}>
-            Importar outro arquivo
-          </button>
+          {resultado.suspeitas.length > 0 && (
+            <>
+              <p style={{ fontSize: "0.85rem", marginTop: "1.25rem", fontWeight: 600 }}>
+                Suspeita de duplicidade — confirme quais quer importar mesmo assim
+              </p>
+              <ul className="csv-issue-list csv-issue-list-warning">
+                {resultado.suspeitas.map((s) => (
+                  <li key={s.linha}>
+                    <label style={{ display: "flex", gap: "0.6rem", alignItems: "flex-start", cursor: "pointer" }}>
+                      <input
+                        type="checkbox"
+                        checked={selecionadasParaConfirmar.has(s.linha)}
+                        onChange={() => toggleSuspeita(s.linha)}
+                        style={{ marginTop: "0.2rem" }}
+                      />
+                      <span><strong>Linha {s.linha}:</strong> {s.motivo}</span>
+                    </label>
+                  </li>
+                ))}
+              </ul>
+              <div className="form-actions" style={{ marginTop: "1rem" }}>
+                <button
+                  type="button"
+                  className="btn-primary"
+                  disabled={importando || selecionadasParaConfirmar.size === 0}
+                  onClick={() => handleImportar(Array.from(selecionadasParaConfirmar))}
+                >
+                  {importando ? "Importando..." : `Importar mesmo assim (${selecionadasParaConfirmar.size} selecionada${selecionadasParaConfirmar.size !== 1 ? "s" : ""})`}
+                </button>
+                <button
+                  type="button"
+                  onClick={limpar}
+                  style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: "0.85rem" }}
+                >
+                  Descartar as suspeitas e não importar essas linhas
+                </button>
+              </div>
+            </>
+          )}
+
+          {resultado.suspeitas.length === 0 && (
+            <button type="button" className="btn-primary" onClick={limpar} style={{ marginTop: "1rem" }}>
+              Importar outro arquivo
+            </button>
+          )}
         </div>
       )}
     </div>
