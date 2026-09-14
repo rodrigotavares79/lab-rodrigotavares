@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { classificarImpacto } from "@/lib/riscoUtils";
 
-const STATUS_VALIDOS = ["Identificado", "Em Tratamento", "Resolvido"];
+const STATUS_VALIDOS = ["Identificado", "Em Tratamento", "Mitigado"];
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -84,6 +84,15 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       return NextResponse.json({ error: "Risco não encontrado." }, { status: 404 });
     }
     const atual = atualRows[0];
+
+    // Congelamento: uma vez Mitigado, o risco nunca mais pode ser reavaliado
+    // (nem nível, nem status) — é um estado terminal.
+    if (atual.status === "Mitigado") {
+      return NextResponse.json(
+        { error: "Este risco já foi mitigado e não pode mais ser alterado." },
+        { status: 409 }
+      );
+    }
 
     const novoImpacto = impactoNum ?? atual.impacto;
     const novaProbabilidade = probabilidadeNum ?? atual.probabilidade;
