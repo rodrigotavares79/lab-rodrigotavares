@@ -84,14 +84,15 @@ export async function POST(request: NextRequest) {
     await sql`
       INSERT INTO riscos (
         projeto_id, categoria, gatilho, resultado_potencial, levantado_por,
-        data_levantamento, fonte, impacto, probabilidade, matrix_score, impacto_qualitativo,
+        data_levantamento, fonte, impacto, probabilidade, matrix_score,
+        nivel_inicial, impacto_qualitativo,
         sistema_critico_id, duracao_horas, percentual_degradacao, restauracao_pessoas, restauracao_horas,
         impacto_critico_indisponibilidade, impacto_critico_restauracao, impacto_critico_total,
         impacto_alto_indisponibilidade, impacto_alto_restauracao, impacto_alto_total
       ) VALUES (
         ${projetoId}, ${categoria || null}, ${gatilho || null}, ${resultado || null}, ${levantadoPor},
         ${dataLevantamento || null}, ${fonte || null}, ${impacto || null}, ${probabilidade || null},
-        ${matrixScore || null}, ${classificacaoLabel || null},
+        ${matrixScore || null}, ${classificacaoLabel || null}, ${classificacaoLabel || null},
         ${sistemaCriticoId || null}, ${duracaoHoras || null}, ${percentualDegradacao || null},
         ${restauracaoPessoas || null}, ${restauracaoHoras || null},
         ${impactoCriticoIndisponibilidade || null}, ${impactoCriticoRestauracao || null}, ${impactoCriticoTotal || null},
