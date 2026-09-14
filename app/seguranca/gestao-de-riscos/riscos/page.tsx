@@ -26,7 +26,7 @@ const BADGE_POR_NIVEL: Record<string, string> = {
 };
 
 function classeStatus(status: string | null): string {
-  if (status === "Resolvido") return "status-resolved";
+  if (status === "Mitigado") return "status-resolved";
   if (status === "Identificado") return "status-identified";
   return "status-pending";
 }
@@ -173,7 +173,7 @@ export default function ListaDeRiscos() {
             </div>
           )}
 
-          <a
+          
             href="/seguranca/gestao-de-riscos"
             className="status-tag"
             style={{ marginTop: "2.5rem", display: "inline-block" }}
