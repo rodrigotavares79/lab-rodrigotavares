@@ -20,11 +20,25 @@ type SistemaCritico = {
   custo_restauracao_hora_homem: string;
 };
 
-function classificarImpacto(score: number) {
-  if (score <= 4) return { label: "Baixo", className: "badge-baixo" };
-  if (score <= 9) return { label: "Médio", className: "badge-medio" };
-  if (score <= 15) return { label: "Alto", className: "badge-alto" };
-  return { label: "Crítico", className: "badge-critico" };
+const MATRIZ_5X5: number[][] = [
+  [1, 1, 1, 2, 3],
+  [1, 1, 2, 3, 3],
+  [1, 2, 2, 3, 4],
+  [1, 2, 3, 4, 4],
+  [2, 3, 4, 4, 4],
+];
+
+const NIVEL_RISCO: Record<number, { label: string; className: string }> = {
+  1: { label: "Baixo", className: "badge-baixo" },
+  2: { label: "Moderado", className: "badge-medio" },
+  3: { label: "Significativo", className: "badge-alto" },
+  4: { label: "Alto", className: "badge-critico" },
+};
+
+function classificarRisco(probabilidade: number, impacto: number) {
+  if (!probabilidade || !impacto) return null;
+  const nivel = MATRIZ_5X5[probabilidade - 1][impacto - 1];
+  return NIVEL_RISCO[nivel];
 }
 
 function formatBRL(value: number): string {
@@ -51,7 +65,7 @@ export default function CadastroDeRiscos() {
   const [restauracaoHoras, setRestauracaoHoras] = useState("");
 
   const score = impacto && probabilidade ? impacto * probabilidade : 0;
-  const classificacao = score ? classificarImpacto(score) : null;
+  const classificacao = classificarRisco(probabilidade, impacto);
   const impactoLabel = NIVEIS.find((n) => n.value === impacto)?.label ?? "";
   const probabilidadeLabel = NIVEIS.find((n) => n.value === probabilidade)?.label ?? "";
 
@@ -470,7 +484,7 @@ export default function CadastroDeRiscos() {
           </form>
           )}
 
-          <a
+          
             href="/seguranca/gestao-de-riscos"
             className="status-tag"
             style={{ marginTop: "2.5rem", display: "inline-block" }}
