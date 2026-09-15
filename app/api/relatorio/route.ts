@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
       SELECT
         COUNT(*)::int AS total,
         COUNT(*) FILTER (WHERE status = 'Mitigado')::int AS mitigados,
-        COUNT(*) FILTER (WHERE impacto_qualitativo = 'Crítico' AND status != 'Mitigado')::int AS criticos_abertos,
+        COUNT(*) FILTER (WHERE impacto_qualitativo = 'Alto' AND status != 'Mitigado')::int AS criticos_abertos,
         COALESCE(SUM(impacto_critico_total), 0)::float AS exposicao_critica,
         COALESCE(SUM(impacto_alto_total), 0)::float AS exposicao_alta
       FROM riscos WHERE projeto_id = ${projetoId}
@@ -34,19 +34,19 @@ export async function GET(request: NextRequest) {
         COUNT(*) FILTER (WHERE rank_atual > rank_inicial)::int AS piorou
       FROM (
         SELECT
-          CASE nivel_inicial WHEN 'Baixo' THEN 1 WHEN 'Médio' THEN 2 WHEN 'Alto' THEN 3 WHEN 'Crítico' THEN 4 END AS rank_inicial,
-          CASE impacto_qualitativo WHEN 'Baixo' THEN 1 WHEN 'Médio' THEN 2 WHEN 'Alto' THEN 3 WHEN 'Crítico' THEN 4 END AS rank_atual
+          CASE nivel_inicial WHEN 'Baixo' THEN 1 WHEN 'Moderado' THEN 2 WHEN 'Significativo' THEN 3 WHEN 'Alto' THEN 4 END AS rank_inicial,
+          CASE impacto_qualitativo WHEN 'Baixo' THEN 1 WHEN 'Moderado' THEN 2 WHEN 'Significativo' THEN 3 WHEN 'Alto' THEN 4 END AS rank_atual
         FROM riscos
         WHERE projeto_id = ${projetoId} AND nivel_inicial IS NOT NULL AND impacto_qualitativo IS NOT NULL
       ) t
     `;
 
-    // Riscos Críticos e Altos ainda em aberto (não Mitigado), mais graves primeiro.
+    // Riscos Significativos e Altos ainda em aberto (não Mitigado), mais graves primeiro.
     const riscosAbertos = await sql`
       SELECT id, categoria, gatilho, impacto_qualitativo, status
       FROM riscos
-      WHERE projeto_id = ${projetoId} AND status != 'Mitigado' AND impacto_qualitativo IN ('Crítico', 'Alto')
-      ORDER BY (impacto_qualitativo = 'Crítico') DESC, matrix_score DESC
+      WHERE projeto_id = ${projetoId} AND status != 'Mitigado' AND impacto_qualitativo IN ('Significativo', 'Alto')
+      ORDER BY (impacto_qualitativo = 'Alto') DESC, matrix_score DESC
     `;
 
     // Resumo de Planos de Ação do projeto.
