@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { calcularImpactoFinanceiro } from "@/lib/riscoUtils";
+import { nivelRisco } from "@/lib/metodologiaRisco";
 
 function escapeHtml(value: unknown): string {
   const str = String(value ?? "");
@@ -77,6 +78,10 @@ export async function POST(request: NextRequest) {
       restauracaoHoras,
     });
 
+    // ---- Cálculo do nível de risco (sempre no servidor, nunca confiando no
+    // valor calculado no navegador) ----
+    const nivelInerente = impacto && probabilidade ? nivelRisco(probabilidade, impacto) : null;
+
     // ---- Gravação no banco ----
     const projetoRows = await sql`SELECT nome FROM projetos WHERE id = ${projetoId}`;
     const projetoNome = projetoRows[0]?.nome ?? "—";
@@ -85,14 +90,16 @@ export async function POST(request: NextRequest) {
       INSERT INTO riscos (
         projeto_id, categoria, gatilho, resultado_potencial, levantado_por,
         data_levantamento, fonte, impacto, probabilidade, matrix_score,
-        nivel_inicial, impacto_qualitativo,
+        nivel_inicial, impacto_qualitativo, nivel_projetado,
+        prob_nivel_atual, imp_nivel_atual, prob_nivel_projetado, imp_nivel_projetado,
         sistema_critico_id, duracao_horas, percentual_degradacao, restauracao_pessoas, restauracao_horas,
         impacto_critico_indisponibilidade, impacto_critico_restauracao, impacto_critico_total,
         impacto_alto_indisponibilidade, impacto_alto_restauracao, impacto_alto_total
       ) VALUES (
         ${projetoId}, ${categoria || null}, ${gatilho || null}, ${resultado || null}, ${levantadoPor},
         ${dataLevantamento || null}, ${fonte || null}, ${impacto || null}, ${probabilidade || null},
-        ${matrixScore || null}, ${classificacaoLabel || null}, ${classificacaoLabel || null},
+        ${matrixScore || null}, ${nivelInerente}, ${nivelInerente}, ${nivelInerente},
+        ${probabilidade || null}, ${impacto || null}, ${probabilidade || null}, ${impacto || null},
         ${sistemaCriticoId || null}, ${duracaoHoras || null}, ${percentualDegradacao || null},
         ${restauracaoPessoas || null}, ${restauracaoHoras || null},
         ${impactoCriticoIndisponibilidade || null}, ${impactoCriticoRestauracao || null}, ${impactoCriticoTotal || null},
@@ -116,7 +123,7 @@ export async function POST(request: NextRequest) {
       ["Impacto", impactoLabel || "—"],
       ["Probabilidade", probabilidadeLabel || "—"],
       ["Pontuação da Matriz", matrixScore ? String(matrixScore) : "—"],
-      ["Impacto Qualitativo", classificacaoLabel || "—"],
+      ["Impacto Qualitativo", nivelInerente || "—"],
     ];
 
     if (sistemaNome) {
