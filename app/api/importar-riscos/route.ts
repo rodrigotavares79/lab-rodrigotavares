@@ -242,3 +242,10 @@ export async function POST(request: NextRequest) {
       inseridos: paraInserir.length,
       erros,
       avisos,
+      suspeitas,
+    });
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json({ error: "Erro interno ao processar a importação." }, { status: 500 });
+  }
+}
