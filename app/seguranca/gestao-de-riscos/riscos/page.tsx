@@ -20,9 +20,9 @@ type RiscoLinha = {
 
 const BADGE_POR_NIVEL: Record<string, string> = {
   "Baixo": "badge-baixo",
-  "Médio": "badge-medio",
-  "Alto": "badge-alto",
-  "Crítico": "badge-critico",
+  "Moderado": "badge-medio",
+  "Significativo": "badge-alto",
+  "Alto": "badge-critico",
 };
 
 function classeStatus(status: string | null): string {
@@ -173,7 +173,7 @@ export default function ListaDeRiscos() {
             </div>
           )}
 
-          <a
+            <a
             href="/seguranca/gestao-de-riscos"
             className="status-tag"
             style={{ marginTop: "2.5rem", display: "inline-block" }}
