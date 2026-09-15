@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
-import { classificarImpacto, calcularImpactoFinanceiro } from "@/lib/riscoUtils";
+import { nivelRisco } from "@/lib/metodologiaRisco";
+import { calcularImpactoFinanceiro } from "@/lib/riscoUtils";
 
 const MAX_LINHAS = 500;
 
@@ -141,7 +142,7 @@ export async function POST(request: NextRequest) {
         probabilidade = n;
       }
       const matrixScore = impacto && probabilidade ? impacto * probabilidade : null;
-      const classificacao = matrixScore ? classificarImpacto(matrixScore) : null;
+      const classificacao = impacto && probabilidade ? nivelRisco(probabilidade, impacto) : null;
 
       let sistema: any = null;
       const sistemaNome = (linha.sistemaCritico || "").trim();
@@ -219,14 +220,16 @@ export async function POST(request: NextRequest) {
         INSERT INTO riscos (
           projeto_id, categoria, gatilho, resultado_potencial, levantado_por,
           data_levantamento, fonte, impacto, probabilidade, matrix_score,
-          nivel_inicial, impacto_qualitativo,
+          nivel_inicial, impacto_qualitativo, nivel_projetado,
+          prob_nivel_atual, imp_nivel_atual, prob_nivel_projetado, imp_nivel_projetado,
           sistema_critico_id, duracao_horas, percentual_degradacao, restauracao_pessoas, restauracao_horas,
           impacto_critico_indisponibilidade, impacto_critico_restauracao, impacto_critico_total,
           impacto_alto_indisponibilidade, impacto_alto_restauracao, impacto_alto_total
         ) VALUES (
           ${r.projetoId}, ${r.categoria}, ${r.gatilho}, ${r.resultado}, ${r.levantadoPor},
           ${r.dataLevantamento}, ${r.fonte}, ${r.impacto}, ${r.probabilidade}, ${r.matrixScore},
-          ${r.classificacao}, ${r.classificacao},
+          ${r.classificacao}, ${r.classificacao}, ${r.classificacao},
+          ${r.probabilidade}, ${r.impacto}, ${r.probabilidade}, ${r.impacto},
           ${r.sistemaCriticoId}, ${r.duracaoHoras}, ${r.percentualDegradacao}, ${r.restauracaoPessoas}, ${r.restauracaoHoras},
           ${r.impactoCriticoIndisponibilidade || null}, ${r.impactoCriticoRestauracao || null}, ${r.impactoCriticoTotal || null},
           ${r.impactoAltoIndisponibilidade || null}, ${r.impactoAltoRestauracao || null}, ${r.impactoAltoTotal || null}
@@ -239,10 +242,3 @@ export async function POST(request: NextRequest) {
       inseridos: paraInserir.length,
       erros,
       avisos,
-      suspeitas,
-    });
-  } catch (err) {
-    console.error(err);
-    return NextResponse.json({ error: "Erro interno ao processar a importação." }, { status: 500 });
-  }
-}
