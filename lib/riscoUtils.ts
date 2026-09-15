@@ -1,9 +1,6 @@
-export function classificarImpacto(score: number): string {
-  if (score <= 4) return "Baixo";
-  if (score <= 9) return "Médio";
-  if (score <= 15) return "Alto";
-  return "Crítico";
-}
+// A classificação de nível de risco (antes por limiar de produto
+// impacto×probabilidade) foi substituída pela matriz 5×5 da metodologia —
+// veja `nivelRisco` em lib/metodologiaRisco.ts.
 
 export type SistemaCriticoRates = {
   custo_indisponibilidade_hora: number | string;
