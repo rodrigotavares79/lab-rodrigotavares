@@ -139,11 +139,13 @@ export default function Dashboard() {
   const evoValores = evolucao.map((e) => e.total);
 
   const barW = 600, barH = 160;
+  const barTopPad = 18;
   const catMax = Math.max(1, ...categorias.map((c) => c.total));
   const barGap = 14;
   const barWidth = categorias.length ? (barW - barGap * (categorias.length - 1)) / categorias.length : barW;
 
   const compW = 600, compH = 160;
+  const compTopPad = 18;
   const compMax = Math.max(1, ...comparativoNiveis.flatMap((c) => [c.inicial, c.atual]));
   const compGroupGap = 20;
   const compSubGap = 4;
@@ -176,7 +178,20 @@ export default function Dashboard() {
             </select>
           </div>
 
+          {projetoId && (
+            <a
+              href={`/seguranca/gestao-de-riscos/relatorio?projetoId=${projetoId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-primary"
+              style={{ display: "inline-block", textDecoration: "none", marginTop: "1rem" }}
+            >
+              📄 Emitir Relatório Executivo
+            </a>
+          )}
+
           {carregando && <p className="text-muted" style={{ marginTop: "2rem" }}>Carregando...</p>}
+
 
           {erro && (
             <div className="error-banner" style={{ marginTop: "2rem" }}>
@@ -259,18 +274,18 @@ export default function Dashboard() {
                     {categorias.length === 0 ? (
                       <p className="text-muted" style={{ margin: 0, fontSize: "0.85rem" }}>Sem dados suficientes.</p>
                     ) : (
-                      <svg viewBox={`0 0 ${barW} ${barH + 40}`} width="100%" role="img" aria-label="Riscos por categoria">
+                      <svg viewBox={`0 0 ${barW} ${barH + barTopPad + 40}`} width="100%" role="img" aria-label="Riscos por categoria">
                         {categorias.map((c, i) => {
                           const x = i * (barWidth + barGap);
                           const h = (c.total / catMax) * barH;
-                          const y = barH - h;
+                          const y = barTopPad + (barH - h);
                           return (
                             <g key={c.categoria}>
                               <rect x={x} y={y} width={barWidth} height={h} fill="#2b3a4a" rx="2" />
                               <text x={x + barWidth / 2} y={y - 6} fontSize="10" fill="#1a1a18" textAnchor="middle">
                                 {c.total}
                               </text>
-                              <text x={x + barWidth / 2} y={barH + 14} fontSize="8" fill="#6b6b66" textAnchor="middle">
+                              <text x={x + barWidth / 2} y={barTopPad + barH + 14} fontSize="8" fill="#6b6b66" textAnchor="middle">
                                 {c.categoria.length > 12 ? c.categoria.slice(0, 11) + "…" : c.categoria}
                               </text>
                             </g>
@@ -366,22 +381,24 @@ export default function Dashboard() {
                   {comparativoNiveis.every((c) => c.inicial === 0 && c.atual === 0) ? (
                     <p className="text-muted" style={{ margin: 0, fontSize: "0.85rem" }}>Sem dados suficientes.</p>
                   ) : (
-                    <svg viewBox={`0 0 ${compW} ${compH + 24}`} width="100%" role="img" aria-label="Comparativo entre nível inicial e nível atual dos riscos">
+                    <svg viewBox={`0 0 ${compW} ${compH + compTopPad + 24}`} width="100%" role="img" aria-label="Comparativo entre nível inicial e nível atual dos riscos">
                       {comparativoNiveis.map((c, i) => {
                         const x = i * (compGroupWidth + compGroupGap);
                         const hIni = (c.inicial / compMax) * compH;
                         const hAtu = (c.atual / compMax) * compH;
+                        const yIni = compTopPad + (compH - hIni);
+                        const yAtu = compTopPad + (compH - hAtu);
                         return (
                           <g key={c.nivel}>
-                            <rect x={x} y={compH - hIni} width={compSubWidth} height={hIni} fill="#c7cdd3" rx="2" />
+                            <rect x={x} y={yIni} width={compSubWidth} height={hIni} fill="#c7cdd3" rx="2" />
                             {c.inicial > 0 && (
-                              <text x={x + compSubWidth / 2} y={compH - hIni - 6} fontSize="10" fill="#1a1a18" textAnchor="middle">{c.inicial}</text>
+                              <text x={x + compSubWidth / 2} y={yIni - 6} fontSize="10" fill="#1a1a18" textAnchor="middle">{c.inicial}</text>
                             )}
-                            <rect x={x + compSubWidth + compSubGap} y={compH - hAtu} width={compSubWidth} height={hAtu} fill="#2b3a4a" rx="2" />
+                            <rect x={x + compSubWidth + compSubGap} y={yAtu} width={compSubWidth} height={hAtu} fill="#2b3a4a" rx="2" />
                             {c.atual > 0 && (
-                              <text x={x + compSubWidth + compSubGap + compSubWidth / 2} y={compH - hAtu - 6} fontSize="10" fill="#1a1a18" textAnchor="middle">{c.atual}</text>
+                              <text x={x + compSubWidth + compSubGap + compSubWidth / 2} y={yAtu - 6} fontSize="10" fill="#1a1a18" textAnchor="middle">{c.atual}</text>
                             )}
-                            <text x={x + compGroupWidth / 2} y={compH + 16} fontSize="9" fill="#6b6b66" textAnchor="middle">{c.nivel}</text>
+                            <text x={x + compGroupWidth / 2} y={compTopPad + compH + 16} fontSize="9" fill="#6b6b66" textAnchor="middle">{c.nivel}</text>
                           </g>
                         );
                       })}
