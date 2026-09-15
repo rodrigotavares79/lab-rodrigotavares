@@ -1100,3 +1100,183 @@ h1, h2, h3 {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+/* --- Relatório Executivo de Riscos --- */
+
+.report-toolbar {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.report-page {
+  max-width: 52rem;
+  margin: 2rem auto 4rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 2.5rem 3rem;
+}
+
+.report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 3px solid var(--accent);
+  padding-bottom: 1.25rem;
+  margin-bottom: 1.75rem;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.report-header .report-brand {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.report-header h1 {
+  margin: 0.3rem 0 0.2rem;
+  font-size: 1.5rem;
+}
+
+.report-header .report-subtitle {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.report-header .report-meta {
+  text-align: right;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.report-header .report-meta strong {
+  color: var(--text);
+  display: block;
+  font-size: 0.85rem;
+}
+
+.report-section {
+  margin-bottom: 2.25rem;
+}
+
+.report-section h2 {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.5rem;
+  margin: 0 0 1rem;
+}
+
+.report-kpi-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.9rem;
+}
+
+.report-kpi-box {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.9rem 1rem;
+}
+
+.report-kpi-box .report-kpi-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.report-kpi-box .report-kpi-value {
+  font-size: 1.55rem;
+  font-weight: 700;
+  margin-top: 0.3rem;
+}
+
+.report-kpi-box.report-alert .report-kpi-value { color: #a3242f; }
+.report-kpi-box.report-ok .report-kpi-value { color: #3f7d58; }
+
+.report-mitig-row {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.report-mitig-row .report-dot {
+  display: inline-block;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  margin-right: 0.4rem;
+}
+
+table.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+table.report-table th,
+table.report-table td {
+  text-align: left;
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+}
+
+table.report-table th {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+}
+
+.report-status-mitigado { color: #3f7d58; font-weight: 600; }
+.report-status-tratamento { color: #8a6600; font-weight: 600; }
+.report-status-identificado { color: var(--text-muted); }
+.report-vencida { color: #a3242f; font-weight: 600; }
+
+.report-plan-summary {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.report-plan-summary div {
+  font-size: 0.85rem;
+}
+
+.report-plan-summary strong {
+  display: block;
+  font-size: 1.3rem;
+}
+
+.report-footer {
+  margin-top: 2.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+@media print {
+  .site-header, .report-toolbar, .status-tag { display: none !important; }
+  .report-page { border: none; margin: 0; padding: 0; max-width: none; }
+  body { background: #fff; }
+}
