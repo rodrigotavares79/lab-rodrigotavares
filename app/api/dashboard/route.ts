@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
           SELECT
             COUNT(*)::int AS total,
             COUNT(*) FILTER (WHERE status = 'Mitigado')::int AS mitigados,
-            COUNT(*) FILTER (WHERE impacto_qualitativo = 'Crítico' AND status != 'Mitigado')::int AS criticos_abertos,
+            COUNT(*) FILTER (WHERE impacto_qualitativo = 'Alto' AND status != 'Mitigado')::int AS criticos_abertos,
             COUNT(*) FILTER (WHERE status = 'Identificado')::int AS em_aberto,
             COALESCE(SUM(impacto_critico_total), 0)::float AS exposicao_critica,
             COALESCE(SUM(impacto_alto_total), 0)::float AS exposicao_alta
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
           SELECT
             COUNT(*)::int AS total,
             COUNT(*) FILTER (WHERE status = 'Mitigado')::int AS mitigados,
-            COUNT(*) FILTER (WHERE impacto_qualitativo = 'Crítico' AND status != 'Mitigado')::int AS criticos_abertos,
+            COUNT(*) FILTER (WHERE impacto_qualitativo = 'Alto' AND status != 'Mitigado')::int AS criticos_abertos,
             COUNT(*) FILTER (WHERE status = 'Identificado')::int AS em_aberto,
             COALESCE(SUM(impacto_critico_total), 0)::float AS exposicao_critica,
             COALESCE(SUM(impacto_alto_total), 0)::float AS exposicao_alta
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
         `;
 
     // Compara nível inicial x nível atual, risco a risco, convertendo cada
-    // nível em um rank numérico (Baixo=1 ... Crítico=4) para saber se o risco
+    // nível em um rank numérico (Baixo=1 ... Alto=4) para saber se o risco
     // melhorou, se manteve ou piorou desde que foi criado.
     const mitigacaoRows = projetoId
       ? await sql`
@@ -66,8 +66,8 @@ export async function GET(request: NextRequest) {
             COUNT(*) FILTER (WHERE rank_atual > rank_inicial)::int AS piorou
           FROM (
             SELECT
-              CASE nivel_inicial WHEN 'Baixo' THEN 1 WHEN 'Médio' THEN 2 WHEN 'Alto' THEN 3 WHEN 'Crítico' THEN 4 END AS rank_inicial,
-              CASE impacto_qualitativo WHEN 'Baixo' THEN 1 WHEN 'Médio' THEN 2 WHEN 'Alto' THEN 3 WHEN 'Crítico' THEN 4 END AS rank_atual
+              CASE nivel_inicial WHEN 'Baixo' THEN 1 WHEN 'Moderado' THEN 2 WHEN 'Significativo' THEN 3 WHEN 'Alto' THEN 4 END AS rank_inicial,
+              CASE impacto_qualitativo WHEN 'Baixo' THEN 1 WHEN 'Moderado' THEN 2 WHEN 'Significativo' THEN 3 WHEN 'Alto' THEN 4 END AS rank_atual
             FROM riscos
             WHERE projeto_id = ${projetoId} AND nivel_inicial IS NOT NULL AND impacto_qualitativo IS NOT NULL
           ) t
@@ -79,8 +79,8 @@ export async function GET(request: NextRequest) {
             COUNT(*) FILTER (WHERE rank_atual > rank_inicial)::int AS piorou
           FROM (
             SELECT
-              CASE nivel_inicial WHEN 'Baixo' THEN 1 WHEN 'Médio' THEN 2 WHEN 'Alto' THEN 3 WHEN 'Crítico' THEN 4 END AS rank_inicial,
-              CASE impacto_qualitativo WHEN 'Baixo' THEN 1 WHEN 'Médio' THEN 2 WHEN 'Alto' THEN 3 WHEN 'Crítico' THEN 4 END AS rank_atual
+              CASE nivel_inicial WHEN 'Baixo' THEN 1 WHEN 'Moderado' THEN 2 WHEN 'Significativo' THEN 3 WHEN 'Alto' THEN 4 END AS rank_inicial,
+              CASE impacto_qualitativo WHEN 'Baixo' THEN 1 WHEN 'Moderado' THEN 2 WHEN 'Significativo' THEN 3 WHEN 'Alto' THEN 4 END AS rank_atual
             FROM riscos
             WHERE nivel_inicial IS NOT NULL AND impacto_qualitativo IS NOT NULL
           ) t
@@ -130,7 +130,7 @@ export async function GET(request: NextRequest) {
 
     const consolidado = await sql`
       SELECT p.nome AS projeto, COUNT(r.id)::int AS total,
-             COUNT(r.id) FILTER (WHERE r.impacto_qualitativo = 'Crítico')::int AS criticos,
+             COUNT(r.id) FILTER (WHERE r.impacto_qualitativo = 'Alto')::int AS criticos,
              COALESCE(SUM(r.impacto_critico_total), 0)::float AS exposicao
       FROM projetos p LEFT JOIN riscos r ON r.projeto_id = p.id
       GROUP BY p.nome ORDER BY p.nome
