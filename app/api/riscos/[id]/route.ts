@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
-import { classificarImpacto } from "@/lib/riscoUtils";
+import { nivelRisco } from "@/lib/metodologiaRisco";
+import { recomputeRisco } from "@/lib/recomputeRisco";
 
 const STATUS_VALIDOS = ["Identificado", "Em Tratamento", "Mitigado"];
 
@@ -18,7 +19,10 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         r.id, r.projeto_id, p.nome AS projeto,
         r.categoria, r.gatilho, r.resultado_potencial, r.levantado_por,
         r.data_levantamento, r.fonte, r.impacto, r.probabilidade,
-        r.matrix_score, r.nivel_inicial, r.impacto_qualitativo, r.status,
+        r.matrix_score, r.nivel_inicial, r.impacto_qualitativo, r.nivel_projetado,
+        r.prob_nivel_atual, r.imp_nivel_atual, r.prob_nivel_projetado, r.imp_nivel_projetado,
+        r.im_prob_atual, r.im_imp_atual, r.im_prob_projetado, r.im_imp_projetado,
+        r.status,
         r.sistema_critico_id, s.nome AS sistema_critico,
         r.duracao_horas, r.percentual_degradacao, r.restauracao_pessoas, r.restauracao_horas,
         r.impacto_critico_indisponibilidade, r.impacto_critico_restauracao, r.impacto_critico_total,
@@ -34,17 +38,27 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: "Risco não encontrado." }, { status: 404 });
     }
 
-    return NextResponse.json({ risco: rows[0] });
+    const fatores = await sql`
+      SELECT id, risco_id, codigo, descricao, explicacao, natureza, criticidade,
+             controle_descricao, tipo_controle, natureza_controle, eficacia_potencial,
+             status_implementacao, vetor_override, justificativa_override, criado_em
+      FROM fatores_risco
+      WHERE risco_id = ${id}
+      ORDER BY criado_em ASC
+    `;
+
+    return NextResponse.json({ risco: { ...rows[0], fatores } });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: "Erro ao buscar o risco." }, { status: 500 });
   }
 }
 
-// Reavaliação do risco após medidas de mitigação: recalcula o NÍVEL ATUAL
-// (impacto_qualitativo) a partir de novo impacto/probabilidade e/ou atualiza o
-// status. O nível inicial (nivel_inicial), gravado na criação, nunca é alterado
-// aqui — ele é o "antes da mitigação" e serve de referência histórica.
+// PATCH: edita o status do risco (Identificado/Em Tratamento/Mitigado) e/ou a
+// Probabilidade e o Impacto INERENTES (base, antes de qualquer mitigação).
+// O Risco Atual e o Projetado nunca são digitados aqui — eles são sempre
+// recalculados a partir dos Fatores de Risco cadastrados (ver recomputeRisco).
+// Congelamento: uma vez Mitigado, nada mais pode ser alterado.
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const { id } = params;
@@ -86,7 +100,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     const atual = atualRows[0];
 
     // Congelamento: uma vez Mitigado, o risco nunca mais pode ser reavaliado
-    // (nem nível, nem status) — é um estado terminal.
+    // (nem nível inerente, nem status) — é um estado terminal.
     if (atual.status === "Mitigado") {
       return NextResponse.json(
         { error: "Este risco já foi mitigado e não pode mais ser alterado." },
@@ -97,23 +111,28 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     const novoImpacto = impactoNum ?? atual.impacto;
     const novaProbabilidade = probabilidadeNum ?? atual.probabilidade;
     const novoStatus = status ?? atual.status;
+    const novoMatrixScore = novoImpacto && novaProbabilidade ? novoImpacto * novaProbabilidade : null;
+    const novoNivelInerente = novoImpacto && novaProbabilidade ? nivelRisco(novaProbabilidade, novoImpacto) : null;
 
-    let novoMatrixScore: number | null = null;
-    let novoNivelAtual: string | null = null;
-    if (novoImpacto && novaProbabilidade) {
-      novoMatrixScore = novoImpacto * novaProbabilidade;
-      novoNivelAtual = classificarImpacto(novoMatrixScore);
-    }
-
-    const rows = await sql`
+    await sql`
       UPDATE riscos
       SET impacto = ${novoImpacto},
           probabilidade = ${novaProbabilidade},
           matrix_score = ${novoMatrixScore},
-          impacto_qualitativo = ${novoNivelAtual},
+          nivel_inicial = ${novoNivelInerente},
           status = ${novoStatus}
       WHERE id = ${id}
-      RETURNING id, impacto, probabilidade, matrix_score, impacto_qualitativo, nivel_inicial, status
+    `;
+
+    // O nível inerente pode ter mudado — recalcula Atual e Projetado a partir
+    // dos fatores já cadastrados (se não houver nenhum, ambos ficam iguais ao
+    // novo inerente, como esperado).
+    await recomputeRisco(sql, id);
+
+    const rows = await sql`
+      SELECT id, impacto, probabilidade, matrix_score, nivel_inicial, impacto_qualitativo,
+             nivel_projetado, status
+      FROM riscos WHERE id = ${id}
     `;
 
     return NextResponse.json({ risco: rows[0] });
