@@ -1,74 +1,50 @@
-import { NextRequest, NextResponse } from "next/server";
-import { neon } from "@neondatabase/serverless";
-import {
-  OPCOES_NATUREZA_FATOR,
-  OPCOES_CRITICIDADE,
-  OPCOES_TIPO_CONTROLE,
-  OPCOES_NATUREZA_CONTROLE,
-  OPCOES_EFICACIA_POTENCIAL,
-  OPCOES_STATUS_IMPLEMENTACAO,
-  OPCOES_VETOR,
-} from "@/lib/metodologiaRisco";
-import { recomputeRisco } from "@/lib/recomputeRisco";
+import { calcularRiscoResidual, type FatorParaCalculo } from "@/lib/metodologiaRisco";
 
-function validar(body: any): string | null {
-  if (!body?.riscoId) return "riscoId é obrigatório.";
-  if (!body?.descricao?.trim()) return "Descrição do fator é obrigatória.";
-  if (!OPCOES_NATUREZA_FATOR.includes(body?.natureza)) return `Natureza inválida. Use um de: ${OPCOES_NATUREZA_FATOR.join(", ")}.`;
-  if (!OPCOES_CRITICIDADE.includes(body?.criticidade)) return `Criticidade inválida. Use um de: ${OPCOES_CRITICIDADE.join(", ")}.`;
-  if (!body?.controleDescricao?.trim()) return "Descrição do controle é obrigatória.";
-  if (!OPCOES_TIPO_CONTROLE.includes(body?.tipoControle)) return `Tipo de controle inválido. Use um de: ${OPCOES_TIPO_CONTROLE.join(", ")}.`;
-  if (!OPCOES_NATUREZA_CONTROLE.includes(body?.naturezaControle)) return `Natureza do controle inválida. Use um de: ${OPCOES_NATUREZA_CONTROLE.join(", ")}.`;
-  if (!OPCOES_EFICACIA_POTENCIAL.includes(body?.eficaciaPotencial)) return `Eficácia potencial inválida. Use um de: ${OPCOES_EFICACIA_POTENCIAL.join(", ")}.`;
-  if (body?.statusImplementacao && !OPCOES_STATUS_IMPLEMENTACAO.includes(body.statusImplementacao)) return `Status de implementação inválido.`;
-  if (body?.vetorOverride && !OPCOES_VETOR.includes(body.vetorOverride)) return `Vetor de override inválido.`;
-  if (body?.vetorOverride && !body?.justificativaOverride?.trim()) return "Justificativa do override é obrigatória quando o vetor sugerido é sobrescrito.";
-  return null;
-}
+// Recalcula o Risco Atual e o Risco Projetado de um risco a partir dos seus
+// fatores cadastrados, e grava o resultado nas colunas correspondentes de
+// `riscos`. Deve ser chamado depois de qualquer INSERT/UPDATE/DELETE em
+// `fatores_risco`, e depois de qualquer edição na probabilidade/impacto
+// inerentes do próprio risco.
+export async function recomputeRisco(sql: any, riscoId: number | string): Promise<void> {
+  const riscoRows = await sql`SELECT probabilidade, impacto FROM riscos WHERE id = ${riscoId}`;
+  if (riscoRows.length === 0) return;
+  const probabilidadeInerente = riscoRows[0].probabilidade;
+  const impactoInerente = riscoRows[0].impacto;
+  if (!probabilidadeInerente || !impactoInerente) return;
 
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const erro = validar(body);
-    if (erro) return NextResponse.json({ error: erro }, { status: 400 });
+  const fatoresRows = await sql`
+    SELECT criticidade, natureza, tipo_controle, natureza_controle,
+           eficacia_potencial, status_implementacao, vetor_override
+    FROM fatores_risco
+    WHERE risco_id = ${riscoId}
+  `;
 
-    const sql = neon(process.env.DATABASE_URL!);
+  const fatores: FatorParaCalculo[] = fatoresRows.map((f: any) => ({
+    criticidade: f.criticidade,
+    natureza: f.natureza,
+    tipoControle: f.tipo_controle,
+    naturezaControle: f.natureza_controle,
+    eficaciaPotencial: f.eficacia_potencial,
+    statusImplementacao: f.status_implementacao,
+    vetorOverride: f.vetor_override,
+  }));
 
-    const riscoRows = await sql`SELECT id, status FROM riscos WHERE id = ${body.riscoId}`;
-    if (riscoRows.length === 0) {
-      return NextResponse.json({ error: "Risco não encontrado." }, { status: 404 });
-    }
-    if (riscoRows[0].status === "Mitigado") {
-      return NextResponse.json(
-        { error: "Este risco já foi mitigado. Não é possível cadastrar novo fator de risco." },
-        { status: 409 }
-      );
-    }
+  const atual = calcularRiscoResidual(probabilidadeInerente, impactoInerente, fatores, false);
+  const projetado = calcularRiscoResidual(probabilidadeInerente, impactoInerente, fatores, true);
 
-    const totalRows = await sql`SELECT COUNT(*)::int AS total FROM fatores_risco WHERE risco_id = ${body.riscoId}`;
-    const codigo = `F${String(totalRows[0].total + 1).padStart(2, "0")}`;
-
-    const rows = await sql`
-      INSERT INTO fatores_risco (
-        risco_id, codigo, descricao, explicacao, natureza, criticidade,
-        controle_descricao, tipo_controle, natureza_controle, eficacia_potencial,
-        status_implementacao, vetor_override, justificativa_override
-      ) VALUES (
-        ${body.riscoId}, ${codigo}, ${body.descricao.trim()}, ${body.explicacao || null},
-        ${body.natureza}, ${body.criticidade},
-        ${body.controleDescricao.trim()}, ${body.tipoControle}, ${body.naturezaControle}, ${body.eficaciaPotencial},
-        ${body.statusImplementacao || "Não iniciado"}, ${body.vetorOverride || null}, ${body.justificativaOverride || null}
-      )
-      RETURNING id, risco_id, codigo, descricao, explicacao, natureza, criticidade,
-                controle_descricao, tipo_controle, natureza_controle, eficacia_potencial,
-                status_implementacao, vetor_override, justificativa_override, criado_em
-    `;
-
-    await recomputeRisco(sql, body.riscoId);
-
-    return NextResponse.json({ fator: rows[0] });
-  } catch (err) {
-    console.error(err);
-    return NextResponse.json({ error: "Erro interno ao cadastrar o fator de risco." }, { status: 500 });
-  }
+  await sql`
+    UPDATE riscos
+    SET
+      prob_nivel_atual = ${atual.probabilidade},
+      imp_nivel_atual = ${atual.impacto},
+      impacto_qualitativo = ${atual.nivel},
+      im_prob_atual = ${atual.indiceMitigacaoProb},
+      im_imp_atual = ${atual.indiceMitigacaoImp},
+      prob_nivel_projetado = ${projetado.probabilidade},
+      imp_nivel_projetado = ${projetado.impacto},
+      nivel_projetado = ${projetado.nivel},
+      im_prob_projetado = ${projetado.indiceMitigacaoProb},
+      im_imp_projetado = ${projetado.indiceMitigacaoImp}
+    WHERE id = ${riscoId}
+  `;
 }
