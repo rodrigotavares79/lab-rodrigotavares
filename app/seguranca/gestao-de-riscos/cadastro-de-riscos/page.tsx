@@ -484,7 +484,7 @@ export default function CadastroDeRiscos() {
           </form>
           )}
 
-          
+            <a
             href="/seguranca/gestao-de-riscos"
             className="status-tag"
             style={{ marginTop: "2.5rem", display: "inline-block" }}
