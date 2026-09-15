@@ -78,6 +78,15 @@ function classeStatusAcao(status: string): string {
   return "status-pending";
 }
 
+// Ação vencida: tem prazo, ainda não foi concluída, e o prazo já passou.
+function acaoVencida(prazo: string | null, status: string): boolean {
+  if (!prazo || status === "Concluído") return false;
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const dataPrazo = new Date(String(prazo).slice(0, 10) + "T00:00:00");
+  return dataPrazo < hoje;
+}
+
 function formatData(iso: string | null): string {
   if (!iso) return "—";
   // colunas DATE podem vir do driver como "2026-08-24" ou como
@@ -225,7 +234,14 @@ function PlanoAcaoCard({
                   <tr key={a.id}>
                     <td style={{ whiteSpace: "normal", minWidth: "14rem" }}>{a.descricao}</td>
                     <td>{a.responsavel || "—"}</td>
-                    <td>{formatData(a.prazo)}</td>
+                    <td>
+                      {formatData(a.prazo)}
+                      {acaoVencida(a.prazo, a.status) && (
+                        <span className="report-vencida" style={{ marginLeft: "0.4rem", fontSize: "0.72rem" }}>
+                          ⚠ Vencida
+                        </span>
+                      )}
+                    </td>
                     <td>
                       <select
                         value={a.status}
