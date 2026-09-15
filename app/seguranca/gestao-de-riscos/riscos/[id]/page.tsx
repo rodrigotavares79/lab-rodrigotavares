@@ -659,7 +659,7 @@ export default function DetalheDoRisco() {
             </div>
           )}
 
-          
+          <a
             href="/seguranca/gestao-de-riscos/riscos"
             className="status-tag"
             style={{ marginTop: "2.5rem", display: "inline-block" }}
