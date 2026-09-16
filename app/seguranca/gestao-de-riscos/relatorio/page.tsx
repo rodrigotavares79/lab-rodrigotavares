@@ -51,9 +51,9 @@ type RelatorioData = {
 
 const BADGE_POR_NIVEL: Record<string, string> = {
   "Baixo": "badge-baixo",
-  "Médio": "badge-medio",
-  "Alto": "badge-alto",
-  "Crítico": "badge-critico",
+  "Moderado": "badge-medio",
+  "Significativo": "badge-alto",
+  "Alto": "badge-critico",
 };
 
 function classeStatusTexto(status: string): string {
@@ -143,7 +143,7 @@ function RelatorioConteudo() {
                 <div className="report-kpi-value">{dados.kpis.total}</div>
               </div>
               <div className="report-kpi-box report-alert">
-                <div className="report-kpi-label">Críticos Abertos</div>
+                <div className="report-kpi-label">Altos em Aberto</div>
                 <div className="report-kpi-value">{dados.kpis.criticos_abertos}</div>
               </div>
               <div className="report-kpi-box report-ok">
@@ -172,10 +172,10 @@ function RelatorioConteudo() {
           </div>
 
           <div className="report-section">
-            <h2>Riscos Críticos e Altos em Aberto</h2>
+            <h2>Riscos Significativos e Altos em Aberto</h2>
             {dados.riscosAbertos.length === 0 ? (
               <p className="text-muted" style={{ fontSize: "0.85rem", margin: 0 }}>
-                Nenhum risco Crítico ou Alto em aberto neste projeto.
+                Nenhum risco Significativo ou Alto em aberto neste projeto.
               </p>
             ) : (
               <table className="report-table">
