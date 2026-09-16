@@ -217,7 +217,17 @@ function FatorRiscoCard({
       <div className="dash-panel-body">
         <table className="dash-table" style={{ marginBottom: "1rem" }}>
           <tbody>
-            <LinhaCampo label="Natureza do Fator" value={fator.natureza} />
+            <label className="label-com-ajuda">
+  Natureza do Fator
+  <span className="info-icon" tabIndex={0}>
+    i
+    <span className="info-tooltip">
+      <strong>Exposição</strong>: facilita o risco acontecer (não muda o tamanho do estrago).{" "}
+      <strong>Amplificação</strong>: não muda a chance, mas piora as consequências se acontecer.{" "}
+      <strong>Misto</strong>: faz as duas coisas ao mesmo tempo.
+    </span>
+  </span>
+</label>
             <LinhaCampo label="Criticidade" value={fator.criticidade} />
             <LinhaCampo label="Controle / Ação Recomendada" value={fator.controle_descricao} />
             <LinhaCampo label="Tipo de Controle" value={fator.tipo_controle} />
