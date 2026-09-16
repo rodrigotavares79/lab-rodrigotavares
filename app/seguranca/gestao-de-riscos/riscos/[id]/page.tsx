@@ -4,6 +4,24 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Footer from "@/components/Footer";
 
+type FatorRisco = {
+  id: number;
+  risco_id: number;
+  codigo: string;
+  descricao: string;
+  explicacao: string | null;
+  natureza: string;
+  criticidade: string;
+  controle_descricao: string;
+  tipo_controle: string;
+  natureza_controle: string;
+  eficacia_potencial: string;
+  status_implementacao: string;
+  vetor_override: string | null;
+  justificativa_override: string | null;
+  criado_em: string;
+};
+
 type RiscoDetalhe = {
   id: number;
   projeto_id: number;
@@ -19,6 +37,15 @@ type RiscoDetalhe = {
   matrix_score: number | null;
   nivel_inicial: string | null;
   impacto_qualitativo: string | null;
+  nivel_projetado: string | null;
+  prob_nivel_atual: number | null;
+  imp_nivel_atual: number | null;
+  prob_nivel_projetado: number | null;
+  imp_nivel_projetado: number | null;
+  im_prob_atual: number | null;
+  im_imp_atual: number | null;
+  im_prob_projetado: number | null;
+  im_imp_projetado: number | null;
   status: string | null;
   sistema_critico_id: number | null;
   sistema_critico: string | null;
@@ -33,6 +60,7 @@ type RiscoDetalhe = {
   impacto_alto_restauracao: number | null;
   impacto_alto_total: number | null;
   criado_em: string;
+  fatores: FatorRisco[];
 };
 
 type Acao = {
@@ -56,10 +84,25 @@ type PlanoAcao = {
 
 const BADGE_POR_NIVEL: Record<string, string> = {
   "Baixo": "badge-baixo",
-  "Médio": "badge-medio",
-  "Alto": "badge-alto",
-  "Crítico": "badge-critico",
+  "Moderado": "badge-medio",
+  "Significativo": "badge-alto",
+  "Alto": "badge-critico",
 };
+
+const OPCOES_NATUREZA_FATOR = ["Exposição", "Amplificação", "Misto"];
+const OPCOES_CRITICIDADE = ["Muito Alta", "Alta", "Média", "Baixa", "Muito Baixa"];
+const OPCOES_TIPO_CONTROLE = ["Preventivo", "Detectivo", "Corretivo", "Diretivo / Governança"];
+const OPCOES_NATUREZA_CONTROLE = ["Técnico automatizado", "Técnico com intervenção manual", "Processo / Manual"];
+const OPCOES_EFICACIA_POTENCIAL = ["Alta", "Média", "Baixa", "Inexistente"];
+const OPCOES_STATUS_IMPLEMENTACAO = [
+  "Não iniciado",
+  "Planejado / Em desenho",
+  "Em implementação",
+  "Implementado — pendente de validação",
+  "Implementado e validado",
+];
+const OPCOES_VETOR = ["Probabilidade", "Impacto", "Ambos"];
+const STATUS_OPCOES = ["Identificado", "Em Tratamento", "Mitigado"];
 
 function classeStatus(status: string | null): string {
   if (status === "Mitigado") return "status-resolved";
@@ -78,20 +121,8 @@ function classeStatusAcao(status: string): string {
   return "status-pending";
 }
 
-// Ação vencida: tem prazo, ainda não foi concluída, e o prazo já passou.
-function acaoVencida(prazo: string | null, status: string): boolean {
-  if (!prazo || status === "Concluído") return false;
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
-  const dataPrazo = new Date(String(prazo).slice(0, 10) + "T00:00:00");
-  return dataPrazo < hoje;
-}
-
 function formatData(iso: string | null): string {
   if (!iso) return "—";
-  // colunas DATE podem vir do driver como "2026-08-24" ou como
-  // "2026-08-24T00:00:00.000Z" (quando o driver as trata como Date) —
-  // pegamos só os 10 primeiros caracteres (YYYY-MM-DD) em ambos os casos.
   const [ano, mes, dia] = String(iso).slice(0, 10).split("-");
   if (!ano || !mes || !dia) return String(iso);
   return `${dia}/${mes}/${ano}`;
@@ -102,7 +133,18 @@ function formatBRL(value: number | null): string {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-const STATUS_OPCOES = ["Identificado", "Em Tratamento", "Mitigado"];
+function formatPct(value: number | null): string {
+  if (value === null || value === undefined) return "—";
+  return `${(value * 100).toFixed(0)}%`;
+}
+
+function acaoVencida(prazo: string | null, status: string): boolean {
+  if (!prazo || status === "Concluído") return false;
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const dataPrazo = new Date(String(prazo).slice(0, 10) + "T00:00:00");
+  return dataPrazo < hoje;
+}
 
 function LinhaCampo({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -113,6 +155,238 @@ function LinhaCampo({ label, value }: { label: string; value: React.ReactNode })
   );
 }
 
+/* ---------- Card de um Fator de Risco ---------- */
+
+function FatorRiscoCard({
+  fator,
+  riscoMitigado,
+  onAtualizado,
+}: {
+  fator: FatorRisco;
+  riscoMitigado: boolean;
+  onAtualizado: () => void;
+}) {
+  const [salvandoStatus, setSalvandoStatus] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+
+  async function handleStatusChange(novoStatus: string) {
+    setSalvandoStatus(true);
+    setErro(null);
+    try {
+      const res = await fetch(`/api/fatores-risco/${fator.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ statusImplementacao: novoStatus }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || "Falha ao atualizar o status.");
+      onAtualizado();
+    } catch (err) {
+      setErro(err instanceof Error ? err.message : "Erro ao atualizar.");
+    } finally {
+      setSalvandoStatus(false);
+    }
+  }
+
+  async function handleRemover() {
+    if (!confirm(`Remover o fator ${fator.codigo}? Essa ação não pode ser desfeita.`)) return;
+    try {
+      const res = await fetch(`/api/fatores-risco/${fator.id}`, { method: "DELETE" });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || "Falha ao remover o fator.");
+      onAtualizado();
+    } catch (err) {
+      setErro(err instanceof Error ? err.message : "Erro ao remover.");
+    }
+  }
+
+  return (
+    <div className="dash-panel" style={{ marginBottom: "1rem" }}>
+      <div className="dash-panel-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.75rem" }}>
+        <span>{fator.codigo} — {fator.descricao}</span>
+        {!riscoMitigado && (
+          <button
+            type="button"
+            onClick={handleRemover}
+            style={{ background: "none", border: "none", color: "rgba(255,255,255,0.8)", cursor: "pointer", fontSize: "0.75rem" }}
+          >
+            Remover
+          </button>
+        )}
+      </div>
+      <div className="dash-panel-body">
+        <table className="dash-table" style={{ marginBottom: "1rem" }}>
+          <tbody>
+            <LinhaCampo label="Natureza do Fator" value={fator.natureza} />
+            <LinhaCampo label="Criticidade" value={fator.criticidade} />
+            <LinhaCampo label="Controle / Ação Recomendada" value={fator.controle_descricao} />
+            <LinhaCampo label="Tipo de Controle" value={fator.tipo_controle} />
+            <LinhaCampo label="Natureza do Controle" value={fator.natureza_controle} />
+            <LinhaCampo label="Eficácia Potencial" value={fator.eficacia_potencial} />
+            {fator.vetor_override && (
+              <LinhaCampo label="Vetor (override)" value={`${fator.vetor_override} — ${fator.justificativa_override || ""}`} />
+            )}
+          </tbody>
+        </table>
+
+        <div className="form-field" style={{ maxWidth: "22rem" }}>
+          <label>Status de Implementação</label>
+          <select
+            value={fator.status_implementacao}
+            disabled={riscoMitigado || salvandoStatus}
+            onChange={(e) => handleStatusChange(e.target.value)}
+          >
+            {OPCOES_STATUS_IMPLEMENTACAO.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+        </div>
+        {erro && (
+          <div className="error-banner" style={{ marginTop: "0.75rem" }}>
+            <span className="success-icon error-icon">!</span>
+            <span className="success-text">{erro}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+/* ---------- Formulário de novo Fator de Risco ---------- */
+
+function NovoFatorForm({ riscoId, onCriado }: { riscoId: number; onCriado: () => void }) {
+  const [descricao, setDescricao] = useState("");
+  const [explicacao, setExplicacao] = useState("");
+  const [natureza, setNatureza] = useState(OPCOES_NATUREZA_FATOR[0]);
+  const [criticidade, setCriticidade] = useState(OPCOES_CRITICIDADE[2]);
+  const [controleDescricao, setControleDescricao] = useState("");
+  const [tipoControle, setTipoControle] = useState(OPCOES_TIPO_CONTROLE[0]);
+  const [naturezaControle, setNaturezaControle] = useState(OPCOES_NATUREZA_CONTROLE[0]);
+  const [eficaciaPotencial, setEficaciaPotencial] = useState(OPCOES_EFICACIA_POTENCIAL[0]);
+  const [statusImplementacao, setStatusImplementacao] = useState(OPCOES_STATUS_IMPLEMENTACAO[0]);
+  const [vetorOverride, setVetorOverride] = useState("");
+  const [justificativaOverride, setJustificativaOverride] = useState("");
+  const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSalvando(true);
+    setErro(null);
+    try {
+      const res = await fetch("/api/fatores-risco", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          riscoId,
+          descricao,
+          explicacao: explicacao || null,
+          natureza,
+          criticidade,
+          controleDescricao,
+          tipoControle,
+          naturezaControle,
+          eficaciaPotencial,
+          statusImplementacao,
+          vetorOverride: vetorOverride || null,
+          justificativaOverride: justificativaOverride || null,
+        }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || "Falha ao cadastrar o fator de risco.");
+      setDescricao("");
+      setExplicacao("");
+      setControleDescricao("");
+      setVetorOverride("");
+      setJustificativaOverride("");
+      setStatusImplementacao(OPCOES_STATUS_IMPLEMENTACAO[0]);
+      onCriado();
+    } catch (err) {
+      setErro(err instanceof Error ? err.message : "Erro ao cadastrar.");
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="form-grid" style={{ maxWidth: "40rem" }}>
+      <div className="form-field form-field-wide">
+        <label>Descrição do Fator (vulnerabilidade / causa)</label>
+        <textarea value={descricao} onChange={(e) => setDescricao(e.target.value)} required
+          placeholder="Ex.: Política DMARC em modo de observação, sem bloqueio." />
+      </div>
+      <div className="form-field form-field-wide">
+        <label>Explicação (opcional)</label>
+        <textarea value={explicacao} onChange={(e) => setExplicacao(e.target.value)}
+          placeholder="Detalhamento técnico do fator, se necessário." />
+      </div>
+      <div className="form-field">
+        <label>Natureza do Fator</label>
+        <select value={natureza} onChange={(e) => setNatureza(e.target.value)}>
+          {OPCOES_NATUREZA_FATOR.map((o) => <option key={o} value={o}>{o}</option>)}
+        </select>
+      </div>
+      <div className="form-field">
+        <label>Criticidade do Fator</label>
+        <select value={criticidade} onChange={(e) => setCriticidade(e.target.value)}>
+          {OPCOES_CRITICIDADE.map((o) => <option key={o} value={o}>{o}</option>)}
+        </select>
+      </div>
+      <div className="form-field form-field-wide">
+        <label>Controle / Ação Recomendada</label>
+        <textarea value={controleDescricao} onChange={(e) => setControleDescricao(e.target.value)} required
+          placeholder="Ex.: Evolução controlada de p=none para quarantine/reject." />
+      </div>
+      <div className="form-field">
+        <label>Tipo de Controle</label>
+        <select value={tipoControle} onChange={(e) => setTipoControle(e.target.value)}>
+          {OPCOES_TIPO_CONTROLE.map((o) => <option key={o} value={o}>{o}</option>)}
+        </select>
+      </div>
+      <div className="form-field">
+        <label>Natureza do Controle</label>
+        <select value={naturezaControle} onChange={(e) => setNaturezaControle(e.target.value)}>
+          {OPCOES_NATUREZA_CONTROLE.map((o) => <option key={o} value={o}>{o}</option>)}
+        </select>
+      </div>
+      <div className="form-field">
+        <label>Eficácia Potencial</label>
+        <select value={eficaciaPotencial} onChange={(e) => setEficaciaPotencial(e.target.value)}>
+          {OPCOES_EFICACIA_POTENCIAL.map((o) => <option key={o} value={o}>{o}</option>)}
+        </select>
+      </div>
+      <div className="form-field">
+        <label>Status de Implementação</label>
+        <select value={statusImplementacao} onChange={(e) => setStatusImplementacao(e.target.value)}>
+          {OPCOES_STATUS_IMPLEMENTACAO.map((o) => <option key={o} value={o}>{o}</option>)}
+        </select>
+      </div>
+      <div className="form-field">
+        <label>Vetor — Override (opcional)</label>
+        <select value={vetorOverride} onChange={(e) => setVetorOverride(e.target.value)}>
+          <option value="">— usar vetor sugerido —</option>
+          {OPCOES_VETOR.map((o) => <option key={o} value={o}>{o}</option>)}
+        </select>
+      </div>
+      {vetorOverride && (
+        <div className="form-field form-field-wide">
+          <label>Justificativa do Override (obrigatória)</label>
+          <textarea value={justificativaOverride} onChange={(e) => setJustificativaOverride(e.target.value)} required />
+        </div>
+      )}
+      <div className="form-field-wide form-actions">
+        <button type="submit" className="btn-primary" disabled={salvando}>
+          {salvando ? "Salvando..." : "Adicionar fator de risco"}
+        </button>
+      </div>
+      {erro && (
+        <div className="error-banner form-field-wide" style={{ marginTop: 0 }}>
+          <span className="success-icon error-icon">!</span>
+          <span className="success-text">{erro}</span>
+        </div>
+      )}
+    </form>
+  );
+}
 /* ---------- Card de um Plano de Ação, com suas Ações dentro ---------- */
 
 function PlanoAcaoCard({
@@ -336,7 +610,6 @@ function PlanoAcaoCard({
     </div>
   );
 }
-
 export default function DetalheDoRisco() {
   const params = useParams<{ id: string }>();
   const [risco, setRisco] = useState<RiscoDetalhe | null>(null);
@@ -389,7 +662,7 @@ export default function DetalheDoRisco() {
         }),
       });
       const body = await res.json();
-      if (!res.ok) throw new Error(body.error || "Falha ao salvar a reavaliação.");
+      if (!res.ok) throw new Error(body.error || "Falha ao salvar.");
       setSucessoSalvar(true);
       carregarRisco();
     } catch (err) {
@@ -495,23 +768,6 @@ export default function DetalheDoRisco() {
                 </div>
               </div>
 
-              <div className="dash-panel">
-                <div className="dash-panel-header">Análise de Impacto</div>
-                <div className="dash-panel-body">
-                  <table className="dash-table">
-                    <tbody>
-                      <LinhaCampo label="Impacto" value={risco.impacto ?? "—"} />
-                      <LinhaCampo label="Probabilidade" value={risco.probabilidade ?? "—"} />
-                      <LinhaCampo label="Pontuação da Matriz" value={risco.matrix_score ?? "—"} />
-                      <LinhaCampo
-                        label="Classificação (nível atual)"
-                        value={risco.impacto_qualitativo || "—"}
-                      />
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
               {risco.sistema_critico && (
                 <div className="dash-panel">
                   <div className="dash-panel-header">Impacto Financeiro</div>
@@ -538,31 +794,43 @@ export default function DetalheDoRisco() {
               )}
 
               <div className="dash-panel">
-                <div className="dash-panel-header">Nível do Risco</div>
+                <div className="dash-panel-header">Nível do Risco — Inerente / Atual / Projetado</div>
                 <div className="dash-panel-body">
                   <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap", marginBottom: "1.25rem" }}>
                     <div>
                       <div className="text-muted" style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.04em" }}>
-                        Nível inicial (na criação)
+                        Inerente (sem controles)
                       </div>
                       <div style={{ marginTop: "0.4rem" }}>
                         {risco.nivel_inicial ? (
-                          <span className={`badge ${BADGE_POR_NIVEL[risco.nivel_inicial] || ""}`}>
-                            {risco.nivel_inicial}
-                          </span>
+                          <span className={`badge ${BADGE_POR_NIVEL[risco.nivel_inicial] || ""}`}>{risco.nivel_inicial}</span>
                         ) : "—"}
                       </div>
                     </div>
                     <div>
                       <div className="text-muted" style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.04em" }}>
-                        Nível atual
+                        Atual (controles hoje)
                       </div>
                       <div style={{ marginTop: "0.4rem" }}>
                         {risco.impacto_qualitativo ? (
-                          <span className={`badge ${BADGE_POR_NIVEL[risco.impacto_qualitativo] || ""}`}>
-                            {risco.impacto_qualitativo}
-                          </span>
+                          <span className={`badge ${BADGE_POR_NIVEL[risco.impacto_qualitativo] || ""}`}>{risco.impacto_qualitativo}</span>
                         ) : "—"}
+                      </div>
+                      <div className="text-muted" style={{ fontSize: "0.72rem", marginTop: "0.3rem" }}>
+                        IM Prob. {formatPct(risco.im_prob_atual)} · IM Imp. {formatPct(risco.im_imp_atual)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-muted" style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                        Projetado (planos concluídos)
+                      </div>
+                      <div style={{ marginTop: "0.4rem" }}>
+                        {risco.nivel_projetado ? (
+                          <span className={`badge ${BADGE_POR_NIVEL[risco.nivel_projetado] || ""}`}>{risco.nivel_projetado}</span>
+                        ) : "—"}
+                      </div>
+                      <div className="text-muted" style={{ fontSize: "0.72rem", marginTop: "0.3rem" }}>
+                        IM Prob. {formatPct(risco.im_prob_projetado)} · IM Imp. {formatPct(risco.im_imp_projetado)}
                       </div>
                     </div>
                   </div>
@@ -574,23 +842,22 @@ export default function DetalheDoRisco() {
                   ) : (
                     <>
                       <p className="field-helper" style={{ marginTop: 0, marginBottom: "1rem" }}>
-                        Depois de implementar uma medida de mitigação, reavalie impacto e/ou
-                        probabilidade abaixo. Ao marcar o status como <strong>Mitigado</strong>, o risco
-                        é congelado — não poderá mais ser alterado, nem novos planos de ação
-                        cadastrados nele. O nível inicial não muda — ele fica registrado como
-                        referência histórica de antes da mitigação.
+                        Impacto e Probabilidade abaixo são os valores <strong>inerentes</strong> (antes de
+                        qualquer controle). O nível Atual e o Projetado são sempre calculados a partir dos
+                        Fatores de Risco cadastrados mais abaixo — não são digitados aqui. Ao marcar o
+                        status como <strong>Mitigado</strong>, o risco é congelado por completo.
                       </p>
 
                       <form onSubmit={handleReavaliar} className="form-grid" style={{ maxWidth: "30rem" }}>
                         <div className="form-field">
-                          <label htmlFor="impactoForm">Impacto (1–5)</label>
+                          <label htmlFor="impactoForm">Impacto Inerente (1–5)</label>
                           <select id="impactoForm" value={impactoForm} onChange={(e) => setImpactoForm(e.target.value)}>
                             <option value="">—</option>
                             {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}
                           </select>
                         </div>
                         <div className="form-field">
-                          <label htmlFor="probabilidadeForm">Probabilidade (1–5)</label>
+                          <label htmlFor="probabilidadeForm">Probabilidade Inerente (1–5)</label>
                           <select id="probabilidadeForm" value={probabilidadeForm} onChange={(e) => setProbabilidadeForm(e.target.value)}>
                             <option value="">—</option>
                             {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}
@@ -604,9 +871,9 @@ export default function DetalheDoRisco() {
                         </div>
                         <div className="form-field-wide form-actions">
                           <button type="submit" className="btn-primary" disabled={salvando}>
-                            {salvando ? "Salvando..." : "Salvar reavaliação"}
+                            {salvando ? "Salvando..." : "Salvar"}
                           </button>
-                          {sucessoSalvar && <span className="text-muted" style={{ fontSize: "0.85rem" }}>Reavaliação salva.</span>}
+                          {sucessoSalvar && <span className="text-muted" style={{ fontSize: "0.85rem" }}>Salvo.</span>}
                         </div>
                         {erroSalvar && (
                           <div className="error-banner form-field-wide" style={{ marginTop: 0 }}>
@@ -615,6 +882,40 @@ export default function DetalheDoRisco() {
                           </div>
                         )}
                       </form>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <div className="dash-panel">
+                <div className="dash-panel-header">Fatores de Risco e Controles</div>
+                <div className="dash-panel-body">
+                  <p className="text-muted" style={{ fontSize: "0.82rem", marginTop: 0, marginBottom: "1rem" }}>
+                    Cada fator abaixo empurra a Probabilidade e/ou o Impacto deste risco. O Índice de
+                    Mitigação (e, por consequência, o nível Atual/Projetado no painel acima) é recalculado
+                    automaticamente a cada fator adicionado, editado ou removido.
+                  </p>
+
+                  {risco.fatores.length === 0 && (
+                    <p className="text-muted" style={{ fontSize: "0.85rem" }}>
+                      Nenhum fator de risco cadastrado ainda — o nível Atual permanece igual ao Inerente.
+                    </p>
+                  )}
+
+                  {risco.fatores.map((f) => (
+                    <FatorRiscoCard key={f.id} fator={f} riscoMitigado={riscoMitigado} onAtualizado={carregarRisco} />
+                  ))}
+
+                  {riscoMitigado ? (
+                    <p className="field-helper" style={{ margin: "1rem 0 0" }}>
+                      Este risco foi mitigado — não é possível cadastrar novos fatores de risco.
+                    </p>
+                  ) : (
+                    <>
+                      <p style={{ fontSize: "0.8rem", fontWeight: 600, marginTop: "1rem", marginBottom: "0.75rem" }}>
+                        Novo fator de risco
+                      </p>
+                      <NovoFatorForm riscoId={risco.id} onCriado={carregarRisco} />
                     </>
                   )}
                 </div>
@@ -675,7 +976,7 @@ export default function DetalheDoRisco() {
             </div>
           )}
 
-          <a
+            <a
             href="/seguranca/gestao-de-riscos/riscos"
             className="status-tag"
             style={{ marginTop: "2.5rem", display: "inline-block" }}
