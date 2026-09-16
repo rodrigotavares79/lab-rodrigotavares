@@ -39,9 +39,9 @@ type DashboardData = {
 
 const CORES_NIVEL: Record<string, string> = {
   "Baixo": "#9db4c4",
-  "Médio": "#b98900",
-  "Alto": "#2b3a4a",
-  "Crítico": "#a3242f",
+  "Moderado": "#b98900",
+  "Significativo": "#2b3a4a",
+  "Alto": "#a3242f",
 };
 
 function formatBRL(value: number): string {
@@ -123,7 +123,7 @@ export default function Dashboard() {
   const consolidado = data?.consolidado || [];
   const mitigacao = data?.mitigacao;
 
-  const ORDEM_NIVEIS = ["Baixo", "Médio", "Alto", "Crítico"];
+  const ORDEM_NIVEIS = ["Baixo", "Moderado", "Significativo", "Alto"];
   const totalPorNivelAtual = new Map((data?.niveis || []).map((n) => [n.nivel, n.total]));
   const totalPorNivelInicial = new Map((data?.niveisIniciais || []).map((n) => [n.nivel, n.total]));
   const comparativoNiveis = ORDEM_NIVEIS.map((nivel) => ({
@@ -153,7 +153,6 @@ export default function Dashboard() {
   const compSubWidth = (compGroupWidth - compSubGap) / 2;
 
   const semDados = !carregando && !erro && kpis?.total === 0;
-
   return (
     <>
       <section className="content-block">
@@ -179,7 +178,7 @@ export default function Dashboard() {
           </div>
 
           {projetoId && (
-            <a
+            
               href={`/seguranca/gestao-de-riscos/relatorio?projetoId=${projetoId}`}
               target="_blank"
               rel="noopener noreferrer"
@@ -224,7 +223,7 @@ export default function Dashboard() {
                   <div className="kpi-card-value">{kpis.total}</div>
                 </div>
                 <div className="kpi-card">
-                  <div className="kpi-card-header">Riscos Críticos Abertos</div>
+                  <div className="kpi-card-header">Riscos Altos Abertos</div>
                   <div className="kpi-card-value">{kpis.criticos_abertos}</div>
                 </div>
                 <div className="kpi-card">
@@ -349,7 +348,7 @@ export default function Dashboard() {
               </div>
 
               <div className="dash-panel">
-                <div className="dash-panel-header">Nível Inicial x Nível Atual</div>
+                <div className="dash-panel-header">Nível Inerente x Nível Atual</div>
                 <div className="dash-panel-body">
                   <p className="text-muted" style={{ fontSize: "0.82rem", marginTop: 0, marginBottom: "1rem" }}>
                     Compara o nível calculado na criação de cada risco com o nível atual, depois de
@@ -374,7 +373,7 @@ export default function Dashboard() {
                   )}
 
                   <div className="legend-row">
-                    <span><span className="legend-dot" style={{ background: "#c7cdd3" }} />Nível inicial</span>
+                    <span><span className="legend-dot" style={{ background: "#c7cdd3" }} />Nível inerente</span>
                     <span><span className="legend-dot" style={{ background: "#2b3a4a" }} />Nível atual</span>
                   </div>
 
@@ -472,7 +471,7 @@ export default function Dashboard() {
             </div>
           )}
 
-          <a
+            <a
             href="/seguranca/gestao-de-riscos"
             className="status-tag"
             style={{ marginTop: "2.5rem", display: "inline-block" }}
