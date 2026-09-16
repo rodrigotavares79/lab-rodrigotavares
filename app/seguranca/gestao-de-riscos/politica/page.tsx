@@ -136,8 +136,8 @@ export default function Politica() {
               <li>
                 <strong>Análise e Classificação</strong> — impacto e
                 probabilidade são avaliados, gerando a pontuação da matriz
-                de risco e sua classificação qualitativa (Baixo, Médio,
-                Alto ou Crítico).
+                de risco e sua classificação qualitativa (Baixo, Moderado,
+                Significativo ou Alto).
               </li>
               <li>
                 <strong>Definição do Plano de Ação</strong> — para riscos
