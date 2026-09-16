@@ -178,7 +178,7 @@ export default function Dashboard() {
           </div>
 
           {projetoId && (
-            
+              <a
               href={`/seguranca/gestao-de-riscos/relatorio?projetoId=${projetoId}`}
               target="_blank"
               rel="noopener noreferrer"
