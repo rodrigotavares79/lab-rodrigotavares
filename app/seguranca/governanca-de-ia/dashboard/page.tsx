@@ -366,6 +366,10 @@ export default function GovernancaDeIADashboard() {
                       </tbody>
                     </table>
                   </div>
+                  <p className="field-helper" style={{ marginTop: "0.9rem" }}>
+                    Todo sistema precisa de aprovação antes do uso. Sistemas identificados
+                    como &quot;Não aprovados&quot; não tiveram solicitação submetida via chamado.
+                  </p>
                 </div>
               </div>
             </div>
