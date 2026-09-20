@@ -21,6 +21,7 @@ type SistemaIA = {
 };
 
 const ACCENT = "#2b3a4a";
+const GRENA = "#6e1423";
 const CORES_STATUS = { aprovado: "#2d8050", naoAprovado: "#a3242f", semParecer: "#6b6b66" };
 const OPCOES_DADOS_TRATADOS = ["Pessoais", "Sensíveis", "Negócio"];
 const MESES_LABEL = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
@@ -144,7 +145,7 @@ export default function GovernancaDeIADashboard() {
       });
   }, [sistemas]);
 
-  const evoW = 600, evoH = 160;
+  const evoW = 600, evoH = 160, evoTopPad = 16;
   const evoMax = Math.max(1, ...evolucao.map((e) => e.total));
   const evoValores = evolucao.map((e) => e.total);
 
@@ -268,18 +269,32 @@ export default function GovernancaDeIADashboard() {
                   {evolucao.length === 0 ? (
                     <p className="text-muted" style={{ margin: 0, fontSize: "0.85rem" }}>Sem dados suficientes.</p>
                   ) : (
-                    <svg viewBox={`0 0 ${evoW} ${evoH + 24}`} width="100%" role="img" aria-label="Sistemas de IA cadastrados por mês">
-                      <path d={areaPath(evoValores, evoW, evoH, evoMax)} fill={ACCENT} opacity="0.12" />
-                      <path d={linePath(evoValores, evoW, evoH, evoMax)} fill="none" stroke={ACCENT} strokeWidth="2" />
+                    <svg
+                      viewBox={`0 -${evoTopPad} ${evoW} ${evoH + evoTopPad + 24}`}
+                      width="100%"
+                      role="img"
+                      aria-label="Sistemas de IA cadastrados por mês"
+                    >
+                      <path d={areaPath(evoValores, evoW, evoH, evoMax)} fill={GRENA} opacity="0.12" />
+                      <path d={linePath(evoValores, evoW, evoH, evoMax)} fill="none" stroke={GRENA} strokeWidth="2" />
                       {evolucao.map((e, i) => {
                         const x = evolucao.length > 1 ? (i / (evolucao.length - 1)) * evoW : evoW / 2;
                         const y = evoH - (e.total / evoMax) * evoH;
-                        return <circle key={i} cx={x} cy={y} r="3" fill={ACCENT} />;
+                        const ancora = i === 0 ? "start" : i === evolucao.length - 1 ? "end" : "middle";
+                        return (
+                          <g key={i}>
+                            <circle cx={x} cy={y} r="3" fill={GRENA} />
+                            <text x={x} y={y - 8} fontSize="9" fontWeight="600" fill="#1a1a18" textAnchor={ancora}>
+                              {e.total}
+                            </text>
+                          </g>
+                        );
                       })}
                       {evolucao.map((e, i) => {
                         const x = evolucao.length > 1 ? (i / (evolucao.length - 1)) * evoW : evoW / 2;
+                        const ancora = i === 0 ? "start" : i === evolucao.length - 1 ? "end" : "middle";
                         return (
-                          <text key={i} x={x} y={evoH + 16} fontSize="9" fill="#6b6b66" textAnchor="middle">
+                          <text key={i} x={x} y={evoH + 16} fontSize="9" fill="#6b6b66" textAnchor={ancora}>
                             {e.mes}
                           </text>
                         );
