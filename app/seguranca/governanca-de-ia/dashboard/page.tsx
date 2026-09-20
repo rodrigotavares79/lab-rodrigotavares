@@ -22,6 +22,7 @@ type SistemaIA = {
   criado_em: string;
   ultima_revisao_em: string | null;
   ultima_revisao_parecer: boolean | null;
+  ultima_revisao_por: string | null;
 };
 
 const ACCENT = "var(--accent)";
@@ -60,6 +61,13 @@ function RevisaoCell({ sistema }: { sistema: SistemaIA }) {
   );
 }
 
+function UltimaRevisaoCell({ sistema }: { sistema: SistemaIA }) {
+  if (!sistema.ultima_revisao_em) {
+    return <span className="text-muted">Nunca revisado</span>;
+  }
+  return <span>{formatarData(sistema.ultima_revisao_em)}</span>;
+}
+
 function DadosTratadosCell({ sistema }: { sistema: SistemaIA }) {
   return (
     <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "0.3rem" }}>
@@ -92,28 +100,39 @@ function BarChart({ dados, corBarra = ACCENT }: { dados: { label: string; total:
   if (dados.length === 0) {
     return <p className="text-muted" style={{ margin: 0, fontSize: "0.85rem" }}>Sem dados suficientes.</p>;
   }
-  const w = 600, h = 160, topPad = 18, gap = 14;
+  // Largura por categoria fixa (não encolhe) — em vez de espremer texto
+  // pra caber, o gráfico cresce e rola horizontalmente quando precisa.
+  const larguraPorBarra = 92;
+  const w = Math.max(360, dados.length * larguraPorBarra);
+  const h = 170, topPad = 24, gap = 18;
   const max = Math.max(1, ...dados.map((d) => d.total));
   const barW = (w - gap * (dados.length - 1)) / dados.length;
   return (
-    <svg viewBox={`0 0 ${w} ${h + topPad + 40}`} width="100%" role="img" aria-label="Gráfico de barras">
-      {dados.map((d, i) => {
-        const x = i * (barW + gap);
-        const barH = (d.total / max) * h;
-        const y = topPad + (h - barH);
-        return (
-          <g key={d.label}>
-            <rect x={x} y={y} width={barW} height={barH} fill={corBarra} rx="2" />
-            <text x={x + barW / 2} y={y - 6} fontSize="10" fill="var(--text)" textAnchor="middle">
-              {d.total}
-            </text>
-            <text x={x + barW / 2} y={topPad + h + 14} fontSize="8" fill="var(--text-muted)" textAnchor="middle">
-              {d.label.length > 14 ? d.label.slice(0, 13) + "…" : d.label}
-            </text>
-          </g>
-        );
-      })}
-    </svg>
+    <div className="chart-scroll">
+      <svg
+        viewBox={`0 0 ${w} ${h + topPad + 48}`}
+        style={{ width: "100%", minWidth: `${w}px`, display: "block" }}
+        role="img"
+        aria-label="Gráfico de barras"
+      >
+        {dados.map((d, i) => {
+          const x = i * (barW + gap);
+          const barH = (d.total / max) * h;
+          const y = topPad + (h - barH);
+          return (
+            <g key={d.label}>
+              <rect x={x} y={y} width={barW} height={barH} fill={corBarra} rx="3" />
+              <text x={x + barW / 2} y={y - 8} fontSize="14" fontWeight="600" fill="var(--text)" textAnchor="middle">
+                {d.total}
+              </text>
+              <text x={x + barW / 2} y={topPad + h + 20} fontSize="12" fill="var(--text-muted)" textAnchor="middle">
+                {d.label.length > 16 ? d.label.slice(0, 15) + "…" : d.label}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+    </div>
   );
 }
 
@@ -177,7 +196,8 @@ export default function GovernancaDeIADashboard() {
       });
   }, [sistemas]);
 
-  const evoW = 600, evoH = 160, evoTopPad = 16;
+  const evoW = Math.max(420, evolucao.length * 92);
+  const evoH = 170, evoTopPad = 24;
   const evoMax = Math.max(1, ...evolucao.map((e) => e.total));
   const evoValores = evolucao.map((e) => e.total);
 
@@ -216,7 +236,7 @@ export default function GovernancaDeIADashboard() {
 
           {!carregando && !erro && total > 0 && (
             <div className="dashboard">
-              <div className="kpi-grid" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
+              <div className="kpi-grid-3">
                 <div className="kpi-card">
                   <div className="kpi-card-header">Sistemas Cadastrados</div>
                   <div className="kpi-card-value">{total}</div>
@@ -231,7 +251,7 @@ export default function GovernancaDeIADashboard() {
                 </div>
               </div>
 
-              <div className="dash-row-charts" style={{ gridTemplateColumns: "1fr 1fr" }}>
+              <div className="dash-row-charts-2">
                 <div className="dash-panel">
                   <div className="dash-panel-header">Status de Aprovação</div>
                   <div className="dash-panel-body">
@@ -255,9 +275,9 @@ export default function GovernancaDeIADashboard() {
                             ))}
                           </g>
                         </svg>
-                        <div style={{ marginTop: "1rem", display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+                        <div style={{ marginTop: "1rem", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                           {statusDonut.map((d) => (
-                            <span key={d.label} style={{ fontSize: "0.78rem", color: "var(--text)" }}>
+                            <span key={d.label} style={{ fontSize: "0.95rem", color: "var(--text)" }}>
                               <span className="legend-dot" style={{ background: d.color }} />
                               {d.label === "Aprovado" ? "✓" : d.label === "Não aprovado" ? "✕" : "—"} {d.label} — {d.value} ({d.pct}%)
                             </span>
@@ -279,7 +299,7 @@ export default function GovernancaDeIADashboard() {
                 </div>
               </div>
 
-              <div className="dash-row-charts" style={{ gridTemplateColumns: "1fr 1fr" }}>
+              <div className="dash-row-charts-2">
                 <div className="dash-panel">
                   <div className="dash-panel-header">Sistemas por Tipo</div>
                   <div className="dash-panel-body">
@@ -301,22 +321,23 @@ export default function GovernancaDeIADashboard() {
                   {evolucao.length === 0 ? (
                     <p className="text-muted" style={{ margin: 0, fontSize: "0.85rem" }}>Sem dados suficientes.</p>
                   ) : (
+                    <div className="chart-scroll">
                     <svg
-                      viewBox={`0 -${evoTopPad} ${evoW} ${evoH + evoTopPad + 24}`}
-                      width="100%"
+                      viewBox={`0 -${evoTopPad} ${evoW} ${evoH + evoTopPad + 28}`}
+                      style={{ width: "100%", minWidth: `${evoW}px`, display: "block" }}
                       role="img"
                       aria-label="Sistemas de IA cadastrados por mês"
                     >
                       <path d={areaPath(evoValores, evoW, evoH, evoMax)} fill={GRENA} opacity="0.12" />
-                      <path d={linePath(evoValores, evoW, evoH, evoMax)} fill="none" stroke={GRENA} strokeWidth="2" />
+                      <path d={linePath(evoValores, evoW, evoH, evoMax)} fill="none" stroke={GRENA} strokeWidth="2.5" />
                       {evolucao.map((e, i) => {
                         const x = evolucao.length > 1 ? (i / (evolucao.length - 1)) * evoW : evoW / 2;
                         const y = evoH - (e.total / evoMax) * evoH;
                         const ancora = i === 0 ? "start" : i === evolucao.length - 1 ? "end" : "middle";
                         return (
                           <g key={i}>
-                            <circle cx={x} cy={y} r="3" fill={GRENA} />
-                            <text x={x} y={y - 8} fontSize="9" fontWeight="600" fill="var(--text)" textAnchor={ancora}>
+                            <circle cx={x} cy={y} r="4" fill={GRENA} />
+                            <text x={x} y={y - 10} fontSize="14" fontWeight="600" fill="var(--text)" textAnchor={ancora}>
                               {e.total}
                             </text>
                           </g>
@@ -326,12 +347,13 @@ export default function GovernancaDeIADashboard() {
                         const x = evolucao.length > 1 ? (i / (evolucao.length - 1)) * evoW : evoW / 2;
                         const ancora = i === 0 ? "start" : i === evolucao.length - 1 ? "end" : "middle";
                         return (
-                          <text key={i} x={x} y={evoH + 16} fontSize="9" fill="var(--text-muted)" textAnchor={ancora}>
+                          <text key={i} x={x} y={evoH + 20} fontSize="13" fill="var(--text-muted)" textAnchor={ancora}>
                             {e.mes}
                           </text>
                         );
                       })}
                     </svg>
+                    </div>
                   )}
                 </div>
               </div>
@@ -355,6 +377,8 @@ export default function GovernancaDeIADashboard() {
                           <th>Dados Tratados</th>
                           <th>Parecer Cibersegurança</th>
                           <th>Cadastrado em</th>
+                          <th>Última Revisão</th>
+                          <th>Revisado Por</th>
                           <th>Próxima Revisão</th>
                         </tr>
                       </thead>
@@ -380,6 +404,8 @@ export default function GovernancaDeIADashboard() {
                             <td><DadosTratadosCell sistema={s} /></td>
                             <td><ParecerCell sistema={s} /></td>
                             <td>{formatData(s.criado_em)}</td>
+                            <td><UltimaRevisaoCell sistema={s} /></td>
+                            <td>{s.ultima_revisao_por || "—"}</td>
                             <td><RevisaoCell sistema={s} /></td>
                           </tr>
                         ))}

@@ -1062,6 +1062,34 @@ h1, h2, h3 {
   }
 }
 
+/* Variantes usadas onde o número de cards não é 2 — precisam da própria
+   media query porque um `style` inline de gridTemplateColumns (usado
+   antes aqui) tem prioridade sobre qualquer @media da classe base,
+   então nunca colapsava em tela estreita. */
+.kpi-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+@media (max-width: 36rem) {
+  .kpi-grid-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dash-row-charts-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+@media (max-width: 46rem) {
+  .dash-row-charts-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
 .legend-row {
   display: flex;
   gap: 1rem;
@@ -1119,6 +1147,14 @@ h1, h2, h3 {
 .dash-table-scroll {
   max-height: 16rem;
   overflow: auto;
+}
+
+/* Envolve um gráfico SVG que tem largura mínima própria (definida
+   inline no elemento) — em telas estreitas ele não espreme o texto até
+   ficar ilegível, o usuário rola horizontalmente em vez disso. */
+.chart-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .dash-table td.status-identified {

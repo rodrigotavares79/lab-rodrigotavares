@@ -21,9 +21,17 @@ export async function GET() {
       SELECT
         s.id, s.sistema, s.tipo, s.descricao, s.area, s.area_usuario, s.usuarios, s.emails,
         s.dados_tratados, s.parecer_aprovado, s.parecer_numero_chamado, s.criado_em,
-        (SELECT MAX(r.data_revisao) FROM revisoes_sistemas_ia r WHERE r.sistema_ia_id = s.id) AS ultima_revisao_em,
-        (SELECT r.parecer_aprovado FROM revisoes_sistemas_ia r WHERE r.sistema_ia_id = s.id ORDER BY r.data_revisao DESC, r.id DESC LIMIT 1) AS ultima_revisao_parecer
+        ur.data_revisao AS ultima_revisao_em,
+        ur.parecer_aprovado AS ultima_revisao_parecer,
+        ur.revisado_por AS ultima_revisao_por
       FROM sistemas_ia s
+      LEFT JOIN LATERAL (
+        SELECT r.data_revisao, r.parecer_aprovado, r.revisado_por
+        FROM revisoes_sistemas_ia r
+        WHERE r.sistema_ia_id = s.id
+        ORDER BY r.data_revisao DESC, r.id DESC
+        LIMIT 1
+      ) ur ON true
       ORDER BY s.criado_em DESC
     `;
     return NextResponse.json({ sistemas: rows });
