@@ -6,6 +6,25 @@
   --accent: #2b3a4a;
   --border: #e4e2dd;
 
+  /* Tokens semânticos — um hex por job (sucesso/alerta/erro), pra acabar
+     com o vermelho e o verde duplicados que existiam espalhados pelo
+     site (badges, banners, KPIs, gráficos). Não mexe na escala ordinal
+     de nível de risco (Baixo/Moderado/Significativo/Alto), que é uma
+     decisão de design separada. */
+  --success: #3f7d58;
+  --success-tint: rgba(63, 125, 88, 0.12);
+  --success-bg: #eef5f0;
+  --success-border: #bfd9c8;
+
+  --warning: #b98900;
+  --warning-text: #8a6600;
+  --warning-tint: rgba(185, 137, 0, 0.14);
+
+  --danger: #a3242f;
+  --danger-tint: rgba(163, 36, 47, 0.12);
+  --danger-bg: #faeceb;
+  --danger-border: #e3b5b0;
+
   --font-body: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
   --max-width: 68rem;
 }
@@ -693,20 +712,20 @@ h1, h2, h3 {
 }
 
 .success-banner {
-  background: #eef5f0;
-  border: 1px solid #bfd9c8;
+  background: var(--success-bg);
+  border: 1px solid var(--success-border);
 }
 
 .error-banner {
-  background: #faeceb;
-  border: 1px solid #e3b5b0;
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
 }
 
 .success-icon {
   width: 1.4rem;
   height: 1.4rem;
   border-radius: 50%;
-  background: #3f7d58;
+  background: var(--success);
   color: #fff;
   font-size: 0.85rem;
   font-weight: 700;
@@ -718,7 +737,7 @@ h1, h2, h3 {
 }
 
 .success-icon.error-icon {
-  background: #a3242f;
+  background: var(--danger);
 }
 
 .success-text strong {
@@ -777,23 +796,23 @@ h1, h2, h3 {
 }
 
 .badge-baixo {
-  background: rgba(63, 125, 88, 0.12);
-  color: #3f7d58;
+  background: var(--success-tint);
+  color: var(--success);
 }
 
 .badge-medio {
-  background: rgba(185, 137, 0, 0.14);
-  color: #8a6600;
+  background: var(--warning-tint);
+  color: var(--warning-text);
 }
 
 .badge-alto {
-  background: rgba(193, 68, 14, 0.12);
-  color: #c1440e;
+  background: var(--danger-tint);
+  color: var(--danger);
 }
 
 .badge-critico {
-  background: rgba(163, 36, 47, 0.12);
-  color: #a3242f;
+  background: var(--danger-tint);
+  color: var(--danger);
 }
 
 /* --- Prévia de impacto financeiro --- */
@@ -887,13 +906,13 @@ h1, h2, h3 {
   color: var(--text);
   background: var(--surface);
   border: 1px solid var(--border);
-  border-left: 3px solid #a3242f;
+  border-left: 3px solid var(--danger);
   border-radius: 2px;
   padding: 0.5rem 0.7rem;
 }
 
 .csv-issue-list-warning li {
-  border-left-color: #b98900;
+  border-left-color: var(--warning);
 }
 
 .financial-scenario {
@@ -1091,12 +1110,12 @@ h1, h2, h3 {
 }
 
 .dash-table td.status-identified {
-  color: #8a6600;
+  color: var(--warning-text);
   font-weight: 600;
 }
 
 .dash-table td.status-resolved {
-  color: #3f7d58;
+  color: var(--success);
   font-weight: 600;
 }
 
@@ -1237,8 +1256,8 @@ h1, h2, h3 {
   margin-top: 0.3rem;
 }
 
-.report-kpi-box.report-alert .report-kpi-value { color: #a3242f; }
-.report-kpi-box.report-ok .report-kpi-value { color: #3f7d58; }
+.report-kpi-box.report-alert .report-kpi-value { color: var(--danger); }
+.report-kpi-box.report-ok .report-kpi-value { color: var(--success); }
 
 .report-mitig-row {
   display: flex;
@@ -1276,10 +1295,10 @@ table.report-table th {
   color: var(--text-muted);
 }
 
-.report-status-mitigado { color: #3f7d58; font-weight: 600; }
-.report-status-tratamento { color: #8a6600; font-weight: 600; }
+.report-status-mitigado { color: var(--success); font-weight: 600; }
+.report-status-tratamento { color: var(--warning-text); font-weight: 600; }
 .report-status-identificado { color: var(--text-muted); }
-.report-vencida { color: #a3242f; font-weight: 600; }
+.report-vencida { color: var(--danger); font-weight: 600; }
 
 .report-plan-summary {
   display: flex;

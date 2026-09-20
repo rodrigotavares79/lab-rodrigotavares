@@ -165,9 +165,9 @@ function RelatorioConteudo() {
               Evolução do nível de risco desde o cadastro, considerando reavaliações após medidas de mitigação.
             </p>
             <div className="report-mitig-row">
-              <span><span className="report-dot" style={{ background: "#3f7d58" }} /><strong>{dados.mitigacao.melhorou}</strong> melhoraram de nível</span>
-              <span><span className="report-dot" style={{ background: "#6b6b66" }} /><strong>{dados.mitigacao.manteve}</strong> sem mudança</span>
-              <span><span className="report-dot" style={{ background: "#a3242f" }} /><strong>{dados.mitigacao.piorou}</strong> pioraram de nível</span>
+              <span><span className="report-dot" style={{ background: "var(--success)" }} /><strong>{dados.mitigacao.melhorou}</strong> melhoraram de nível</span>
+              <span><span className="report-dot" style={{ background: "var(--text-muted)" }} /><strong>{dados.mitigacao.manteve}</strong> sem mudança</span>
+              <span><span className="report-dot" style={{ background: "var(--danger)" }} /><strong>{dados.mitigacao.piorou}</strong> pioraram de nível</span>
             </div>
           </div>
 

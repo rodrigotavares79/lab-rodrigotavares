@@ -20,9 +20,9 @@ type SistemaIA = {
   criado_em: string;
 };
 
-const ACCENT = "#2b3a4a";
+const ACCENT = "var(--accent)";
 const GRENA = "#6e1423";
-const CORES_STATUS = { aprovado: "#2d8050", naoAprovado: "#a3242f", semParecer: "#6b6b66" };
+const CORES_STATUS = { aprovado: "var(--success)", naoAprovado: "var(--danger)", semParecer: "var(--text-muted)" };
 const OPCOES_DADOS_TRATADOS = ["Pessoais", "Sensíveis", "Negócio"];
 const MESES_LABEL = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 
@@ -72,10 +72,10 @@ function BarChart({ dados, corBarra = ACCENT }: { dados: { label: string; total:
         return (
           <g key={d.label}>
             <rect x={x} y={y} width={barW} height={barH} fill={corBarra} rx="2" />
-            <text x={x + barW / 2} y={y - 6} fontSize="10" fill="#1a1a18" textAnchor="middle">
+            <text x={x + barW / 2} y={y - 6} fontSize="10" fill="var(--text)" textAnchor="middle">
               {d.total}
             </text>
-            <text x={x + barW / 2} y={topPad + h + 14} fontSize="8" fill="#6b6b66" textAnchor="middle">
+            <text x={x + barW / 2} y={topPad + h + 14} fontSize="8" fill="var(--text-muted)" textAnchor="middle">
               {d.label.length > 14 ? d.label.slice(0, 13) + "…" : d.label}
             </text>
           </g>
@@ -225,7 +225,7 @@ export default function GovernancaDeIADashboard() {
                         </svg>
                         <div style={{ marginTop: "1rem", display: "flex", flexDirection: "column", gap: "0.4rem" }}>
                           {statusDonut.map((d) => (
-                            <span key={d.label} style={{ fontSize: "0.78rem", color: "#1a1a18" }}>
+                            <span key={d.label} style={{ fontSize: "0.78rem", color: "var(--text)" }}>
                               <span className="legend-dot" style={{ background: d.color }} />
                               {d.label === "Aprovado" ? "✓" : d.label === "Não aprovado" ? "✕" : "—"} {d.label} — {d.value} ({d.pct}%)
                             </span>
@@ -284,7 +284,7 @@ export default function GovernancaDeIADashboard() {
                         return (
                           <g key={i}>
                             <circle cx={x} cy={y} r="3" fill={GRENA} />
-                            <text x={x} y={y - 8} fontSize="9" fontWeight="600" fill="#1a1a18" textAnchor={ancora}>
+                            <text x={x} y={y - 8} fontSize="9" fontWeight="600" fill="var(--text)" textAnchor={ancora}>
                               {e.total}
                             </text>
                           </g>
@@ -294,7 +294,7 @@ export default function GovernancaDeIADashboard() {
                         const x = evolucao.length > 1 ? (i / (evolucao.length - 1)) * evoW : evoW / 2;
                         const ancora = i === 0 ? "start" : i === evolucao.length - 1 ? "end" : "middle";
                         return (
-                          <text key={i} x={x} y={evoH + 16} fontSize="9" fill="#6b6b66" textAnchor={ancora}>
+                          <text key={i} x={x} y={evoH + 16} fontSize="9" fill="var(--text-muted)" textAnchor={ancora}>
                             {e.mes}
                           </text>
                         );

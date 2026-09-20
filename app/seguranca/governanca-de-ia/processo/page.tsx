@@ -65,107 +65,107 @@ export default function GovernancaDeIAProcesso() {
               >
                 <defs>
                   <marker id="flow-arrow-ia" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-                    <path d="M 0 0 L 10 5 L 0 10 z" fill="#6b6b66" />
+                    <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--text-muted)" />
                   </marker>
                 </defs>
 
-                <text x="630" y="20" textAnchor="middle" fontSize="16" fontWeight="700" fill="#1a1a18">
+                <text x="630" y="20" textAnchor="middle" fontSize="16" fontWeight="700" fill="var(--text)">
                   Processo de Governança de IA
                 </text>
 
                 {/* Linha principal */}
-                <path d="M 165 95 L 205 95" stroke="#6b6b66" strokeWidth="1.5" markerEnd="url(#flow-arrow-ia)" />
-                <path d="M 355 95 L 395 95" stroke="#6b6b66" strokeWidth="1.5" markerEnd="url(#flow-arrow-ia)" />
-                <path d="M 545 95 L 575 95" stroke="#6b6b66" strokeWidth="1.5" markerEnd="url(#flow-arrow-ia)" />
+                <path d="M 165 95 L 205 95" stroke="var(--text-muted)" strokeWidth="1.5" markerEnd="url(#flow-arrow-ia)" />
+                <path d="M 355 95 L 395 95" stroke="var(--text-muted)" strokeWidth="1.5" markerEnd="url(#flow-arrow-ia)" />
+                <path d="M 545 95 L 575 95" stroke="var(--text-muted)" strokeWidth="1.5" markerEnd="url(#flow-arrow-ia)" />
 
                 {/* Diamante -> Aprovado (direto pro registro) */}
-                <path d="M 745 95 L 905 95" stroke="#6b6b66" strokeWidth="1.5" markerEnd="url(#flow-arrow-ia)" />
-                <text x="825" y="85" textAnchor="middle" fontSize="12" fill="#2b3a4a" fontWeight="600">Aprovado</text>
+                <path d="M 745 95 L 905 95" stroke="var(--text-muted)" strokeWidth="1.5" markerEnd="url(#flow-arrow-ia)" />
+                <text x="825" y="85" textAnchor="middle" fontSize="12" fill="var(--accent)" fontWeight="600">Aprovado</text>
 
                 {/* Diamante -> tronco comum descendo */}
-                <path d="M 660 150 L 660 190" stroke="#6b6b66" strokeWidth="1.5" fill="none" />
+                <path d="M 660 150 L 660 190" stroke="var(--text-muted)" strokeWidth="1.5" fill="none" />
                 {/* Tronco -> Reprovado (esquerda) */}
-                <path d="M 660 190 L 500 190 L 500 226" stroke="#6b6b66" strokeWidth="1.5" fill="none" markerEnd="url(#flow-arrow-ia)" />
-                <text x="565" y="182" textAnchor="middle" fontSize="12" fill="#2b3a4a" fontWeight="600">Reprovado</text>
+                <path d="M 660 190 L 500 190 L 500 226" stroke="var(--text-muted)" strokeWidth="1.5" fill="none" markerEnd="url(#flow-arrow-ia)" />
+                <text x="565" y="182" textAnchor="middle" fontSize="12" fill="var(--accent)" fontWeight="600">Reprovado</text>
                 {/* Tronco -> Dados pessoais/sensíveis (direita) */}
-                <path d="M 660 190 L 820 190 L 820 226" stroke="#6b6b66" strokeWidth="1.5" fill="none" markerEnd="url(#flow-arrow-ia)" />
-                <text x="740" y="166" textAnchor="middle" fontSize="10.5" fill="#2b3a4a" fontWeight="600">
+                <path d="M 660 190 L 820 190 L 820 226" stroke="var(--text-muted)" strokeWidth="1.5" fill="none" markerEnd="url(#flow-arrow-ia)" />
+                <text x="740" y="166" textAnchor="middle" fontSize="10.5" fill="var(--accent)" fontWeight="600">
                   <tspan x="740" dy="0">Dados pessoais/</tspan>
                   <tspan x="740" dy="12">sensíveis (LGPD/GDPR)</tspan>
                 </text>
 
                 {/* Proteção de Dados -> Reprovado (funde em F1) */}
-                <path d="M 745 271 L 575 271" stroke="#6b6b66" strokeWidth="1.5" markerEnd="url(#flow-arrow-ia)" />
-                <text x="660" y="263" textAnchor="middle" fontSize="11" fill="#2b3a4a" fontWeight="600">Reprovado</text>
+                <path d="M 745 271 L 575 271" stroke="var(--text-muted)" strokeWidth="1.5" markerEnd="url(#flow-arrow-ia)" />
+                <text x="660" y="263" textAnchor="middle" fontSize="11" fill="var(--accent)" fontWeight="600">Reprovado</text>
 
                 {/* Proteção de Dados -> Aprovado (funde em G, contorna por fora) */}
-                <path d="M 895 271 L 1145 271 L 1145 95 L 1085 95" stroke="#6b6b66" strokeWidth="1.5" fill="none" markerEnd="url(#flow-arrow-ia)" />
-                <text x="1160" y="185" fontSize="11" fill="#2b3a4a" fontWeight="600" textAnchor="middle" transform="rotate(90 1160 185)">Aprovado</text>
+                <path d="M 895 271 L 1145 271 L 1145 95 L 1085 95" stroke="var(--text-muted)" strokeWidth="1.5" fill="none" markerEnd="url(#flow-arrow-ia)" />
+                <text x="1160" y="185" fontSize="11" fill="var(--accent)" fontWeight="600" textAnchor="middle" transform="rotate(90 1160 185)">Aprovado</text>
 
                 {/* Caixa A - Solicitação */}
-                <rect x="15" y="50" width="150" height="90" rx="3" fill="#ffffff" stroke="#e4e2dd" />
-                <text x="90" y="72" textAnchor="middle" fontSize="12" fontWeight="700" fill="#1a1a18">Solicitação</text>
-                <text x="90" y="94" textAnchor="middle" fontSize="10.5" fill="#6b6b66">
+                <rect x="15" y="50" width="150" height="90" rx="3" fill="var(--surface)" stroke="var(--border)" />
+                <text x="90" y="72" textAnchor="middle" fontSize="12" fontWeight="700" fill="var(--text)">Solicitação</text>
+                <text x="90" y="94" textAnchor="middle" fontSize="10.5" fill="var(--text-muted)">
                   <tspan x="90" dy="0">Usuário solicita o uso</tspan>
                   <tspan x="90" dy="14">de um sistema de IA</tspan>
                   <tspan x="90" dy="14">via ITSM.</tspan>
                 </text>
 
                 {/* Caixa B - Triagem */}
-                <rect x="205" y="50" width="150" height="90" rx="3" fill="#ffffff" stroke="#e4e2dd" />
-                <text x="280" y="72" textAnchor="middle" fontSize="12" fontWeight="700" fill="#1a1a18">Triagem</text>
-                <text x="280" y="94" textAnchor="middle" fontSize="10.5" fill="#6b6b66">
+                <rect x="205" y="50" width="150" height="90" rx="3" fill="var(--surface)" stroke="var(--border)" />
+                <text x="280" y="72" textAnchor="middle" fontSize="12" fontWeight="700" fill="var(--text)">Triagem</text>
+                <text x="280" y="94" textAnchor="middle" fontSize="10.5" fill="var(--text-muted)">
                   <tspan x="280" dy="0">Service Desk avalia</tspan>
                   <tspan x="280" dy="14">completude do pedido</tspan>
                   <tspan x="280" dy="14">e encaminha.</tspan>
                 </text>
 
                 {/* Caixa C - Avaliação de Cibersegurança */}
-                <rect x="395" y="50" width="150" height="90" rx="3" fill="#ffffff" stroke="#e4e2dd" />
-                <text x="470" y="68" textAnchor="middle" fontSize="12" fontWeight="700" fill="#1a1a18">
+                <rect x="395" y="50" width="150" height="90" rx="3" fill="var(--surface)" stroke="var(--border)" />
+                <text x="470" y="68" textAnchor="middle" fontSize="12" fontWeight="700" fill="var(--text)">
                   <tspan x="470" dy="0">Avaliação de</tspan>
                   <tspan x="470" dy="14">Cibersegurança</tspan>
                 </text>
-                <text x="470" y="103" textAnchor="middle" fontSize="10.5" fill="#6b6b66">
+                <text x="470" y="103" textAnchor="middle" fontSize="10.5" fill="var(--text-muted)">
                   <tspan x="470" dy="0">Análise de risco</tspan>
                   <tspan x="470" dy="14">técnico e de segurança.</tspan>
                 </text>
 
                 {/* Diamante - Decisão de Cibersegurança */}
-                <polygon points="660,40 745,95 660,150 575,95" fill="#fafaf9" stroke="#2b3a4a" strokeWidth="1.5" />
-                <text x="660" y="88" textAnchor="middle" fontSize="11" fontWeight="700" fill="#1a1a18">Decisão de</text>
-                <text x="660" y="101" textAnchor="middle" fontSize="11" fontWeight="700" fill="#1a1a18">Cibersegurança</text>
+                <polygon points="660,40 745,95 660,150 575,95" fill="var(--bg)" stroke="var(--accent)" strokeWidth="1.5" />
+                <text x="660" y="88" textAnchor="middle" fontSize="11" fontWeight="700" fill="var(--text)">Decisão de</text>
+                <text x="660" y="101" textAnchor="middle" fontSize="11" fontWeight="700" fill="var(--text)">Cibersegurança</text>
 
                 {/* Caixa G - Registro no Inventário */}
-                <rect x="905" y="50" width="180" height="90" rx="3" fill="#ffffff" stroke="#e4e2dd" />
-                <text x="995" y="68" textAnchor="middle" fontSize="12" fontWeight="700" fill="#1a1a18">
+                <rect x="905" y="50" width="180" height="90" rx="3" fill="var(--surface)" stroke="var(--border)" />
+                <text x="995" y="68" textAnchor="middle" fontSize="12" fontWeight="700" fill="var(--text)">
                   <tspan x="995" dy="0">Registro no</tspan>
                   <tspan x="995" dy="14">Inventário de IA</tspan>
                 </text>
-                <text x="995" y="103" textAnchor="middle" fontSize="10.5" fill="#6b6b66">
+                <text x="995" y="103" textAnchor="middle" fontSize="10.5" fill="var(--text-muted)">
                   <tspan x="995" dy="0">Cadastro vinculado ao</tspan>
                   <tspan x="995" dy="14">número do chamado.</tspan>
                 </text>
 
                 {/* Caixa F1 - Encerramento Reprovado */}
-                <rect x="425" y="226" width="150" height="90" rx="3" fill="#ffffff" stroke="#e4e2dd" />
-                <text x="500" y="248" textAnchor="middle" fontSize="12" fontWeight="700" fill="#1a1a18">
+                <rect x="425" y="226" width="150" height="90" rx="3" fill="var(--surface)" stroke="var(--border)" />
+                <text x="500" y="248" textAnchor="middle" fontSize="12" fontWeight="700" fill="var(--text)">
                   <tspan x="500" dy="0">Encerramento</tspan>
                   <tspan x="500" dy="14">— Reprovado</tspan>
                 </text>
-                <text x="500" y="284" textAnchor="middle" fontSize="10.5" fill="#6b6b66">
+                <text x="500" y="284" textAnchor="middle" fontSize="10.5" fill="var(--text-muted)">
                   <tspan x="500" dy="0">Solicitante é</tspan>
                   <tspan x="500" dy="14">comunicado, sem</tspan>
                   <tspan x="500" dy="14">registro no Inventário.</tspan>
                 </text>
 
                 {/* Caixa E - Avaliação de Proteção de Dados */}
-                <rect x="745" y="226" width="150" height="90" rx="3" fill="#ffffff" stroke="#e4e2dd" />
-                <text x="820" y="248" textAnchor="middle" fontSize="12" fontWeight="700" fill="#1a1a18">
+                <rect x="745" y="226" width="150" height="90" rx="3" fill="var(--surface)" stroke="var(--border)" />
+                <text x="820" y="248" textAnchor="middle" fontSize="12" fontWeight="700" fill="var(--text)">
                   <tspan x="820" dy="0">Avaliação de</tspan>
                   <tspan x="820" dy="14">Proteção de Dados</tspan>
                 </text>
-                <text x="820" y="284" textAnchor="middle" fontSize="10.5" fill="#6b6b66">
+                <text x="820" y="284" textAnchor="middle" fontSize="10.5" fill="var(--text-muted)">
                   <tspan x="820" dy="0">Base legal, LGPD/</tspan>
                   <tspan x="820" dy="14">GDPR e necessidade</tspan>
                   <tspan x="820" dy="14">de RIPD/DPIA.</tspan>

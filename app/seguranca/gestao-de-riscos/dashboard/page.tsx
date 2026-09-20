@@ -40,9 +40,9 @@ type DashboardData = {
 
 const CORES_NIVEL: Record<string, string> = {
   "Baixo": "#9db4c4",
-  "Moderado": "#b98900",
-  "Significativo": "#2b3a4a",
-  "Alto": "#a3242f",
+  "Moderado": "var(--warning)",
+  "Significativo": "var(--accent)",
+  "Alto": "var(--danger)",
 };
 
 function formatBRL(value: number): string {
@@ -213,17 +213,17 @@ export default function Dashboard() {
                       <p className="text-muted" style={{ margin: 0, fontSize: "0.85rem" }}>Sem dados suficientes.</p>
                     ) : (
                       <svg viewBox={`0 0 ${evoW} ${evoH + 24}`} width="100%" role="img" aria-label="Riscos cadastrados por mês">
-                        <path d={areaPath(evoValores, evoW, evoH, evoMax)} fill="#2b3a4a" opacity="0.12" />
-                        <path d={linePath(evoValores, evoW, evoH, evoMax)} fill="none" stroke="#2b3a4a" strokeWidth="2" />
+                        <path d={areaPath(evoValores, evoW, evoH, evoMax)} fill="var(--accent)" opacity="0.12" />
+                        <path d={linePath(evoValores, evoW, evoH, evoMax)} fill="none" stroke="var(--accent)" strokeWidth="2" />
                         {evolucao.map((e, i) => {
                           const x = evolucao.length > 1 ? (i / (evolucao.length - 1)) * evoW : evoW / 2;
                           const y = evoH - (e.total / evoMax) * evoH;
-                          return <circle key={e.mes} cx={x} cy={y} r="3" fill="#2b3a4a" />;
+                          return <circle key={e.mes} cx={x} cy={y} r="3" fill="var(--accent)" />;
                         })}
                         {evolucao.map((e, i) => {
                           const x = evolucao.length > 1 ? (i / (evolucao.length - 1)) * evoW : evoW / 2;
                           return (
-                            <text key={e.mes} x={x} y={evoH + 16} fontSize="9" fill="#6b6b66" textAnchor="middle">
+                            <text key={e.mes} x={x} y={evoH + 16} fontSize="9" fill="var(--text-muted)" textAnchor="middle">
                               {e.mes}
                             </text>
                           );
@@ -246,11 +246,11 @@ export default function Dashboard() {
                           const y = barTopPad + (barH - h);
                           return (
                             <g key={c.categoria}>
-                              <rect x={x} y={y} width={barWidth} height={h} fill="#2b3a4a" rx="2" />
-                              <text x={x + barWidth / 2} y={y - 6} fontSize="10" fill="#1a1a18" textAnchor="middle">
+                              <rect x={x} y={y} width={barWidth} height={h} fill="var(--accent)" rx="2" />
+                              <text x={x + barWidth / 2} y={y - 6} fontSize="10" fill="var(--text)" textAnchor="middle">
                                 {c.total}
                               </text>
-                              <text x={x + barWidth / 2} y={barTopPad + barH + 14} fontSize="8" fill="#6b6b66" textAnchor="middle">
+                              <text x={x + barWidth / 2} y={barTopPad + barH + 14} fontSize="8" fill="var(--text-muted)" textAnchor="middle">
                                 {c.categoria.length > 12 ? c.categoria.slice(0, 11) + "…" : c.categoria}
                               </text>
                             </g>
@@ -288,7 +288,7 @@ export default function Dashboard() {
                         </svg>
                         <div style={{ marginTop: "1rem", display: "flex", flexDirection: "column", gap: "0.4rem" }}>
                           {donut.map((d) => (
-                            <span key={d.label} style={{ fontSize: "0.78rem", color: "#1a1a18" }}>
+                            <span key={d.label} style={{ fontSize: "0.78rem", color: "var(--text)" }}>
                               <span className="legend-dot" style={{ background: d.color }} />
                               {d.label} — {d.value} ({d.pct}%)
                             </span>
@@ -324,15 +324,15 @@ export default function Dashboard() {
                   {mitigacao && (
                     <div className="kpi-grid" style={{ gridTemplateColumns: "repeat(3, 1fr)", marginBottom: "1.5rem" }}>
                       <div className="kpi-card">
-                        <div className="kpi-card-header" style={{ background: "#3f7d58" }}>Melhoraram de nível</div>
+                        <div className="kpi-card-header" style={{ background: "var(--success)" }}>Melhoraram de nível</div>
                         <div className="kpi-card-value">{mitigacao.melhorou}</div>
                       </div>
                       <div className="kpi-card">
-                        <div className="kpi-card-header" style={{ background: "#6b6b66" }}>Sem mudança de nível</div>
+                        <div className="kpi-card-header" style={{ background: "var(--text-muted)" }}>Sem mudança de nível</div>
                         <div className="kpi-card-value">{mitigacao.manteve}</div>
                       </div>
                       <div className="kpi-card">
-                        <div className="kpi-card-header" style={{ background: "#a3242f" }}>Pioraram de nível</div>
+                        <div className="kpi-card-header" style={{ background: "var(--danger)" }}>Pioraram de nível</div>
                         <div className="kpi-card-value">{mitigacao.piorou}</div>
                       </div>
                     </div>
@@ -340,7 +340,7 @@ export default function Dashboard() {
 
                   <div className="legend-row">
                     <span><span className="legend-dot" style={{ background: "#c7cdd3" }} />Nível inerente</span>
-                    <span><span className="legend-dot" style={{ background: "#2b3a4a" }} />Nível atual</span>
+                    <span><span className="legend-dot" style={{ background: "var(--accent)" }} />Nível atual</span>
                   </div>
 
                   {comparativoNiveis.every((c) => c.inicial === 0 && c.atual === 0) ? (
@@ -357,13 +357,13 @@ export default function Dashboard() {
                           <g key={c.nivel}>
                             <rect x={x} y={yIni} width={compSubWidth} height={hIni} fill="#c7cdd3" rx="2" />
                             {c.inicial > 0 && (
-                              <text x={x + compSubWidth / 2} y={yIni - 6} fontSize="10" fill="#1a1a18" textAnchor="middle">{c.inicial}</text>
+                              <text x={x + compSubWidth / 2} y={yIni - 6} fontSize="10" fill="var(--text)" textAnchor="middle">{c.inicial}</text>
                             )}
-                            <rect x={x + compSubWidth + compSubGap} y={yAtu} width={compSubWidth} height={hAtu} fill="#2b3a4a" rx="2" />
+                            <rect x={x + compSubWidth + compSubGap} y={yAtu} width={compSubWidth} height={hAtu} fill="var(--accent)" rx="2" />
                             {c.atual > 0 && (
-                              <text x={x + compSubWidth + compSubGap + compSubWidth / 2} y={yAtu - 6} fontSize="10" fill="#1a1a18" textAnchor="middle">{c.atual}</text>
+                              <text x={x + compSubWidth + compSubGap + compSubWidth / 2} y={yAtu - 6} fontSize="10" fill="var(--text)" textAnchor="middle">{c.atual}</text>
                             )}
-                            <text x={x + compGroupWidth / 2} y={compTopPad + compH + 16} fontSize="9" fill="#6b6b66" textAnchor="middle">{c.nivel}</text>
+                            <text x={x + compGroupWidth / 2} y={compTopPad + compH + 16} fontSize="9" fill="var(--text-muted)" textAnchor="middle">{c.nivel}</text>
                           </g>
                         );
                       })}
