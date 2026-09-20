@@ -1,0 +1,45 @@
+-- Catálogo de sistemas de IA conhecidos — usado pra auto-preencher o
+-- campo Tipo no cadastro (ver app/api/catalogo-sistemas-ia/route.ts).
+-- Rode depois de db/migrations/0003_ajustes_inventario_ia.sql.
+-- Idempotente (ON CONFLICT DO NOTHING) — pode rodar mais de uma vez.
+
+INSERT INTO catalogo_sistemas_ia (nome, tipo) VALUES
+  ('Claude', 'Texto/Chat'),
+  ('ChatGPT', 'Texto/Chat'),
+  ('Google Gemini', 'Texto/Chat'),
+  ('Microsoft Copilot', 'Texto/Chat'),
+  ('GitHub Copilot', 'Desenvolvimento'),
+  ('Mistral AI', 'Texto/Chat'),
+  ('DeepSeek', 'Texto/Chat'),
+  ('Perplexity', 'Texto/Chat'),
+  ('Meta AI', 'Texto/Chat'),
+  ('Llama', 'Desenvolvimento'),
+  ('Midjourney', 'Imagem'),
+  ('DALL-E', 'Imagem'),
+  ('Stable Diffusion', 'Imagem'),
+  ('Adobe Firefly', 'Imagem'),
+  ('Leonardo AI', 'Imagem'),
+  ('Runway', 'Vídeo'),
+  ('Synthesia', 'Vídeo'),
+  ('HeyGen', 'Vídeo'),
+  ('Pika Labs', 'Vídeo'),
+  ('Sora', 'Vídeo'),
+  ('ElevenLabs', 'Outro'),
+  ('Notion AI', 'Texto/Chat'),
+  ('Grammarly', 'Texto/Chat'),
+  ('Jasper', 'Texto/Chat'),
+  ('Copy.ai', 'Texto/Chat'),
+  ('Codeium', 'Desenvolvimento'),
+  ('Cursor', 'Desenvolvimento'),
+  ('Tabnine', 'Desenvolvimento'),
+  ('Amazon Q Developer', 'Desenvolvimento'),
+  ('Replit AI', 'Desenvolvimento'),
+  ('v0', 'Desenvolvimento'),
+  ('Character.AI', 'Texto/Chat'),
+  ('Otter.ai', 'Outro'),
+  ('Fireflies.ai', 'Outro'),
+  ('Wolfram Alpha', 'Cálculos'),
+  ('Julius AI', 'Cálculos'),
+  ('Watson Assistant', 'Texto/Chat'),
+  ('Descript', 'Vídeo')
+ON CONFLICT (nome) DO NOTHING;

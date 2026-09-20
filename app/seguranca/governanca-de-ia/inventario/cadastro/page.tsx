@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, useEffect, useMemo, FormEvent } from "react";
 import Footer from "@/components/Footer";
 
 const TIPOS = ["Texto/Chat", "Imagem", "Vídeo", "Cálculos", "Desenvolvimento", "Outro"];
@@ -18,21 +18,43 @@ const AREAS = [
 ];
 const OPCOES_DADOS_TRATADOS = ["Pessoais", "Sensíveis", "Negócio"];
 
+type CatalogoItem = { nome: string; tipo: string };
+
 export default function CadastroDeSistemaIA() {
+  const [catalogo, setCatalogo] = useState<CatalogoItem[]>([]);
+
   const [sistema, setSistema] = useState("");
   const [tipo, setTipo] = useState("");
   const [descricao, setDescricao] = useState("");
   const [area, setArea] = useState("");
+  const [areaUsuario, setAreaUsuario] = useState("");
   const [usuarios, setUsuarios] = useState("");
   const [emails, setEmails] = useState("");
   const [dadosTratados, setDadosTratados] = useState<string[]>([]);
   const [parecerAprovado, setParecerAprovado] = useState("");
   const [parecerNumeroChamado, setParecerNumeroChamado] = useState("");
-  const [parecerLink, setParecerLink] = useState("");
 
   const [enviando, setEnviando] = useState(false);
   const [enviado, setEnviado] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/catalogo-sistemas-ia")
+      .then((r) => r.json())
+      .then((d) => setCatalogo(d.catalogo || []))
+      .catch(() => setCatalogo([]));
+  }, []);
+
+  const itemCatalogo = useMemo(
+    () => catalogo.find((c) => c.nome.toLowerCase() === sistema.trim().toLowerCase()) || null,
+    [catalogo, sistema]
+  );
+
+  // Sempre que o nome do sistema bater com o catálogo, o Tipo é carregado
+  // automaticamente (ainda editável, se precisar corrigir).
+  useEffect(() => {
+    if (itemCatalogo) setTipo(itemCatalogo.tipo);
+  }, [itemCatalogo]);
 
   function toggleDadoTratado(valor: string) {
     setDadosTratados((atual) =>
@@ -50,12 +72,12 @@ export default function CadastroDeSistemaIA() {
       tipo: tipo || null,
       descricao: descricao || null,
       area: area || null,
+      areaUsuario: areaUsuario || null,
       usuarios: usuarios || null,
       emails: emails || null,
       dadosTratados,
       parecerAprovado: parecerAprovado === "Sim" ? true : parecerAprovado === "Não" ? false : null,
       parecerNumeroChamado: parecerNumeroChamado || null,
-      parecerLink: parecerLink || null,
     };
 
     setEnviando(true);
@@ -76,12 +98,12 @@ export default function CadastroDeSistemaIA() {
       setTipo("");
       setDescricao("");
       setArea("");
+      setAreaUsuario("");
       setUsuarios("");
       setEmails("");
       setDadosTratados([]);
       setParecerAprovado("");
       setParecerNumeroChamado("");
-      setParecerLink("");
     } catch (err) {
       setErro(err instanceof Error ? err.message : "Erro ao cadastrar.");
     } finally {
@@ -109,10 +131,16 @@ export default function CadastroDeSistemaIA() {
                     id="sistema"
                     type="text"
                     required
+                    list="catalogo-sistemas"
                     placeholder="Nome do sistema ou ferramenta"
                     value={sistema}
                     onChange={(e) => setSistema(e.target.value)}
                   />
+                  <datalist id="catalogo-sistemas">
+                    {catalogo.map((c) => (
+                      <option key={c.nome} value={c.nome} />
+                    ))}
+                  </datalist>
                 </div>
 
                 <div className="form-field">
@@ -123,6 +151,11 @@ export default function CadastroDeSistemaIA() {
                       <option key={t} value={t}>{t}</option>
                     ))}
                   </select>
+                  <p className="field-helper">
+                    {itemCatalogo
+                      ? "Carregado automaticamente a partir do catálogo — pode ajustar se necessário."
+                      : "Sistema não encontrado no catálogo — selecione manualmente."}
+                  </p>
                 </div>
 
                 <div className="form-field">
@@ -133,7 +166,7 @@ export default function CadastroDeSistemaIA() {
                       <option key={a} value={a}>{a}</option>
                     ))}
                   </select>
-                  <p className="field-helper">Setor da empresa responsável pelo uso.</p>
+                  <p className="field-helper">Setor da empresa responsável pelo sistema.</p>
                 </div>
 
                 <div className="form-field form-field-wide">
@@ -152,6 +185,19 @@ export default function CadastroDeSistemaIA() {
             <fieldset className="form-section">
               <legend>Uso</legend>
               <div className="form-grid">
+                <div className="form-field">
+                  <label htmlFor="areaUsuario">Área do Usuário</label>
+                  <select id="areaUsuario" value={areaUsuario} onChange={(e) => setAreaUsuario(e.target.value)}>
+                    <option value="" disabled>Selecione</option>
+                    {AREAS.map((a) => (
+                      <option key={a} value={a}>{a}</option>
+                    ))}
+                  </select>
+                  <p className="field-helper">
+                    Setor de quem efetivamente usa o sistema — pode ser diferente da área responsável.
+                  </p>
+                </div>
+
                 <div className="form-field">
                   <label htmlFor="usuarios">Usuário(s)</label>
                   <input
@@ -214,29 +260,16 @@ export default function CadastroDeSistemaIA() {
                 </div>
 
                 {parecerAprovado === "Sim" && (
-                  <>
-                    <div className="form-field">
-                      <label htmlFor="parecerNumeroChamado">Número do Chamado</label>
-                      <input
-                        id="parecerNumeroChamado"
-                        type="text"
-                        placeholder="Ex: CYBER-1234"
-                        value={parecerNumeroChamado}
-                        onChange={(e) => setParecerNumeroChamado(e.target.value)}
-                      />
-                    </div>
-
-                    <div className="form-field">
-                      <label htmlFor="parecerLink">Link do Anexo/Chamado</label>
-                      <input
-                        id="parecerLink"
-                        type="url"
-                        placeholder="https://..."
-                        value={parecerLink}
-                        onChange={(e) => setParecerLink(e.target.value)}
-                      />
-                    </div>
-                  </>
+                  <div className="form-field">
+                    <label htmlFor="parecerNumeroChamado">Número do Chamado</label>
+                    <input
+                      id="parecerNumeroChamado"
+                      type="text"
+                      placeholder="Ex: CYBER-1234"
+                      value={parecerNumeroChamado}
+                      onChange={(e) => setParecerNumeroChamado(e.target.value)}
+                    />
+                  </div>
                 )}
               </div>
             </fieldset>

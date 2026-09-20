@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Footer from "@/components/Footer";
+import { SistemaIcone } from "@/lib/brandIcons";
 
 type SistemaIA = {
   id: number;
@@ -9,12 +10,12 @@ type SistemaIA = {
   tipo: string | null;
   descricao: string | null;
   area: string | null;
+  area_usuario: string | null;
   usuarios: string | null;
   emails: string | null;
   dados_tratados: string | null;
   parecer_aprovado: boolean | null;
   parecer_numero_chamado: string | null;
-  parecer_link: string | null;
   criado_em: string;
 };
 
@@ -28,14 +29,7 @@ function ParecerCell({ sistema }: { sistema: SistemaIA }) {
   if (sistema.parecer_aprovado !== true) {
     return <span className="text-muted">{sistema.parecer_aprovado === false ? "Não aprovado" : "—"}</span>;
   }
-  const texto = `📎 ${sistema.parecer_numero_chamado ? `#${sistema.parecer_numero_chamado}` : "Aprovado"}`;
-  return sistema.parecer_link ? (
-    <a href={sistema.parecer_link} target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent)", fontWeight: 600 }}>
-      {texto}
-    </a>
-  ) : (
-    <span>{texto}</span>
-  );
+  return <span>📎 {sistema.parecer_numero_chamado ? `#${sistema.parecer_numero_chamado}` : "Aprovado"}</span>;
 }
 
 export default function GovernancaDeIADashboard() {
@@ -121,6 +115,7 @@ export default function GovernancaDeIADashboard() {
                           <th>Sistema</th>
                           <th>Tipo</th>
                           <th>Área</th>
+                          <th>Área do Usuário</th>
                           <th>Usuário(s)</th>
                           <th>E-mail(s)</th>
                           <th>Dados Tratados</th>
@@ -132,9 +127,15 @@ export default function GovernancaDeIADashboard() {
                         {sistemas.map((s) => (
                           <tr key={s.id}>
                             <td>#{s.id}</td>
-                            <td style={{ whiteSpace: "normal", minWidth: "10rem" }}>{s.sistema}</td>
+                            <td style={{ whiteSpace: "normal", minWidth: "10rem" }}>
+                              <span style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}>
+                                <SistemaIcone nome={s.sistema} />
+                                {s.sistema}
+                              </span>
+                            </td>
                             <td>{s.tipo || "—"}</td>
                             <td>{s.area || "—"}</td>
+                            <td>{s.area_usuario || "—"}</td>
                             <td style={{ whiteSpace: "normal", minWidth: "10rem" }}>{s.usuarios || "—"}</td>
                             <td style={{ whiteSpace: "normal", minWidth: "12rem" }}>{s.emails || "—"}</td>
                             <td>{s.dados_tratados || "—"}</td>

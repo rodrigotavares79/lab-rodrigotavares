@@ -16,8 +16,8 @@ export async function GET() {
     const sql = neon(process.env.DATABASE_URL!);
     const rows = await sql`
       SELECT
-        id, sistema, tipo, descricao, area, usuarios, emails, dados_tratados,
-        parecer_aprovado, parecer_numero_chamado, parecer_link, criado_em
+        id, sistema, tipo, descricao, area, area_usuario, usuarios, emails,
+        dados_tratados, parecer_aprovado, parecer_numero_chamado, criado_em
       FROM sistemas_ia
       ORDER BY criado_em DESC
     `;
@@ -36,12 +36,12 @@ export async function POST(request: NextRequest) {
       tipo,
       descricao,
       area,
+      areaUsuario,
       usuarios,
       emails,
       dadosTratados,
       parecerAprovado,
       parecerNumeroChamado,
-      parecerLink,
     } = data ?? {};
 
     if (!sistema || typeof sistema !== "string" || !sistema.trim()) {
@@ -60,14 +60,13 @@ export async function POST(request: NextRequest) {
     const sql = neon(process.env.DATABASE_URL!);
     const rows = await sql`
       INSERT INTO sistemas_ia (
-        sistema, tipo, descricao, area, usuarios, emails, dados_tratados,
-        parecer_aprovado, parecer_numero_chamado, parecer_link
+        sistema, tipo, descricao, area, area_usuario, usuarios, emails, dados_tratados,
+        parecer_aprovado, parecer_numero_chamado
       ) VALUES (
-        ${sistema.trim()}, ${tipo || null}, ${descricao || null}, ${area || null},
+        ${sistema.trim()}, ${tipo || null}, ${descricao || null}, ${area || null}, ${areaUsuario || null},
         ${usuarios || null}, ${emails || null}, ${dadosTratadosTexto},
         ${parecerAprovado == null ? null : aprovado},
-        ${aprovado ? (parecerNumeroChamado || null) : null},
-        ${aprovado ? (parecerLink || null) : null}
+        ${aprovado ? (parecerNumeroChamado || null) : null}
       )
       RETURNING id
     `;
