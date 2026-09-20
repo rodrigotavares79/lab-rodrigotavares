@@ -11,6 +11,8 @@ import {
 } from "@/lib/metodologiaRisco";
 import { recomputeRisco } from "@/lib/recomputeRisco";
 
+export const dynamic = "force-dynamic";
+
 function validar(body: any): string | null {
   if (!body?.riscoId) return "riscoId é obrigatório.";
   if (!body?.descricao?.trim()) return "Descrição do fator é obrigatória.";

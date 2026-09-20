@@ -3,6 +3,8 @@ import { neon } from "@neondatabase/serverless";
 import { nivelRisco } from "@/lib/metodologiaRisco";
 import { calcularImpactoFinanceiro } from "@/lib/riscoUtils";
 
+export const dynamic = "force-dynamic";
+
 const MAX_LINHAS = 500;
 
 type LinhaCsv = {

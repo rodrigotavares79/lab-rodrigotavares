@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 
+export const dynamic = "force-dynamic";
+
 const STATUS_VALIDOS = ["Não iniciado", "Em andamento", "Concluído"];
 
 // PATCH: atualiza uma Ação (status, descrição, responsável, prazo).

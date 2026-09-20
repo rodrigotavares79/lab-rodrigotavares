@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { TIPOS } from "@/lib/inventarioIAConstants";
 
+export const dynamic = "force-dynamic";
+
 function emailsValidos(emails: string): boolean {
   return emails
     .split(";")

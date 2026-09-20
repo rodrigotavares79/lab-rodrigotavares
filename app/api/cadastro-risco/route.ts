@@ -3,6 +3,8 @@ import { neon } from "@neondatabase/serverless";
 import { simularImpactoFinanceiro, type FaixaEstimativa } from "@/lib/riscoUtils";
 import { nivelRisco } from "@/lib/metodologiaRisco";
 
+export const dynamic = "force-dynamic";
+
 // O cliente manda cada campo de impacto financeiro como faixa
 // {min, provavel, max}. Aceita também number solto (compat com clientes
 // antigos/scripts) tratando como faixa de largura zero.

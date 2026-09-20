@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 
+// O driver HTTP do Neon usa fetch() por baixo dos panos, e o Next cacheia
+// fetch() por padrão em rotas sem uso de searchParams/cookies/headers —
+// force-dynamic garante leitura sempre fresca do banco.
+export const dynamic = "force-dynamic";
+
 // POST: cria uma nova Ação dentro de um Plano de Ação já existente.
 // Bloqueado se:
 // - o Plano de Ação já estiver "Concluído" (não se cria ação nova nele), ou

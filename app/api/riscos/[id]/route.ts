@@ -3,6 +3,8 @@ import { neon } from "@neondatabase/serverless";
 import { nivelRisco } from "@/lib/metodologiaRisco";
 import { recomputeRisco } from "@/lib/recomputeRisco";
 
+export const dynamic = "force-dynamic";
+
 const STATUS_VALIDOS = ["Identificado", "Em Tratamento", "Mitigado"];
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {

@@ -11,6 +11,8 @@ import {
 } from "@/lib/metodologiaRisco";
 import { recomputeRisco } from "@/lib/recomputeRisco";
 
+export const dynamic = "force-dynamic";
+
 async function carregarFatorComRisco(sql: any, id: string) {
   const rows = await sql`
     SELECT fr.*, r.status AS risco_status
