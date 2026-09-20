@@ -1,7 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
-import { calcularImpactoFinanceiro } from "@/lib/riscoUtils";
+import { simularImpactoFinanceiro, type FaixaEstimativa } from "@/lib/riscoUtils";
 import { nivelRisco } from "@/lib/metodologiaRisco";
+
+// O cliente manda cada campo de impacto financeiro como faixa
+// {min, provavel, max}. Aceita também number solto (compat com clientes
+// antigos/scripts) tratando como faixa de largura zero.
+function paraFaixaOuNull(v: unknown): FaixaEstimativa | null {
+  if (v == null) return null;
+  if (typeof v === "number") return { min: v, provavel: v, max: v };
+  if (typeof v === "object" && "provavel" in (v as any)) {
+    const f = v as FaixaEstimativa;
+    return { min: Number(f.min) || 0, provavel: Number(f.provavel) || 0, max: Number(f.max) || 0 };
+  }
+  return null;
+}
 
 function escapeHtml(value: unknown): string {
   const str = String(value ?? "");
@@ -64,19 +77,35 @@ export async function POST(request: NextRequest) {
       if (sistema) sistemaNome = sistema.nome;
     }
 
-    const {
-      impactoCriticoIndisponibilidade,
-      impactoCriticoRestauracao,
-      impactoCriticoTotal,
-      impactoAltoIndisponibilidade,
-      impactoAltoRestauracao,
-      impactoAltoTotal,
-    } = calcularImpactoFinanceiro(sistema, {
-      duracaoHoras,
-      percentualDegradacao,
-      restauracaoPessoas,
-      restauracaoHoras,
-    });
+    const faixaDuracaoHoras = paraFaixaOuNull(duracaoHoras);
+    const faixaPercentualDegradacao = paraFaixaOuNull(percentualDegradacao);
+    const faixaRestauracaoPessoas = paraFaixaOuNull(restauracaoPessoas);
+    const faixaRestauracaoHoras = paraFaixaOuNull(restauracaoHoras);
+
+    const simulacao = sistema
+      ? simularImpactoFinanceiro(sistema, {
+          duracaoHoras: faixaDuracaoHoras,
+          percentualDegradacao: faixaPercentualDegradacao,
+          restauracaoPessoas: faixaRestauracaoPessoas,
+          restauracaoHoras: faixaRestauracaoHoras,
+        })
+      : null;
+
+    // Valor único gravado nas colunas "clássicas" (usadas por dashboard e
+    // relatório em SUM()) passa a ser a mediana da simulação em vez do
+    // cálculo pontual — com faixa degenerada (sem incerteza) dá exatamente
+    // no mesmo número de antes.
+    const impactoCriticoIndisponibilidade = simulacao?.critico.indisponibilidade.p50 ?? 0;
+    const impactoCriticoRestauracao = simulacao?.critico.restauracao.p50 ?? 0;
+    const impactoCriticoTotal = simulacao?.critico.total.p50 ?? 0;
+    const impactoCriticoP10 = simulacao?.critico.total.p10 ?? null;
+    const impactoCriticoP90 = simulacao?.critico.total.p90 ?? null;
+
+    const impactoAltoIndisponibilidade = simulacao?.alto.indisponibilidade.p50 ?? 0;
+    const impactoAltoRestauracao = simulacao?.alto.restauracao.p50 ?? 0;
+    const impactoAltoTotal = simulacao?.alto.total.p50 ?? 0;
+    const impactoAltoP10 = simulacao?.alto.total.p10 ?? null;
+    const impactoAltoP90 = simulacao?.alto.total.p90 ?? null;
 
     // ---- Cálculo do nível de risco (sempre no servidor, nunca confiando no
     // valor calculado no navegador) ----
@@ -92,18 +121,29 @@ export async function POST(request: NextRequest) {
         data_levantamento, fonte, impacto, probabilidade, matrix_score,
         nivel_inicial, impacto_qualitativo, nivel_projetado,
         prob_nivel_atual, imp_nivel_atual, prob_nivel_projetado, imp_nivel_projetado,
-        sistema_critico_id, duracao_horas, percentual_degradacao, restauracao_pessoas, restauracao_horas,
+        sistema_critico_id,
+        duracao_horas, duracao_horas_min, duracao_horas_max,
+        percentual_degradacao, percentual_degradacao_min, percentual_degradacao_max,
+        restauracao_pessoas, restauracao_pessoas_min, restauracao_pessoas_max,
+        restauracao_horas, restauracao_horas_min, restauracao_horas_max,
         impacto_critico_indisponibilidade, impacto_critico_restauracao, impacto_critico_total,
-        impacto_alto_indisponibilidade, impacto_alto_restauracao, impacto_alto_total
+        impacto_critico_p10, impacto_critico_p90,
+        impacto_alto_indisponibilidade, impacto_alto_restauracao, impacto_alto_total,
+        impacto_alto_p10, impacto_alto_p90
       ) VALUES (
         ${projetoId}, ${categoria || null}, ${gatilho || null}, ${resultado || null}, ${levantadoPor},
         ${dataLevantamento || null}, ${fonte || null}, ${impacto || null}, ${probabilidade || null},
         ${matrixScore || null}, ${nivelInerente}, ${nivelInerente}, ${nivelInerente},
         ${probabilidade || null}, ${impacto || null}, ${probabilidade || null}, ${impacto || null},
-        ${sistemaCriticoId || null}, ${duracaoHoras || null}, ${percentualDegradacao || null},
-        ${restauracaoPessoas || null}, ${restauracaoHoras || null},
+        ${sistemaCriticoId || null},
+        ${faixaDuracaoHoras?.provavel ?? null}, ${faixaDuracaoHoras?.min ?? null}, ${faixaDuracaoHoras?.max ?? null},
+        ${faixaPercentualDegradacao?.provavel ?? null}, ${faixaPercentualDegradacao?.min ?? null}, ${faixaPercentualDegradacao?.max ?? null},
+        ${faixaRestauracaoPessoas?.provavel ?? null}, ${faixaRestauracaoPessoas?.min ?? null}, ${faixaRestauracaoPessoas?.max ?? null},
+        ${faixaRestauracaoHoras?.provavel ?? null}, ${faixaRestauracaoHoras?.min ?? null}, ${faixaRestauracaoHoras?.max ?? null},
         ${impactoCriticoIndisponibilidade || null}, ${impactoCriticoRestauracao || null}, ${impactoCriticoTotal || null},
-        ${impactoAltoIndisponibilidade || null}, ${impactoAltoRestauracao || null}, ${impactoAltoTotal || null}
+        ${impactoCriticoP10}, ${impactoCriticoP90},
+        ${impactoAltoIndisponibilidade || null}, ${impactoAltoRestauracao || null}, ${impactoAltoTotal || null},
+        ${impactoAltoP10}, ${impactoAltoP90}
       )
     `;
 
@@ -128,13 +168,19 @@ export async function POST(request: NextRequest) {
 
     if (sistemaNome) {
       linhas.push(["Sistema Crítico", sistemaNome]);
+
+      const faixaTexto = (p10: number | null, total: number, p90: number | null) =>
+        p10 != null && p90 != null
+          ? `${formatBRL(total)} — mais provável (faixa: ${formatBRL(p10)} a ${formatBRL(p90)})`
+          : formatBRL(total);
+
       linhas.push([
         "Impacto Financeiro — Evento Crítico",
-        `${formatBRL(impactoCriticoTotal)} (indisponibilidade: ${formatBRL(impactoCriticoIndisponibilidade)}; restauração: ${formatBRL(impactoCriticoRestauracao)})`,
+        `${faixaTexto(impactoCriticoP10, impactoCriticoTotal, impactoCriticoP90)} (indisponibilidade: ${formatBRL(impactoCriticoIndisponibilidade)}; restauração: ${formatBRL(impactoCriticoRestauracao)})`,
       ]);
       linhas.push([
         "Impacto Financeiro — Alto Impacto",
-        `${formatBRL(impactoAltoTotal)} (indisponibilidade: ${formatBRL(impactoAltoIndisponibilidade)}; restauração: ${formatBRL(impactoAltoRestauracao)})`,
+        `${faixaTexto(impactoAltoP10, impactoAltoTotal, impactoAltoP90)} (indisponibilidade: ${formatBRL(impactoAltoIndisponibilidade)}; restauração: ${formatBRL(impactoAltoRestauracao)})`,
       ]);
     }
 
@@ -194,8 +240,20 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       ok: true,
-      impactoCritico: { indisponibilidade: impactoCriticoIndisponibilidade, restauracao: impactoCriticoRestauracao, total: impactoCriticoTotal },
-      impactoAlto: { indisponibilidade: impactoAltoIndisponibilidade, restauracao: impactoAltoRestauracao, total: impactoAltoTotal },
+      impactoCritico: {
+        indisponibilidade: impactoCriticoIndisponibilidade,
+        restauracao: impactoCriticoRestauracao,
+        total: impactoCriticoTotal,
+        p10: impactoCriticoP10,
+        p90: impactoCriticoP90,
+      },
+      impactoAlto: {
+        indisponibilidade: impactoAltoIndisponibilidade,
+        restauracao: impactoAltoRestauracao,
+        total: impactoAltoTotal,
+        p10: impactoAltoP10,
+        p90: impactoAltoP90,
+      },
     });
   } catch (err) {
     console.error(err);

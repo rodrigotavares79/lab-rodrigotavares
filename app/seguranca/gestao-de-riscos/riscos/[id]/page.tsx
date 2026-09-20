@@ -50,15 +50,27 @@ type RiscoDetalhe = {
   sistema_critico_id: number | null;
   sistema_critico: string | null;
   duracao_horas: number | null;
+  duracao_horas_min: number | null;
+  duracao_horas_max: number | null;
   percentual_degradacao: number | null;
+  percentual_degradacao_min: number | null;
+  percentual_degradacao_max: number | null;
   restauracao_pessoas: number | null;
+  restauracao_pessoas_min: number | null;
+  restauracao_pessoas_max: number | null;
   restauracao_horas: number | null;
+  restauracao_horas_min: number | null;
+  restauracao_horas_max: number | null;
   impacto_critico_indisponibilidade: number | null;
   impacto_critico_restauracao: number | null;
   impacto_critico_total: number | null;
+  impacto_critico_p10: number | null;
+  impacto_critico_p90: number | null;
   impacto_alto_indisponibilidade: number | null;
   impacto_alto_restauracao: number | null;
   impacto_alto_total: number | null;
+  impacto_alto_p10: number | null;
+  impacto_alto_p90: number | null;
   criado_em: string;
   fatores: FatorRisco[];
 };
@@ -136,6 +148,32 @@ function formatBRL(value: number | null): string {
 function formatPct(value: number | null): string {
   if (value === null || value === undefined) return "—";
   return `${(value * 100).toFixed(0)}%`;
+}
+
+// Mostra "valor (mín–máx)" quando o risco foi cadastrado com faixa de
+// incerteza; riscos antigos (cadastrados antes da simulação Monte Carlo)
+// não têm min/max gravados e caem no valor único de sempre.
+function valorComFaixa(valor: number | null, min: number | null, max: number | null): React.ReactNode {
+  if (valor === null || valor === undefined) return "—";
+  if (min === null || max === null || min === max) return valor;
+  return (
+    <>
+      {valor} <span style={{ color: "var(--text-muted)", fontSize: "0.85em" }}>({min}–{max})</span>
+    </>
+  );
+}
+
+function formatBRLComFaixa(total: number | null, p10: number | null, p90: number | null): React.ReactNode {
+  if (total === null || total === undefined) return "—";
+  if (p10 === null || p90 === null) return formatBRL(total);
+  return (
+    <>
+      {formatBRL(total)}{" "}
+      <span style={{ color: "var(--text-muted)", fontSize: "0.85em" }}>
+        (faixa p10–p90: {formatBRL(p10)} a {formatBRL(p90)})
+      </span>
+    </>
+  );
 }
 
 function acaoVencida(prazo: string | null, status: string): boolean {
@@ -785,17 +823,17 @@ export default function DetalheDoRisco() {
                     <table className="dash-table">
                       <tbody>
                         <LinhaCampo label="Sistema Crítico" value={risco.sistema_critico} />
-                        <LinhaCampo label="Duração (horas)" value={risco.duracao_horas ?? "—"} />
-                        <LinhaCampo label="% Degradação" value={risco.percentual_degradacao ?? "—"} />
-                        <LinhaCampo label="Pessoas na Restauração" value={risco.restauracao_pessoas ?? "—"} />
-                        <LinhaCampo label="Horas de Restauração" value={risco.restauracao_horas ?? "—"} />
+                        <LinhaCampo label="Duração (horas)" value={valorComFaixa(risco.duracao_horas, risco.duracao_horas_min, risco.duracao_horas_max)} />
+                        <LinhaCampo label="% Degradação" value={valorComFaixa(risco.percentual_degradacao, risco.percentual_degradacao_min, risco.percentual_degradacao_max)} />
+                        <LinhaCampo label="Pessoas na Restauração" value={valorComFaixa(risco.restauracao_pessoas, risco.restauracao_pessoas_min, risco.restauracao_pessoas_max)} />
+                        <LinhaCampo label="Horas de Restauração" value={valorComFaixa(risco.restauracao_horas, risco.restauracao_horas_min, risco.restauracao_horas_max)} />
                         <LinhaCampo
-                          label="Evento Crítico — Total"
-                          value={formatBRL(risco.impacto_critico_total)}
+                          label="Evento Crítico — Total (mediana)"
+                          value={formatBRLComFaixa(risco.impacto_critico_total, risco.impacto_critico_p10, risco.impacto_critico_p90)}
                         />
                         <LinhaCampo
-                          label="Alto Impacto (Degradação) — Total"
-                          value={formatBRL(risco.impacto_alto_total)}
+                          label="Alto Impacto (Degradação) — Total (mediana)"
+                          value={formatBRLComFaixa(risco.impacto_alto_total, risco.impacto_alto_p10, risco.impacto_alto_p90)}
                         />
                       </tbody>
                     </table>

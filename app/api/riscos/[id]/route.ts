@@ -24,9 +24,14 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
         r.im_prob_atual, r.im_imp_atual, r.im_prob_projetado, r.im_imp_projetado,
         r.status,
         r.sistema_critico_id, s.nome AS sistema_critico,
-        r.duracao_horas, r.percentual_degradacao, r.restauracao_pessoas, r.restauracao_horas,
+        r.duracao_horas, r.duracao_horas_min, r.duracao_horas_max,
+        r.percentual_degradacao, r.percentual_degradacao_min, r.percentual_degradacao_max,
+        r.restauracao_pessoas, r.restauracao_pessoas_min, r.restauracao_pessoas_max,
+        r.restauracao_horas, r.restauracao_horas_min, r.restauracao_horas_max,
         r.impacto_critico_indisponibilidade, r.impacto_critico_restauracao, r.impacto_critico_total,
+        r.impacto_critico_p10, r.impacto_critico_p90,
         r.impacto_alto_indisponibilidade, r.impacto_alto_restauracao, r.impacto_alto_total,
+        r.impacto_alto_p10, r.impacto_alto_p90,
         r.criado_em
       FROM riscos r
       JOIN projetos p ON p.id = r.projeto_id
