@@ -1066,20 +1066,26 @@ h1, h2, h3 {
    media query porque um `style` inline de gridTemplateColumns (usado
    antes aqui) tem prioridade sobre qualquer @media da classe base,
    então nunca colapsava em tela estreita. */
-.kpi-grid-4 {
+.kpi-grid-5 {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 1rem;
 }
 
+@media (max-width: 60rem) {
+  .kpi-grid-5 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
 @media (max-width: 46rem) {
-  .kpi-grid-4 {
+  .kpi-grid-5 {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
 @media (max-width: 30rem) {
-  .kpi-grid-4 {
+  .kpi-grid-5 {
     grid-template-columns: 1fr;
   }
 }

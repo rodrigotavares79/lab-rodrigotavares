@@ -288,18 +288,24 @@ export default function GovernancaDeIADashboard() {
 
           {!carregando && !erro && total > 0 && (
             <div className="dashboard">
-              <div className="kpi-grid-4">
+              <div className="kpi-grid-5">
                 <div className="kpi-card">
                   <div className="kpi-card-header">Sistemas Cadastrados</div>
                   <div className="kpi-card-value">{total}</div>
                 </div>
                 <div className="kpi-card">
-                  <div className="kpi-card-header">Aprovados por Cibersegurança</div>
+                  <div className="kpi-card-header">Sistemas em uso (aprovados)</div>
                   <div className="kpi-card-value">{aprovados}</div>
                 </div>
                 <div className="kpi-card">
-                  <div className="kpi-card-header">Sem Parecer / Não Aprovados</div>
-                  <div className="kpi-card-value">{semParecer + naoAprovados}</div>
+                  <div className="kpi-card-header">Sistemas em uso (sem parecer)</div>
+                  <div className="kpi-card-value">{semParecer}</div>
+                </div>
+                <div className="kpi-card">
+                  <div className="kpi-card-header" style={{ background: "var(--danger)" }}>Sistemas Bloqueados</div>
+                  <div className="kpi-card-value" style={{ color: naoAprovados > 0 ? "var(--danger)" : "var(--text)" }}>
+                    {naoAprovados}
+                  </div>
                 </div>
                 <div className="kpi-card">
                   <div className="kpi-card-header" style={{ background: "var(--grena)" }}>Revisão Vencida</div>
