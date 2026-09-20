@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 
 const SEGURANCA_ITEMS = [
   { label: "Gestão de Riscos", href: "/seguranca/gestao-de-riscos" },
+  { label: "Governança de IA", href: "/seguranca/governanca-de-ia" },
   { label: "Penteste", href: "/seguranca/penteste" },
   { label: "Programa de Conscientização", href: "/seguranca/conscientizacao" },
 ];
