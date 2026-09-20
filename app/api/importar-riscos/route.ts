@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const sql = neon(process.env.DATABASE_URL!);
+    const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
 
     const projetoRows = await sql`SELECT id, nome FROM projetos`;
     const projetoPorNome = new Map<string, number>(

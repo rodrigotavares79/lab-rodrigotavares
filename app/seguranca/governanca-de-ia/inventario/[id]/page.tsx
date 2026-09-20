@@ -158,15 +158,26 @@ export default function DetalheSistemaIA() {
           parecerAprovado: revParecer === "Sim",
         }),
       });
+      const body = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
         throw new Error(body.error || "Não foi possível registrar a revisão.");
       }
+      if (!body.revisao) {
+        throw new Error("Revisão registrada, mas o servidor não devolveu os dados — atualize a página pra conferir.");
+      }
+      // Insere a revisão que acabou de voltar do servidor direto na lista,
+      // sem depender de um novo GET — evita qualquer cache no caminho de
+      // leitura mascarar a escrita que acabou de acontecer.
+      setRevisoes((atual) =>
+        [...atual, body.revisao].sort((a, b) => {
+          const porData = b.data_revisao.localeCompare(a.data_revisao);
+          return porData !== 0 ? porData : b.id - a.id;
+        })
+      );
       setRevRevisadoPor("");
       setRevData("");
       setRevChamado("");
       setRevParecer("");
-      carregar();
     } catch (err) {
       setErroRevisao(err instanceof Error ? err.message : "Erro ao registrar revisão.");
     } finally {

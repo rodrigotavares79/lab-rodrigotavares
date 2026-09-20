@@ -14,7 +14,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: "ID de risco inválido." }, { status: 400 });
     }
 
-    const sql = neon(process.env.DATABASE_URL!);
+    const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
 
     const rows = await sql`
       SELECT
@@ -98,7 +98,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       }
     }
 
-    const sql = neon(process.env.DATABASE_URL!);
+    const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
 
     const atualRows = await sql`SELECT impacto, probabilidade, status FROM riscos WHERE id = ${id}`;
     if (atualRows.length === 0) {

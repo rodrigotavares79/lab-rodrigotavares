@@ -19,7 +19,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: "ID inválido." }, { status: 400 });
     }
 
-    const sql = neon(process.env.DATABASE_URL!);
+    const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
 
     const rows = await sql`
       SELECT
@@ -80,7 +80,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     const dadosTratadosTexto = Array.isArray(dadosTratados) ? dadosTratados.join(", ") : null;
     const aprovado = parecerAprovado === true || parecerAprovado === "Sim";
 
-    const sql = neon(process.env.DATABASE_URL!);
+    const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
     const rows = await sql`
       UPDATE sistemas_ia SET
         sistema = ${sistema.trim()},

@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "projetoId é obrigatório." }, { status: 400 });
     }
 
-    const sql = neon(process.env.DATABASE_URL!);
+    const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
     const rows = await sql`
       SELECT id, nome, custo_indisponibilidade_hora, custo_restauracao_hora_homem
       FROM sistemas_criticos

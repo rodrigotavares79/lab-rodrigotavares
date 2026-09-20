@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const sql = neon(process.env.DATABASE_URL!);
+    const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
     const rows = await sql`SELECT id, nome FROM projetos ORDER BY nome ASC`;
     return NextResponse.json({ projetos: rows });
   } catch (err) {

@@ -20,7 +20,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       return NextResponse.json({ error: "Parecer (Sim/Não) é obrigatório." }, { status: 400 });
     }
 
-    const sql = neon(process.env.DATABASE_URL!);
+    const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
 
     const sistemaRows = await sql`SELECT id FROM sistemas_ia WHERE id = ${id}`;
     if (sistemaRows.length === 0) {
@@ -33,10 +33,10 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       ) VALUES (
         ${id}, ${revisadoPor || null}, ${dataRevisao}, ${numeroChamado || null}, ${parecerAprovado}
       )
-      RETURNING id
+      RETURNING id, sistema_ia_id, revisado_por, data_revisao, numero_chamado, parecer_aprovado, criado_em
     `;
 
-    return NextResponse.json({ ok: true, id: rows[0].id });
+    return NextResponse.json({ ok: true, revisao: rows[0] });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: "Erro ao registrar revisão." }, { status: 500 });

@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Descrição da ação é obrigatória." }, { status: 400 });
     }
 
-    const sql = neon(process.env.DATABASE_URL!);
+    const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
 
     const planoRows = await sql`
       SELECT pa.id, pa.status AS plano_status, r.status AS risco_status

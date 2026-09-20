@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Projeto é obrigatório." }, { status: 400 });
     }
 
-    const sql = neon(process.env.DATABASE_URL!);
+    const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
 
     // ---- Cálculo do impacto financeiro (feito no servidor, nunca confiando no cliente) ----
     let sistemaNome: string | null = null;

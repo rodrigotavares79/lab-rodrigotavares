@@ -16,7 +16,7 @@ function emailsValidos(emails: string): boolean {
 
 export async function GET() {
   try {
-    const sql = neon(process.env.DATABASE_URL!);
+    const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
     const rows = await sql`
       SELECT
         s.id, s.sistema, s.tipo, s.descricao, s.area, s.area_usuario, s.usuarios, s.emails,
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     const dadosTratadosTexto = Array.isArray(dadosTratados) ? dadosTratados.join(", ") : null;
     const aprovado = parecerAprovado === true || parecerAprovado === "Sim";
 
-    const sql = neon(process.env.DATABASE_URL!);
+    const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
     const rows = await sql`
       INSERT INTO sistemas_ia (
         sistema, tipo, descricao, area, area_usuario, usuarios, emails, dados_tratados,

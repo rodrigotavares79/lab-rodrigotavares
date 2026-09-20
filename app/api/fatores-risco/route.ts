@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     const erro = validar(body);
     if (erro) return NextResponse.json({ error: erro }, { status: 400 });
 
-    const sql = neon(process.env.DATABASE_URL!);
+    const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
 
     const riscoRows = await sql`SELECT id, status FROM riscos WHERE id = ${body.riscoId}`;
     if (riscoRows.length === 0) {

@@ -4,7 +4,7 @@ import { neon } from "@neondatabase/serverless";
 export async function GET(request: NextRequest) {
   try {
     const projetoId = request.nextUrl.searchParams.get("projetoId");
-    const sql = neon(process.env.DATABASE_URL!);
+    const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
 
     const kpisRows = projetoId
       ? await sql`

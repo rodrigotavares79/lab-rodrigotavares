@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "projetoId é obrigatório e deve ser numérico." }, { status: 400 });
     }
 
-    const sql = neon(process.env.DATABASE_URL!);
+    const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
 
     const projetoRows = await sql`SELECT nome FROM projetos WHERE id = ${projetoId}`;
     if (projetoRows.length === 0) {

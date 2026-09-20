@@ -33,7 +33,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     }
 
     const body = await request.json();
-    const sql = neon(process.env.DATABASE_URL!);
+    const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
 
     const atual = await carregarFatorComRisco(sql, id);
     if (!atual) return NextResponse.json({ error: "Fator de risco não encontrado." }, { status: 404 });
@@ -106,7 +106,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
       return NextResponse.json({ error: "ID de fator de risco inválido." }, { status: 400 });
     }
 
-    const sql = neon(process.env.DATABASE_URL!);
+    const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
     const atual = await carregarFatorComRisco(sql, id);
     if (!atual) return NextResponse.json({ error: "Fator de risco não encontrado." }, { status: 404 });
     if (atual.risco_status === "Mitigado") {

@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "riscoId é obrigatório e deve ser numérico." }, { status: 400 });
     }
 
-    const sql = neon(process.env.DATABASE_URL!);
+    const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
 
     const planos = await sql`
       SELECT id, risco_id, titulo, status, criado_em
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Título do plano de ação é obrigatório." }, { status: 400 });
     }
 
-    const sql = neon(process.env.DATABASE_URL!);
+    const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
 
     const riscoRows = await sql`SELECT id, status FROM riscos WHERE id = ${riscoId}`;
     if (riscoRows.length === 0) {
