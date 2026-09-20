@@ -224,7 +224,7 @@ export default function CadastroDeSistemaIA() {
 
                 <div className="form-field form-field-wide">
                   <label>Dados Tratados</label>
-                  <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap", marginTop: "0.3rem" }}>
+                  <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap", marginTop: "0.3rem", alignItems: "center" }}>
                     {OPCOES_DADOS_TRATADOS.map((opcao) => (
                       <label
                         key={opcao}
@@ -238,7 +238,15 @@ export default function CadastroDeSistemaIA() {
                         {opcao}
                       </label>
                     ))}
+                    {(dadosTratados.includes("Pessoais") || dadosTratados.includes("Sensíveis")) && (
+                      <span className="badge badge-atencao">Requer atenção</span>
+                    )}
                   </div>
+                  {(dadosTratados.includes("Pessoais") || dadosTratados.includes("Sensíveis")) && (
+                    <p className="field-helper">
+                      Sistemas com dados pessoais e/ou sensíveis recebem esse selo automaticamente no Dashboard.
+                    </p>
+                  )}
                 </div>
               </div>
             </fieldset>

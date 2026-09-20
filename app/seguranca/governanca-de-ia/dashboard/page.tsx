@@ -21,7 +21,7 @@ type SistemaIA = {
 };
 
 const ACCENT = "var(--accent)";
-const GRENA = "#6e1423";
+const GRENA = "var(--grena)";
 const CORES_STATUS = { aprovado: "var(--success)", naoAprovado: "var(--danger)", semParecer: "var(--text-muted)" };
 const OPCOES_DADOS_TRATADOS = ["Pessoais", "Sensíveis", "Negócio"];
 const MESES_LABEL = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
@@ -32,11 +32,29 @@ function formatData(iso: string): string {
   return `${dia}/${mes}/${ano}`;
 }
 
+// Todo sistema que trata dados Pessoais e/ou Sensíveis é sinalizado
+// automaticamente — não depende de alguém marcar isso manualmente.
+function requerAtencao(dadosTratados: string | null): boolean {
+  const valor = dadosTratados || "";
+  return valor.includes("Pessoais") || valor.includes("Sensíveis");
+}
+
 function ParecerCell({ sistema }: { sistema: SistemaIA }) {
   if (sistema.parecer_aprovado !== true) {
     return <span className="text-muted">{sistema.parecer_aprovado === false ? "Não aprovado" : "—"}</span>;
   }
   return <span>📎 {sistema.parecer_numero_chamado ? `#${sistema.parecer_numero_chamado}` : "Aprovado"}</span>;
+}
+
+function DadosTratadosCell({ sistema }: { sistema: SistemaIA }) {
+  return (
+    <span style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "0.3rem" }}>
+      <span>{sistema.dados_tratados || "—"}</span>
+      {requerAtencao(sistema.dados_tratados) && (
+        <span className="badge badge-atencao">Requer atenção</span>
+      )}
+    </span>
+  );
 }
 
 // Conta ocorrências por rótulo, preservando a ordem de `ordem` e agrupando
@@ -340,7 +358,7 @@ export default function GovernancaDeIADashboard() {
                             <td>{s.area_usuario || "—"}</td>
                             <td style={{ whiteSpace: "normal", minWidth: "10rem" }}>{s.usuarios || "—"}</td>
                             <td style={{ whiteSpace: "normal", minWidth: "12rem" }}>{s.emails || "—"}</td>
-                            <td>{s.dados_tratados || "—"}</td>
+                            <td><DadosTratadosCell sistema={s} /></td>
                             <td><ParecerCell sistema={s} /></td>
                             <td>{formatData(s.criado_em)}</td>
                           </tr>

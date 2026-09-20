@@ -25,6 +25,13 @@
   --danger-bg: #faeceb;
   --danger-border: #e3b5b0;
 
+  /* Grená — usado no gráfico de cadastros mensais (Governança de IA) e
+     no selo "Requer atenção" de sistemas com dados pessoais/sensíveis.
+     Deliberadamente fora da família --danger (mesma "temperatura" de
+     vermelho, mas é um alerta de atenção, não um status crítico). */
+  --grena: #6e1423;
+  --grena-tint: rgba(110, 20, 35, 0.12);
+
   --font-body: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
   --max-width: 68rem;
 }
@@ -813,6 +820,11 @@ h1, h2, h3 {
 .badge-critico {
   background: var(--danger-tint);
   color: var(--danger);
+}
+
+.badge-atencao {
+  background: var(--grena-tint);
+  color: var(--grena);
 }
 
 /* --- Prévia de impacto financeiro --- */
