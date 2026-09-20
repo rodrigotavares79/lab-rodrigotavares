@@ -136,6 +136,51 @@ function BarChart({ dados, corBarra = ACCENT }: { dados: { label: string; total:
   );
 }
 
+function LineChart({ dados, cor, ariaLabel }: { dados: { mes: string; total: number }[]; cor: string; ariaLabel: string }) {
+  if (dados.length === 0) {
+    return <p className="text-muted" style={{ margin: 0, fontSize: "0.85rem" }}>Sem dados suficientes.</p>;
+  }
+  const w = Math.max(420, dados.length * 92);
+  const h = 170, topPad = 24;
+  const max = Math.max(1, ...dados.map((d) => d.total));
+  const valores = dados.map((d) => d.total);
+  return (
+    <div className="chart-scroll">
+      <svg
+        viewBox={`0 -${topPad} ${w} ${h + topPad + 28}`}
+        style={{ width: "100%", minWidth: `${w}px`, display: "block" }}
+        role="img"
+        aria-label={ariaLabel}
+      >
+        <path d={areaPath(valores, w, h, max)} fill={cor} opacity="0.12" />
+        <path d={linePath(valores, w, h, max)} fill="none" stroke={cor} strokeWidth="2.5" />
+        {dados.map((d, i) => {
+          const x = dados.length > 1 ? (i / (dados.length - 1)) * w : w / 2;
+          const y = h - (d.total / max) * h;
+          const ancora = i === 0 ? "start" : i === dados.length - 1 ? "end" : "middle";
+          return (
+            <g key={i}>
+              <circle cx={x} cy={y} r="4" fill={cor} />
+              <text x={x} y={y - 10} fontSize="14" fontWeight="600" fill="var(--text)" textAnchor={ancora}>
+                {d.total}
+              </text>
+            </g>
+          );
+        })}
+        {dados.map((d, i) => {
+          const x = dados.length > 1 ? (i / (dados.length - 1)) * w : w / 2;
+          const ancora = i === 0 ? "start" : i === dados.length - 1 ? "end" : "middle";
+          return (
+            <text key={i} x={x} y={h + 20} fontSize="13" fill="var(--text-muted)" textAnchor={ancora}>
+              {d.mes}
+            </text>
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
+
 export default function GovernancaDeIADashboard() {
   const [sistemas, setSistemas] = useState<SistemaIA[]>([]);
   const [carregando, setCarregando] = useState(true);
@@ -156,6 +201,10 @@ export default function GovernancaDeIADashboard() {
   const aprovados = sistemas.filter((s) => statusAtual(s) === true).length;
   const naoAprovados = sistemas.filter((s) => statusAtual(s) === false).length;
   const semParecer = sistemas.filter((s) => statusAtual(s) == null).length;
+  const revisoesVencidas = sistemas.filter((s) => {
+    const proxima = calcularProximaRevisao(s.criado_em, s.ultima_revisao_em, s.dados_tratados);
+    return proxima.getTime() < Date.now();
+  }).length;
 
   const statusDonut = useMemo(
     () =>
@@ -196,10 +245,13 @@ export default function GovernancaDeIADashboard() {
       });
   }, [sistemas]);
 
-  const evoW = Math.max(420, evolucao.length * 92);
-  const evoH = 170, evoTopPad = 24;
-  const evoMax = Math.max(1, ...evolucao.map((e) => e.total));
-  const evoValores = evolucao.map((e) => e.total);
+  const acumulado = useMemo(() => {
+    let soma = 0;
+    return evolucao.map((e) => {
+      soma += e.total;
+      return { mes: e.mes, total: soma };
+    });
+  }, [evolucao]);
 
   return (
     <>
@@ -236,7 +288,7 @@ export default function GovernancaDeIADashboard() {
 
           {!carregando && !erro && total > 0 && (
             <div className="dashboard">
-              <div className="kpi-grid-3">
+              <div className="kpi-grid-4">
                 <div className="kpi-card">
                   <div className="kpi-card-header">Sistemas Cadastrados</div>
                   <div className="kpi-card-value">{total}</div>
@@ -248,6 +300,12 @@ export default function GovernancaDeIADashboard() {
                 <div className="kpi-card">
                   <div className="kpi-card-header">Sem Parecer / Não Aprovados</div>
                   <div className="kpi-card-value">{semParecer + naoAprovados}</div>
+                </div>
+                <div className="kpi-card">
+                  <div className="kpi-card-header" style={{ background: "var(--grena)" }}>Revisão Vencida</div>
+                  <div className="kpi-card-value" style={{ color: revisoesVencidas > 0 ? "var(--grena)" : "var(--text)" }}>
+                    {revisoesVencidas}
+                  </div>
                 </div>
               </div>
 
@@ -315,46 +373,19 @@ export default function GovernancaDeIADashboard() {
                 </div>
               </div>
 
-              <div className="dash-panel">
-                <div className="dash-panel-header">Sistemas Cadastrados por Mês</div>
-                <div className="dash-panel-body">
-                  {evolucao.length === 0 ? (
-                    <p className="text-muted" style={{ margin: 0, fontSize: "0.85rem" }}>Sem dados suficientes.</p>
-                  ) : (
-                    <div className="chart-scroll">
-                    <svg
-                      viewBox={`0 -${evoTopPad} ${evoW} ${evoH + evoTopPad + 28}`}
-                      style={{ width: "100%", minWidth: `${evoW}px`, display: "block" }}
-                      role="img"
-                      aria-label="Sistemas de IA cadastrados por mês"
-                    >
-                      <path d={areaPath(evoValores, evoW, evoH, evoMax)} fill={GRENA} opacity="0.12" />
-                      <path d={linePath(evoValores, evoW, evoH, evoMax)} fill="none" stroke={GRENA} strokeWidth="2.5" />
-                      {evolucao.map((e, i) => {
-                        const x = evolucao.length > 1 ? (i / (evolucao.length - 1)) * evoW : evoW / 2;
-                        const y = evoH - (e.total / evoMax) * evoH;
-                        const ancora = i === 0 ? "start" : i === evolucao.length - 1 ? "end" : "middle";
-                        return (
-                          <g key={i}>
-                            <circle cx={x} cy={y} r="4" fill={GRENA} />
-                            <text x={x} y={y - 10} fontSize="14" fontWeight="600" fill="var(--text)" textAnchor={ancora}>
-                              {e.total}
-                            </text>
-                          </g>
-                        );
-                      })}
-                      {evolucao.map((e, i) => {
-                        const x = evolucao.length > 1 ? (i / (evolucao.length - 1)) * evoW : evoW / 2;
-                        const ancora = i === 0 ? "start" : i === evolucao.length - 1 ? "end" : "middle";
-                        return (
-                          <text key={i} x={x} y={evoH + 20} fontSize="13" fill="var(--text-muted)" textAnchor={ancora}>
-                            {e.mes}
-                          </text>
-                        );
-                      })}
-                    </svg>
-                    </div>
-                  )}
+              <div className="dash-row-charts-2">
+                <div className="dash-panel">
+                  <div className="dash-panel-header">Sistemas Cadastrados por Mês</div>
+                  <div className="dash-panel-body">
+                    <LineChart dados={evolucao} cor={GRENA} ariaLabel="Sistemas de IA cadastrados por mês" />
+                  </div>
+                </div>
+
+                <div className="dash-panel">
+                  <div className="dash-panel-header">Acumulado de Sistemas Cadastrados</div>
+                  <div className="dash-panel-body">
+                    <LineChart dados={acumulado} cor="var(--success)" ariaLabel="Total acumulado de sistemas de IA cadastrados ao longo do tempo" />
+                  </div>
                 </div>
               </div>
 
