@@ -2,21 +2,7 @@
 
 import { useState, useEffect, useMemo, FormEvent } from "react";
 import Footer from "@/components/Footer";
-
-const TIPOS = ["Texto/Chat", "Imagem", "Vídeo", "Cálculos", "Desenvolvimento", "Outro"];
-const AREAS = [
-  "Tecnologia da Informação",
-  "Recursos Humanos",
-  "Financeiro",
-  "Jurídico",
-  "Comercial / Vendas",
-  "Marketing",
-  "Operações",
-  "Atendimento ao Cliente",
-  "Diretoria",
-  "Outro",
-];
-const OPCOES_DADOS_TRATADOS = ["Pessoais", "Sensíveis", "Negócio"];
+import { TIPOS, AREAS, OPCOES_DADOS_TRATADOS } from "@/lib/inventarioIAConstants";
 
 type CatalogoItem = { nome: string; tipo: string };
 

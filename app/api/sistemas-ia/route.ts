@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
+import { TIPOS } from "@/lib/inventarioIAConstants";
 
-const TIPOS_VALIDOS = ["Texto/Chat", "Imagem", "Vídeo", "Cálculos", "Desenvolvimento", "Outro"];
+const TIPOS_VALIDOS = TIPOS;
 
 function emailsValidos(emails: string): boolean {
   return emails
@@ -16,10 +17,12 @@ export async function GET() {
     const sql = neon(process.env.DATABASE_URL!);
     const rows = await sql`
       SELECT
-        id, sistema, tipo, descricao, area, area_usuario, usuarios, emails,
-        dados_tratados, parecer_aprovado, parecer_numero_chamado, criado_em
-      FROM sistemas_ia
-      ORDER BY criado_em DESC
+        s.id, s.sistema, s.tipo, s.descricao, s.area, s.area_usuario, s.usuarios, s.emails,
+        s.dados_tratados, s.parecer_aprovado, s.parecer_numero_chamado, s.criado_em,
+        (SELECT MAX(r.data_revisao) FROM revisoes_sistemas_ia r WHERE r.sistema_ia_id = s.id) AS ultima_revisao_em,
+        (SELECT r.parecer_aprovado FROM revisoes_sistemas_ia r WHERE r.sistema_ia_id = s.id ORDER BY r.data_revisao DESC, r.id DESC LIMIT 1) AS ultima_revisao_parecer
+      FROM sistemas_ia s
+      ORDER BY s.criado_em DESC
     `;
     return NextResponse.json({ sistemas: rows });
   } catch (err) {

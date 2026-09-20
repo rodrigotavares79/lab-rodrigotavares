@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import Link from "next/link";
 import Footer from "@/components/Footer";
 import { SistemaIcone } from "@/lib/brandIcons";
 import { linePath, areaPath, donutSegments } from "@/lib/chartHelpers";
+import { OPCOES_DADOS_TRATADOS, requerAtencao, calcularProximaRevisao, formatarData } from "@/lib/inventarioIAConstants";
 
 type SistemaIA = {
   id: number;
@@ -18,12 +20,13 @@ type SistemaIA = {
   parecer_aprovado: boolean | null;
   parecer_numero_chamado: string | null;
   criado_em: string;
+  ultima_revisao_em: string | null;
+  ultima_revisao_parecer: boolean | null;
 };
 
 const ACCENT = "var(--accent)";
 const GRENA = "var(--grena)";
 const CORES_STATUS = { aprovado: "var(--success)", naoAprovado: "var(--danger)", semParecer: "var(--text-muted)" };
-const OPCOES_DADOS_TRATADOS = ["Pessoais", "Sensíveis", "Negócio"];
 const MESES_LABEL = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 
 function formatData(iso: string): string {
@@ -32,18 +35,29 @@ function formatData(iso: string): string {
   return `${dia}/${mes}/${ano}`;
 }
 
-// Todo sistema que trata dados Pessoais e/ou Sensíveis é sinalizado
-// automaticamente — não depende de alguém marcar isso manualmente.
-function requerAtencao(dadosTratados: string | null): boolean {
-  const valor = dadosTratados || "";
-  return valor.includes("Pessoais") || valor.includes("Sensíveis");
+// A última revisão (quando existe) manda no status atual — um sistema
+// reavaliado e reprovado deixa de aparecer como aprovado, mesmo que o
+// cadastro original diga "Sim".
+function statusAtual(sistema: SistemaIA): boolean | null {
+  return sistema.ultima_revisao_em ? sistema.ultima_revisao_parecer : sistema.parecer_aprovado;
 }
 
 function ParecerCell({ sistema }: { sistema: SistemaIA }) {
-  if (sistema.parecer_aprovado !== true) {
-    return <span className="text-muted">{sistema.parecer_aprovado === false ? "Não aprovado" : "—"}</span>;
+  const status = statusAtual(sistema);
+  if (status !== true) {
+    return <span className="text-muted">{status === false ? "Não aprovado" : "—"}</span>;
   }
   return <span>📎 {sistema.parecer_numero_chamado ? `#${sistema.parecer_numero_chamado}` : "Aprovado"}</span>;
+}
+
+function RevisaoCell({ sistema }: { sistema: SistemaIA }) {
+  const proxima = calcularProximaRevisao(sistema.criado_em, sistema.ultima_revisao_em, sistema.dados_tratados);
+  const vencida = proxima.getTime() < Date.now();
+  return (
+    <span className={vencida ? "report-vencida" : ""}>
+      {formatarData(proxima)}{vencida && " (vencida)"}
+    </span>
+  );
 }
 
 function DadosTratadosCell({ sistema }: { sistema: SistemaIA }) {
@@ -120,9 +134,9 @@ export default function GovernancaDeIADashboard() {
   }, []);
 
   const total = sistemas.length;
-  const aprovados = sistemas.filter((s) => s.parecer_aprovado === true).length;
-  const naoAprovados = sistemas.filter((s) => s.parecer_aprovado === false).length;
-  const semParecer = sistemas.filter((s) => s.parecer_aprovado == null).length;
+  const aprovados = sistemas.filter((s) => statusAtual(s) === true).length;
+  const naoAprovados = sistemas.filter((s) => statusAtual(s) === false).length;
+  const semParecer = sistemas.filter((s) => statusAtual(s) == null).length;
 
   const statusDonut = useMemo(
     () =>
@@ -341,16 +355,21 @@ export default function GovernancaDeIADashboard() {
                           <th>Dados Tratados</th>
                           <th>Parecer Cibersegurança</th>
                           <th>Cadastrado em</th>
+                          <th>Próxima Revisão</th>
                         </tr>
                       </thead>
                       <tbody>
                         {sistemas.map((s) => (
                           <tr key={s.id}>
-                            <td>#{s.id}</td>
+                            <td>
+                              <Link href={`/seguranca/governanca-de-ia/inventario/${s.id}`} style={{ color: "var(--accent)", fontWeight: 600 }}>
+                                #{s.id}
+                              </Link>
+                            </td>
                             <td style={{ whiteSpace: "normal", minWidth: "10rem" }}>
                               <span style={{ display: "inline-flex", alignItems: "center", gap: "0.5rem" }}>
                                 <SistemaIcone nome={s.sistema} />
-                                {s.sistema}
+                                <Link href={`/seguranca/governanca-de-ia/inventario/${s.id}`}>{s.sistema}</Link>
                               </span>
                             </td>
                             <td>{s.tipo || "—"}</td>
@@ -361,6 +380,7 @@ export default function GovernancaDeIADashboard() {
                             <td><DadosTratadosCell sistema={s} /></td>
                             <td><ParecerCell sistema={s} /></td>
                             <td>{formatData(s.criado_em)}</td>
+                            <td><RevisaoCell sistema={s} /></td>
                           </tr>
                         ))}
                       </tbody>
