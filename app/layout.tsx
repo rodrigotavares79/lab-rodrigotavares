@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import { ClerkProvider, UserButton, SignedIn } from "@clerk/nextjs";
 import { ptBR } from "@clerk/localizations";
 import Nav from "@/components/Nav";
+import EnvBanner from "@/components/EnvBanner";
 import "./globals.css";
 
 const inter = Inter({
@@ -25,6 +26,7 @@ export default function RootLayout({
     <ClerkProvider localization={ptBR}>
       <html lang="pt-BR" className={inter.variable}>
         <body>
+          <EnvBanner />
           <header className="site-header">
             <div className="container">
               <a href="/" className="wordmark">

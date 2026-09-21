@@ -31,6 +31,11 @@ function formatBRL(value: number): string {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
+// Prefixo no assunto do e-mail fora de produção, pra quem testar em
+// HMG/DEV não confundir com um cadastro real.
+const ENV = process.env.NEXT_PUBLIC_ENV_NAME;
+const prefixoAmbiente = ENV === "homolog" ? "[HMG] " : ENV === "dev" ? "[DEV] " : "";
+
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json();
@@ -229,7 +234,7 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         from: "Gestão de Riscos <riscos@rodrigotavares.com.br>",
         to: [levantadoPor],
-        subject: "Confirmação de Cadastro de Risco",
+        subject: `${prefixoAmbiente}Confirmação de Cadastro de Risco`,
         html,
       }),
     });
