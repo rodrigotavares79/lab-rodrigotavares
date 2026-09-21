@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, FormEvent } from "react";
+import { useState, useEffect, useMemo, FormEvent } from "react";
 import Footer from "@/components/Footer";
 import ImportarRiscosCSV from "@/components/ImportarRiscosCSV";
+import { simularImpactoFinanceiro, type FaixaEstimativa } from "@/lib/riscoUtils";
 
 const NIVEIS = [
   { value: 1, label: "1 — Muito Baixo" },
@@ -45,6 +46,81 @@ function formatBRL(value: number): string {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
+// Estado de formulário para uma estimativa de 3 pontos (mín/provável/máx).
+// Preencher só "provável" e deixar mín/máx em branco equivale a um valor
+// único (sem faixa de incerteza).
+type FaixaTexto = { min: string; provavel: string; max: string };
+
+const faixaVazia = (): FaixaTexto => ({ min: "", provavel: "", max: "" });
+
+function faixaParaEstimativa(f: FaixaTexto): FaixaEstimativa | null {
+  const provavel = Number(f.provavel);
+  if (!f.provavel || Number.isNaN(provavel)) return null;
+  const min = f.min ? Number(f.min) : provavel;
+  const max = f.max ? Number(f.max) : provavel;
+  return { min: Number.isNaN(min) ? provavel : min, provavel, max: Number.isNaN(max) ? provavel : max };
+}
+
+function CampoFaixa({
+  legend,
+  helper,
+  value,
+  onChange,
+  min = "0",
+  max,
+  step = "1",
+}: {
+  legend: string;
+  helper?: string;
+  value: FaixaTexto;
+  onChange: (f: FaixaTexto) => void;
+  min?: string;
+  max?: string;
+  step?: string;
+}) {
+  return (
+    <div className="form-field form-field-wide">
+      <label>{legend}</label>
+      {helper && <p className="field-helper">{helper}</p>}
+      <div className="faixa-inputs">
+        <div className="faixa-input">
+          <span className="faixa-input-label">Mín.</span>
+          <input
+            type="number"
+            min={min}
+            max={max}
+            step={step}
+            value={value.min}
+            onChange={(e) => onChange({ ...value, min: e.target.value })}
+          />
+        </div>
+        <div className="faixa-input">
+          <span className="faixa-input-label">Mais provável</span>
+          <input
+            type="number"
+            min={min}
+            max={max}
+            step={step}
+            value={value.provavel}
+            onChange={(e) => onChange({ ...value, provavel: e.target.value })}
+          />
+        </div>
+        <div className="faixa-input">
+          <span className="faixa-input-label">Máx.</span>
+          <input
+            type="number"
+            min={min}
+            max={max}
+            step={step}
+            value={value.max}
+            onChange={(e) => onChange({ ...value, max: e.target.value })}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function CadastroDeRiscos() {
   const [modo, setModo] = useState<"form" | "csv">("form");
   const [impacto, setImpacto] = useState(0);
@@ -59,10 +135,10 @@ export default function CadastroDeRiscos() {
 
   const [sistemas, setSistemas] = useState<SistemaCritico[]>([]);
   const [sistemaCriticoId, setSistemaCriticoId] = useState("");
-  const [duracaoHoras, setDuracaoHoras] = useState("");
-  const [percentualDegradacao, setPercentualDegradacao] = useState("30");
-  const [restauracaoPessoas, setRestauracaoPessoas] = useState("");
-  const [restauracaoHoras, setRestauracaoHoras] = useState("");
+  const [duracaoHoras, setDuracaoHoras] = useState<FaixaTexto>(faixaVazia());
+  const [percentualDegradacao, setPercentualDegradacao] = useState<FaixaTexto>({ min: "30", provavel: "30", max: "30" });
+  const [restauracaoPessoas, setRestauracaoPessoas] = useState<FaixaTexto>(faixaVazia());
+  const [restauracaoHoras, setRestauracaoHoras] = useState<FaixaTexto>(faixaVazia());
 
   const score = impacto && probabilidade ? impacto * probabilidade : 0;
   const classificacao = classificarRisco(probabilidade, impacto);
@@ -91,26 +167,22 @@ export default function CadastroDeRiscos() {
 
   const sistemaSelecionado = sistemas.find((s) => String(s.id) === sistemaCriticoId);
 
-  let previewCriticoIndisp = 0;
-  let previewCriticoRestauracao = 0;
-  let previewAltoIndisp = 0;
-  let previewAltoRestauracao = 0;
-
-  if (sistemaSelecionado) {
-    const custoIndisp = Number(sistemaSelecionado.custo_indisponibilidade_hora) || 0;
-    const custoRestauracao = Number(sistemaSelecionado.custo_restauracao_hora_homem) || 0;
-    const horas = Number(duracaoHoras) || 0;
-    const pct = Number(percentualDegradacao) || 0;
-    const pessoas = Number(restauracaoPessoas) || 0;
-    const horasRestauracao = Number(restauracaoHoras) || 0;
-
-    previewCriticoIndisp = custoIndisp * horas;
-    previewCriticoRestauracao = custoRestauracao * pessoas * horasRestauracao;
-    previewAltoIndisp = custoIndisp * horas * (pct / 100);
-    previewAltoRestauracao = custoRestauracao * pessoas * horasRestauracao;
-  }
-  const previewCriticoTotal = previewCriticoIndisp + previewCriticoRestauracao;
-  const previewAltoTotal = previewAltoIndisp + previewAltoRestauracao;
+  // Simulação client-side só pra preview (poucas iterações — é refeita a
+  // cada tecla digitada). O valor gravado de verdade é recalculado no
+  // servidor com mais iterações, nunca confiando neste número.
+  const preview = useMemo(() => {
+    if (!sistemaSelecionado) return null;
+    return simularImpactoFinanceiro(
+      sistemaSelecionado,
+      {
+        duracaoHoras: faixaParaEstimativa(duracaoHoras),
+        percentualDegradacao: faixaParaEstimativa(percentualDegradacao),
+        restauracaoPessoas: faixaParaEstimativa(restauracaoPessoas),
+        restauracaoHoras: faixaParaEstimativa(restauracaoHoras),
+      },
+      2000
+    );
+  }, [sistemaSelecionado, duracaoHoras, percentualDegradacao, restauracaoPessoas, restauracaoHoras]);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -136,10 +208,10 @@ export default function CadastroDeRiscos() {
       matrixScore: score,
       classificacaoLabel: classificacao?.label,
       sistemaCriticoId: sistemaCriticoId || null,
-      duracaoHoras: duracaoHoras || null,
-      percentualDegradacao: percentualDegradacao || null,
-      restauracaoPessoas: restauracaoPessoas || null,
-      restauracaoHoras: restauracaoHoras || null,
+      duracaoHoras: faixaParaEstimativa(duracaoHoras),
+      percentualDegradacao: faixaParaEstimativa(percentualDegradacao),
+      restauracaoPessoas: faixaParaEstimativa(restauracaoPessoas),
+      restauracaoHoras: faixaParaEstimativa(restauracaoHoras),
     };
 
     setEnviando(true);
@@ -162,10 +234,10 @@ export default function CadastroDeRiscos() {
       setProbabilidade(0);
       setProjetoId("");
       setSistemaCriticoId("");
-      setDuracaoHoras("");
-      setPercentualDegradacao("30");
-      setRestauracaoPessoas("");
-      setRestauracaoHoras("");
+      setDuracaoHoras(faixaVazia());
+      setPercentualDegradacao({ min: "30", provavel: "30", max: "30" });
+      setRestauracaoPessoas(faixaVazia());
+      setRestauracaoHoras(faixaVazia());
     } catch (err) {
       setErro(err instanceof Error ? err.message : "Erro ao enviar.");
     } finally {
@@ -380,77 +452,64 @@ export default function CadastroDeRiscos() {
 
                 {sistemaCriticoId && (
                   <>
-                    <div className="form-field">
-                      <label htmlFor="duracaoHoras">Duração Estimada da Indisponibilidade (horas)</label>
-                      <input
-                        id="duracaoHoras"
-                        type="number"
-                        min="0"
-                        step="0.5"
-                        value={duracaoHoras}
-                        onChange={(e) => setDuracaoHoras(e.target.value)}
-                      />
-                    </div>
+                    <CampoFaixa
+                      legend="Duração Estimada da Indisponibilidade (horas)"
+                      helper="Preencha só 'mais provável' pra um valor único, ou mín./máx. também pra capturar a incerteza."
+                      value={duracaoHoras}
+                      onChange={setDuracaoHoras}
+                      step="0.5"
+                    />
 
-                    <div className="form-field">
-                      <label htmlFor="percentualDegradacao">
-                        % de Degradação (cenário Alto Impacto)
-                      </label>
-                      <input
-                        id="percentualDegradacao"
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="5"
-                        value={percentualDegradacao}
-                        onChange={(e) => setPercentualDegradacao(e.target.value)}
-                      />
-                    </div>
+                    <CampoFaixa
+                      legend="% de Degradação (cenário Alto Impacto)"
+                      value={percentualDegradacao}
+                      onChange={setPercentualDegradacao}
+                      max="100"
+                      step="5"
+                    />
 
-                    <div className="form-field">
-                      <label htmlFor="restauracaoPessoas">Pessoas na Restauração</label>
-                      <input
-                        id="restauracaoPessoas"
-                        type="number"
-                        min="0"
-                        step="1"
-                        value={restauracaoPessoas}
-                        onChange={(e) => setRestauracaoPessoas(e.target.value)}
-                      />
-                    </div>
+                    <CampoFaixa
+                      legend="Pessoas na Restauração"
+                      value={restauracaoPessoas}
+                      onChange={setRestauracaoPessoas}
+                      step="1"
+                    />
 
-                    <div className="form-field">
-                      <label htmlFor="restauracaoHoras">Horas de Restauração (por pessoa)</label>
-                      <input
-                        id="restauracaoHoras"
-                        type="number"
-                        min="0"
-                        step="0.5"
-                        value={restauracaoHoras}
-                        onChange={(e) => setRestauracaoHoras(e.target.value)}
-                      />
-                    </div>
+                    <CampoFaixa
+                      legend="Horas de Restauração (por pessoa)"
+                      value={restauracaoHoras}
+                      onChange={setRestauracaoHoras}
+                      step="0.5"
+                    />
 
-                    <div className="form-field form-field-wide">
-                      <div className="financial-preview">
-                        <div className="financial-scenario">
-                          <span className="financial-scenario-title">Evento Crítico (Indisponibilidade)</span>
-                          <span className="financial-scenario-total">{formatBRL(previewCriticoTotal)}</span>
-                          <span className="financial-scenario-detail">
-                            {formatBRL(previewCriticoIndisp)} perda por indisponibilidade;{" "}
-                            {formatBRL(previewCriticoRestauracao)} perda por restauração (homem/hora)
-                          </span>
-                        </div>
-                        <div className="financial-scenario">
-                          <span className="financial-scenario-title">Evento Alto Impacto (Degradação)</span>
-                          <span className="financial-scenario-total">{formatBRL(previewAltoTotal)}</span>
-                          <span className="financial-scenario-detail">
-                            {formatBRL(previewAltoIndisp)} perda por indisponibilidade;{" "}
-                            {formatBRL(previewAltoRestauracao)} perda por restauração (homem/hora)
-                          </span>
+                    {preview && (
+                      <div className="form-field form-field-wide">
+                        <div className="financial-preview">
+                          <div className="financial-scenario">
+                            <span className="financial-scenario-title">Evento Crítico (Indisponibilidade)</span>
+                            <span className="financial-scenario-total">{formatBRL(preview.critico.total.p50)}</span>
+                            <span className="financial-scenario-detail">
+                              {formatBRL(preview.critico.indisponibilidade.p50)} perda por indisponibilidade;{" "}
+                              {formatBRL(preview.critico.restauracao.p50)} perda por restauração (homem/hora)
+                            </span>
+                            <span className="financial-scenario-range">
+                              Faixa (p10–p90): {formatBRL(preview.critico.total.p10)} a {formatBRL(preview.critico.total.p90)}
+                            </span>
+                          </div>
+                          <div className="financial-scenario">
+                            <span className="financial-scenario-title">Evento Alto Impacto (Degradação)</span>
+                            <span className="financial-scenario-total">{formatBRL(preview.alto.total.p50)}</span>
+                            <span className="financial-scenario-detail">
+                              {formatBRL(preview.alto.indisponibilidade.p50)} perda por indisponibilidade;{" "}
+                              {formatBRL(preview.alto.restauracao.p50)} perda por restauração (homem/hora)
+                            </span>
+                            <span className="financial-scenario-range">
+                              Faixa (p10–p90): {formatBRL(preview.alto.total.p10)} a {formatBRL(preview.alto.total.p90)}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    )}
                   </>
                 )}
               </div>

@@ -2,11 +2,13 @@
 
 import { useState, useEffect, useMemo, FormEvent } from "react";
 import Footer from "@/components/Footer";
+import ImportarSistemasIACSV from "@/components/ImportarSistemasIACSV";
 import { TIPOS, AREAS, OPCOES_DADOS_TRATADOS } from "@/lib/inventarioIAConstants";
 
 type CatalogoItem = { nome: string; tipo: string };
 
 export default function CadastroDeSistemaIA() {
+  const [modo, setModo] = useState<"form" | "csv">("form");
   const [catalogo, setCatalogo] = useState<CatalogoItem[]>([]);
 
   const [sistema, setSistema] = useState("");
@@ -107,6 +109,26 @@ export default function CadastroDeSistemaIA() {
             Registro de um sistema/ferramenta de IA em uso na organização.
           </p>
 
+          <div className="mode-tabs">
+            <button
+              type="button"
+              className={modo === "form" ? "mode-tab mode-tab-active" : "mode-tab"}
+              onClick={() => setModo("form")}
+            >
+              Cadastro Individual
+            </button>
+            <button
+              type="button"
+              className={modo === "csv" ? "mode-tab mode-tab-active" : "mode-tab"}
+              onClick={() => setModo("csv")}
+            >
+              Importação em Lote (CSV)
+            </button>
+          </div>
+
+          {modo === "csv" ? (
+            <ImportarSistemasIACSV />
+          ) : (
           <form className="risk-form" onSubmit={handleSubmit}>
             <fieldset className="form-section">
               <legend>Identificação</legend>
@@ -297,6 +319,7 @@ export default function CadastroDeSistemaIA() {
               </div>
             )}
           </form>
+          )}
 
           <a
             href="/seguranca/governanca-de-ia/inventario"
