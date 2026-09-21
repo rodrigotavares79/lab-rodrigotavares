@@ -298,8 +298,10 @@ export default function GovernancaDeIADashboard() {
                   <div className="kpi-card-value">{aprovados}</div>
                 </div>
                 <div className="kpi-card">
-                  <div className="kpi-card-header">Sistemas em uso (sem parecer)</div>
-                  <div className="kpi-card-value">{semParecer}</div>
+                  <div className="kpi-card-header" style={{ background: "var(--warning)" }}>Sistemas em uso (sem parecer)</div>
+                  <div className="kpi-card-value" style={{ color: semParecer > 0 ? "var(--warning-text)" : "var(--text)" }}>
+                    {semParecer}
+                  </div>
                 </div>
                 <div className="kpi-card">
                   <div className="kpi-card-header" style={{ background: "var(--danger)" }}>Sistemas Bloqueados</div>
