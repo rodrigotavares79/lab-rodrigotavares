@@ -413,6 +413,12 @@ h1, h2, h3 {
   margin-top: 0;
 }
 
+.content-block .body h3 {
+  font-size: 0.92rem;
+  margin: 1.5rem 0 0.65rem;
+  color: var(--text);
+}
+
 .content-block .body ol {
   margin: 0 0 1.1rem;
   padding-left: 1.25rem;

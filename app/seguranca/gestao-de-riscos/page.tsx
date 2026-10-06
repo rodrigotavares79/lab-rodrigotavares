@@ -15,6 +15,7 @@ export default function GestaoDeRiscos() {
               <a href="/seguranca/gestao-de-riscos/cadastro-de-riscos">Cadastro de Riscos</a>
               <a href="/seguranca/gestao-de-riscos/riscos">Lista de Riscos</a>
               <a href="/seguranca/gestao-de-riscos/dashboard">Dashboard</a>
+              <a href="/seguranca/gestao-de-riscos/guia-de-uso">Guia de Uso</a>
             </nav>
 
             <div className="page-sidebar-content">
@@ -32,7 +33,7 @@ export default function GestaoDeRiscos() {
                   quanto isso impactaria o negócio e definir ações para
                   reduzir essa exposição antes que o problema aconteça.
                 </p>
-                <p>Nesta página você encontra a estrutura completa desse processo, organizada em quatro frentes:</p>
+                <p>Nesta página você encontra a estrutura completa desse processo, organizada em seis frentes:</p>
                 <ul>
                   <li>
                     <strong>Política</strong> — as diretrizes que orientam
@@ -58,6 +59,10 @@ export default function GestaoDeRiscos() {
                     <strong>Dashboard</strong> — a visão executiva com
                     indicadores, gráficos e o status consolidado dos riscos e
                     planos de ação.
+                  </li>
+                  <li>
+                    <strong>Guia de Uso</strong> — o passo a passo prático de
+                    como usar cada uma dessas telas no dia a dia.
                   </li>
                 </ul>
               </div>
