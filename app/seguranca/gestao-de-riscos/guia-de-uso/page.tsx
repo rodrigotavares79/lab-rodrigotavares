@@ -57,9 +57,9 @@ export default function GuiaDeUso() {
                 <a href="#matriz">"Como funciona a classificação"</a> abaixo.
               </li>
               <li>
-                <strong>Impacto Financeiro (opcional)</strong> — só aparece
-                depois de vincular um Sistema Crítico. Veja a seção{" "}
-                <a href="#financeiro">"Impacto financeiro e simulação"</a>.
+                <strong>Sistema Crítico Vinculado (opcional)</strong> — só
+                aparece depois de selecionar um Projeto. Veja a seção{" "}
+                <a href="#sistema-critico">"Vincular um Sistema Crítico"</a>.
               </li>
             </ol>
             <p className="field-helper">
@@ -222,47 +222,30 @@ export default function GuiaDeUso() {
               fica congelado e não aceita novas ações.
             </p>
 
-            <h2 id="financeiro">6. Impacto financeiro e simulação</h2>
+            <h2 id="sistema-critico">6. Vincular um Sistema Crítico (opcional)</h2>
             <p>
               Ao cadastrar ou editar um risco, é possível vincular um{" "}
-              <strong>Sistema Crítico</strong> (um ativo com custo de hora de
-              indisponibilidade e custo de hora/homem de restauração já
-              conhecidos) e estimar:
+              <strong>Sistema Crítico</strong> e registrar, como referência
+              operacional:
             </p>
             <ul>
-              <li>Duração da indisponibilidade (horas)</li>
+              <li>Duração estimada da indisponibilidade (horas)</li>
               <li>% de degradação no cenário de Alto Impacto</li>
               <li>Pessoas envolvidas na restauração</li>
               <li>Horas de restauração por pessoa</li>
             </ul>
             <p>
               Cada campo aceita um valor único ou uma faixa (mínimo / mais
-              provável / máximo). Quando você informa uma faixa, o sistema
-              roda uma simulação (distribuição PERT, por Monte Carlo) para
-              estimar não só o valor mais provável, mas também a incerteza em
-              torno dele — mostrada como a faixa entre o percentil 10 e o
-              percentil 90 (p10–p90). O resultado é exibido em dois cenários:
-            </p>
-            <ul>
-              <li>
-                <strong>Evento Crítico</strong> — indisponibilidade total do
-                sistema pelo tempo estimado.
-              </li>
-              <li>
-                <strong>Evento Alto Impacto</strong> — degradação parcial, na
-                proporção informada no campo de % de degradação.
-              </li>
-            </ul>
-            <p className="field-helper">
-              A prévia que aparece durante o cadastro é só uma aproximação
-              rápida (poucas iterações). O valor gravado de fato é
-              recalculado no servidor com mais iterações.
+              provável / máximo), para registrar a incerteza da estimativa
+              quando ela existir. Esses dados ficam salvos junto do risco e
+              aparecem no seu Detalhe — o sistema não exibe hoje uma
+              estimativa de custo em R$ a partir deles.
             </p>
 
             <h2>7. Dashboard executivo</h2>
             <p>
               O <strong>Dashboard</strong> consolida o portfólio de riscos:
-              total cadastrado, riscos Altos em aberto, exposição financeira,
+              total cadastrado, riscos Altos em aberto, riscos em aberto,
               evolução mensal, distribuição por categoria e por nível, e a
               comparação entre nível inerente e nível atual (quantos riscos
               melhoraram, mantiveram ou pioraram de nível). Use o filtro de
@@ -276,8 +259,8 @@ export default function GuiaDeUso() {
               Com um Projeto selecionado no filtro do Dashboard, o botão{" "}
               <strong>📄 Emitir Relatório Executivo</strong> abre uma versão
               formatada para impressão, com resumo executivo, riscos
-              Significativos/Altos em aberto, situação dos planos de ação e o
-              ranking de maior exposição financeira daquele projeto. Use{" "}
+              Significativos/Altos em aberto e a situação dos planos de ação
+              daquele projeto. Use{" "}
               <strong>🖶 Imprimir / Salvar como PDF</strong> dentro do
               relatório para gerar o arquivo.
             </p>

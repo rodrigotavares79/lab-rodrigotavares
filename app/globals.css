@@ -699,12 +699,6 @@ h1, h2, h3 {
   }
 }
 
-.financial-scenario-range {
-  font-size: 0.76rem;
-  color: var(--text-muted);
-  line-height: 1.4;
-}
-
 .field-helper {
   font-size: 0.78rem;
   color: var(--text-muted);
@@ -833,15 +827,6 @@ h1, h2, h3 {
   color: var(--grena);
 }
 
-/* --- Prévia de impacto financeiro --- */
-
-.financial-preview {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  margin-top: 0.5rem;
-}
-
 /* --- Abas de modo (Formulário / Importação CSV) --- */
 
 .mode-tabs {
@@ -931,42 +916,6 @@ h1, h2, h3 {
 
 .csv-issue-list-warning li {
   border-left-color: var(--warning);
-}
-
-.financial-scenario {
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--bg);
-  padding: 1rem 1.1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-}
-
-.financial-scenario-title {
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: var(--text-muted);
-  font-weight: 600;
-}
-
-.financial-scenario-total {
-  font-size: 1.35rem;
-  font-weight: 700;
-  color: var(--text);
-}
-
-.financial-scenario-detail {
-  font-size: 0.76rem;
-  color: var(--text-muted);
-  line-height: 1.4;
-}
-
-@media (max-width: 36rem) {
-  .financial-preview {
-    grid-template-columns: 1fr;
-  }
 }
 
 /* --- Dashboard --- */

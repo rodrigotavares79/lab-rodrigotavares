@@ -20,9 +20,7 @@ export async function GET(request: NextRequest) {
       SELECT
         COUNT(*)::int AS total,
         COUNT(*) FILTER (WHERE status = 'Mitigado')::int AS mitigados,
-        COUNT(*) FILTER (WHERE impacto_qualitativo = 'Alto' AND status != 'Mitigado')::int AS criticos_abertos,
-        COALESCE(SUM(impacto_critico_total), 0)::float AS exposicao_critica,
-        COALESCE(SUM(impacto_alto_total), 0)::float AS exposicao_alta
+        COUNT(*) FILTER (WHERE impacto_qualitativo = 'Alto' AND status != 'Mitigado')::int AS criticos_abertos
       FROM riscos WHERE projeto_id = ${projetoId}
     `;
 
@@ -84,17 +82,6 @@ export async function GET(request: NextRequest) {
       LIMIT 20
     `;
 
-    // Top 5 riscos por exposição financeira (Evento Crítico).
-    const ranking = await sql`
-      SELECT categoria, gatilho,
-             COALESCE(impacto_critico_total, 0)::float AS impacto_critico_total,
-             COALESCE(impacto_alto_total, 0)::float AS impacto_alto_total
-      FROM riscos
-      WHERE projeto_id = ${projetoId} AND impacto_critico_total IS NOT NULL
-      ORDER BY impacto_critico_total DESC
-      LIMIT 5
-    `;
-
     return NextResponse.json({
       projeto,
       kpis: kpisRows[0],
@@ -102,7 +89,6 @@ export async function GET(request: NextRequest) {
       riscosAbertos,
       planosResumo: { ...planosResumoRows[0], acoesVencidas: acoesVencidasRows[0].total },
       planos,
-      ranking,
     });
   } catch (err) {
     console.error(err);

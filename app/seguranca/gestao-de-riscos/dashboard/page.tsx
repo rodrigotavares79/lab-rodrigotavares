@@ -10,22 +10,12 @@ type Kpis = {
   mitigados: number;
   criticos_abertos: number;
   em_aberto: number;
-  exposicao_critica: number;
-  exposicao_alta: number;
 };
 type NivelRisco = { nivel: string; total: number };
 type Mitigacao = { melhorou: number; manteve: number; piorou: number };
 type Categoria = { categoria: string; total: number };
 type Evolucao = { mes: string; total: number };
-type RankingItem = {
-  id: number;
-  projeto: string;
-  categoria: string | null;
-  gatilho: string | null;
-  impacto_critico_total: number;
-  impacto_alto_total: number;
-};
-type ConsolidadoItem = { projeto: string; total: number; criticos: number; exposicao: number };
+type ConsolidadoItem = { projeto: string; total: number; criticos: number };
 
 type DashboardData = {
   kpis: Kpis;
@@ -34,7 +24,6 @@ type DashboardData = {
   mitigacao: Mitigacao;
   categorias: Categoria[];
   evolucao: Evolucao[];
-  ranking: RankingItem[];
   consolidado: ConsolidadoItem[];
 };
 
@@ -44,10 +33,6 @@ const CORES_NIVEL: Record<string, string> = {
   "Significativo": "var(--accent)",
   "Alto": "var(--danger)",
 };
-
-function formatBRL(value: number): string {
-  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
-}
 
 export default function Dashboard() {
   const [projetos, setProjetos] = useState<Projeto[]>([]);
@@ -85,7 +70,6 @@ export default function Dashboard() {
   }));
   const categorias = data?.categorias || [];
   const evolucao = data?.evolucao || [];
-  const ranking = data?.ranking || [];
   const consolidado = data?.consolidado || [];
   const mitigacao = data?.mitigacao;
 
@@ -126,7 +110,7 @@ export default function Dashboard() {
           <span className="eyebrow">Gestão de Riscos</span>
           <h1>Dashboard</h1>
           <p className="lede">
-            Visão executiva com indicadores, gráficos e exposição financeira dos riscos cadastrados.
+            Visão executiva com indicadores e gráficos dos riscos cadastrados.
           </p>
 
           <div className="form-field" style={{ maxWidth: "20rem", marginTop: "1.5rem" }}>
@@ -183,7 +167,7 @@ export default function Dashboard() {
           {!carregando && !erro && !semDados && kpis && (
             <div className="dashboard">
               {/* KPIs */}
-              <div className="kpi-grid" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
+              <div className="kpi-grid" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
                 <div className="kpi-card">
                   <div className="kpi-card-header">Riscos Cadastrados</div>
                   <div className="kpi-card-value">{kpis.total}</div>
@@ -195,12 +179,6 @@ export default function Dashboard() {
                 <div className="kpi-card">
                   <div className="kpi-card-header">Riscos em Aberto (Identificado)</div>
                   <div className="kpi-card-value">{kpis.em_aberto}</div>
-                </div>
-                <div className="kpi-card">
-                  <div className="kpi-card-header">Exposição Financeira (Evento Crítico)</div>
-                  <div className="kpi-card-value" style={{ fontSize: "1.5rem" }}>
-                    {formatBRL(kpis.exposicao_critica)}
-                  </div>
                 </div>
               </div>
 
@@ -262,54 +240,39 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <div className="dash-row-charts" style={{ gridTemplateColumns: "1fr 1fr" }}>
-                <div className="dash-panel">
-                  <div className="dash-panel-header">Níveis de Risco</div>
-                  <div className="dash-panel-body">
-                    {donut.length === 0 ? (
-                      <p className="text-muted" style={{ margin: 0, fontSize: "0.85rem" }}>Sem dados suficientes.</p>
-                    ) : (
-                      <>
-                        <svg viewBox="0 0 200 200" width="100%" style={{ maxWidth: "180px", display: "block", margin: "0 auto" }} role="img" aria-label="Distribuição de níveis de risco">
-                          <g transform="translate(100 100)">
-                            {donut.map((d) => (
-                              <circle
-                                key={d.label}
-                                r="70"
-                                fill="none"
-                                stroke={d.color}
-                                strokeWidth="30"
-                                strokeDasharray={`${d.dash} ${d.gap}`}
-                                strokeDashoffset={d.offset}
-                                transform="rotate(-90)"
-                              />
-                            ))}
-                          </g>
-                        </svg>
-                        <div style={{ marginTop: "1rem", display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+              <div className="dash-panel">
+                <div className="dash-panel-header">Níveis de Risco</div>
+                <div className="dash-panel-body">
+                  {donut.length === 0 ? (
+                    <p className="text-muted" style={{ margin: 0, fontSize: "0.85rem" }}>Sem dados suficientes.</p>
+                  ) : (
+                    <>
+                      <svg viewBox="0 0 200 200" width="100%" style={{ maxWidth: "180px", display: "block", margin: "0 auto" }} role="img" aria-label="Distribuição de níveis de risco">
+                        <g transform="translate(100 100)">
                           {donut.map((d) => (
-                            <span key={d.label} style={{ fontSize: "0.78rem", color: "var(--text)" }}>
-                              <span className="legend-dot" style={{ background: d.color }} />
-                              {d.label} — {d.value} ({d.pct}%)
-                            </span>
+                            <circle
+                              key={d.label}
+                              r="70"
+                              fill="none"
+                              stroke={d.color}
+                              strokeWidth="30"
+                              strokeDasharray={`${d.dash} ${d.gap}`}
+                              strokeDashoffset={d.offset}
+                              transform="rotate(-90)"
+                            />
                           ))}
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                <div className="dash-panel">
-                  <div className="dash-panel-header">Exposição Financeira — Alto Impacto (Degradação)</div>
-                  <div className="dash-panel-body">
-                    <div className="kpi-card-value" style={{ fontSize: "2rem" }}>
-                      {formatBRL(kpis.exposicao_alta)}
-                    </div>
-                    <p className="text-muted" style={{ fontSize: "0.8rem", marginTop: "0.5rem" }}>
-                      Soma do cenário de degradação parcial de todos os riscos vinculados a sistemas críticos
-                      {projetoId ? " neste projeto" : ""}.
-                    </p>
-                  </div>
+                        </g>
+                      </svg>
+                      <div style={{ marginTop: "1rem", display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+                        {donut.map((d) => (
+                          <span key={d.label} style={{ fontSize: "0.78rem", color: "var(--text)" }}>
+                            <span className="legend-dot" style={{ background: d.color }} />
+                            {d.label} — {d.value} ({d.pct}%)
+                          </span>
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -372,41 +335,6 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* Tabelas */}
-              <div className="dash-panel">
-                <div className="dash-panel-header">Riscos com Maior Exposição Financeira</div>
-                <div className="dash-panel-body">
-                  {ranking.length === 0 ? (
-                    <p className="text-muted" style={{ margin: 0, fontSize: "0.85rem" }}>
-                      Nenhum risco com sistema crítico vinculado ainda.
-                    </p>
-                  ) : (
-                    <table className="dash-table">
-                      <thead>
-                        <tr>
-                          <th>Projeto</th>
-                          <th>Categoria</th>
-                          <th>Ponto de Gatilho</th>
-                          <th>Evento Crítico</th>
-                          <th>Alto Impacto</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {ranking.map((r) => (
-                          <tr key={r.id}>
-                            <td>{r.projeto}</td>
-                            <td>{r.categoria || "—"}</td>
-                            <td style={{ whiteSpace: "normal", minWidth: "16rem" }}>{r.gatilho || "—"}</td>
-                            <td>{formatBRL(r.impacto_critico_total)}</td>
-                            <td>{formatBRL(r.impacto_alto_total)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  )}
-                </div>
-              </div>
-
               {!projetoId && (
                 <div className="dash-panel">
                   <div className="dash-panel-header">Consolidado por Projeto</div>
@@ -417,7 +345,6 @@ export default function Dashboard() {
                           <th>Projeto</th>
                           <th>Riscos Cadastrados</th>
                           <th>Críticos</th>
-                          <th>Exposição Financeira (Crítico)</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -426,7 +353,6 @@ export default function Dashboard() {
                             <td>{c.projeto}</td>
                             <td>{c.total}</td>
                             <td>{c.criticos}</td>
-                            <td>{formatBRL(c.exposicao)}</td>
                           </tr>
                         ))}
                       </tbody>

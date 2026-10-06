@@ -7,8 +7,6 @@ type Kpis = {
   total: number;
   mitigados: number;
   criticos_abertos: number;
-  exposicao_critica: number;
-  exposicao_alta: number;
 };
 
 type Mitigacao = { melhorou: number; manteve: number; piorou: number };
@@ -32,13 +30,6 @@ type PlanoLinha = {
   acoes_concluidas: number;
 };
 
-type RankingItem = {
-  categoria: string | null;
-  gatilho: string | null;
-  impacto_critico_total: number;
-  impacto_alto_total: number;
-};
-
 type RelatorioData = {
   projeto: string;
   kpis: Kpis;
@@ -46,7 +37,6 @@ type RelatorioData = {
   riscosAbertos: RiscoAberto[];
   planosResumo: PlanosResumo;
   planos: PlanoLinha[];
-  ranking: RankingItem[];
 };
 
 const BADGE_POR_NIVEL: Record<string, string> = {
@@ -60,10 +50,6 @@ function classeStatusTexto(status: string): string {
   if (status === "Mitigado") return "report-status-mitigado";
   if (status === "Identificado") return "report-status-identificado";
   return "report-status-tratamento";
-}
-
-function formatBRL(value: number): string {
-  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 }
 
 function formatDataHoje(): string {
@@ -150,12 +136,6 @@ function RelatorioConteudo() {
                 <div className="report-kpi-label">Mitigados</div>
                 <div className="report-kpi-value">{dados.kpis.mitigados}</div>
               </div>
-              <div className="report-kpi-box">
-                <div className="report-kpi-label">Exposição (Evento Crítico)</div>
-                <div className="report-kpi-value" style={{ fontSize: "1.15rem" }}>
-                  {formatBRL(dados.kpis.exposicao_critica)}
-                </div>
-              </div>
             </div>
           </div>
 
@@ -221,31 +201,6 @@ function RelatorioConteudo() {
                       <td>#{p.risco_id}</td>
                       <td className={classeStatusTexto(p.status === "Concluído" ? "Mitigado" : "Em Tratamento")}>{p.status}</td>
                       <td>{p.acoes_concluidas} / {p.total_acoes}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-
-          <div className="report-section">
-            <h2>Maior Exposição Financeira</h2>
-            {dados.ranking.length === 0 ? (
-              <p className="text-muted" style={{ fontSize: "0.85rem", margin: 0 }}>
-                Nenhum risco com sistema crítico vinculado ainda.
-              </p>
-            ) : (
-              <table className="report-table">
-                <thead>
-                  <tr><th>Categoria</th><th>Ponto de Gatilho</th><th>Evento Crítico</th><th>Alto Impacto</th></tr>
-                </thead>
-                <tbody>
-                  {dados.ranking.map((r, i) => (
-                    <tr key={i}>
-                      <td>{r.categoria || "—"}</td>
-                      <td>{r.gatilho || "—"}</td>
-                      <td>{formatBRL(r.impacto_critico_total)}</td>
-                      <td>{formatBRL(r.impacto_alto_total)}</td>
                     </tr>
                   ))}
                 </tbody>

@@ -12,9 +12,7 @@ export async function GET(request: NextRequest) {
             COUNT(*)::int AS total,
             COUNT(*) FILTER (WHERE status = 'Mitigado')::int AS mitigados,
             COUNT(*) FILTER (WHERE impacto_qualitativo = 'Alto' AND status != 'Mitigado')::int AS criticos_abertos,
-            COUNT(*) FILTER (WHERE status = 'Identificado')::int AS em_aberto,
-            COALESCE(SUM(impacto_critico_total), 0)::float AS exposicao_critica,
-            COALESCE(SUM(impacto_alto_total), 0)::float AS exposicao_alta
+            COUNT(*) FILTER (WHERE status = 'Identificado')::int AS em_aberto
           FROM riscos WHERE projeto_id = ${projetoId}
         `
       : await sql`
@@ -22,9 +20,7 @@ export async function GET(request: NextRequest) {
             COUNT(*)::int AS total,
             COUNT(*) FILTER (WHERE status = 'Mitigado')::int AS mitigados,
             COUNT(*) FILTER (WHERE impacto_qualitativo = 'Alto' AND status != 'Mitigado')::int AS criticos_abertos,
-            COUNT(*) FILTER (WHERE status = 'Identificado')::int AS em_aberto,
-            COALESCE(SUM(impacto_critico_total), 0)::float AS exposicao_critica,
-            COALESCE(SUM(impacto_alto_total), 0)::float AS exposicao_alta
+            COUNT(*) FILTER (WHERE status = 'Identificado')::int AS em_aberto
           FROM riscos
         `;
 
@@ -110,28 +106,9 @@ export async function GET(request: NextRequest) {
           GROUP BY 1 ORDER BY 1
         `;
 
-    const ranking = projetoId
-      ? await sql`
-          SELECT r.id, p.nome AS projeto, r.categoria, r.gatilho,
-                 COALESCE(r.impacto_critico_total,0)::float AS impacto_critico_total,
-                 COALESCE(r.impacto_alto_total,0)::float AS impacto_alto_total
-          FROM riscos r JOIN projetos p ON p.id = r.projeto_id
-          WHERE r.impacto_critico_total IS NOT NULL AND r.projeto_id = ${projetoId}
-          ORDER BY r.impacto_critico_total DESC LIMIT 10
-        `
-      : await sql`
-          SELECT r.id, p.nome AS projeto, r.categoria, r.gatilho,
-                 COALESCE(r.impacto_critico_total,0)::float AS impacto_critico_total,
-                 COALESCE(r.impacto_alto_total,0)::float AS impacto_alto_total
-          FROM riscos r JOIN projetos p ON p.id = r.projeto_id
-          WHERE r.impacto_critico_total IS NOT NULL
-          ORDER BY r.impacto_critico_total DESC LIMIT 10
-        `;
-
     const consolidado = await sql`
       SELECT p.nome AS projeto, COUNT(r.id)::int AS total,
-             COUNT(r.id) FILTER (WHERE r.impacto_qualitativo = 'Alto')::int AS criticos,
-             COALESCE(SUM(r.impacto_critico_total), 0)::float AS exposicao
+             COUNT(r.id) FILTER (WHERE r.impacto_qualitativo = 'Alto')::int AS criticos
       FROM projetos p LEFT JOIN riscos r ON r.projeto_id = p.id
       GROUP BY p.nome ORDER BY p.nome
     `;
@@ -143,7 +120,6 @@ export async function GET(request: NextRequest) {
       mitigacao: mitigacaoRows[0],
       categorias,
       evolucao,
-      ranking,
       consolidado,
     });
   } catch (err) {

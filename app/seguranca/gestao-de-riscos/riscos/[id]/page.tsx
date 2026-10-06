@@ -61,16 +61,6 @@ type RiscoDetalhe = {
   restauracao_horas: number | null;
   restauracao_horas_min: number | null;
   restauracao_horas_max: number | null;
-  impacto_critico_indisponibilidade: number | null;
-  impacto_critico_restauracao: number | null;
-  impacto_critico_total: number | null;
-  impacto_critico_p10: number | null;
-  impacto_critico_p90: number | null;
-  impacto_alto_indisponibilidade: number | null;
-  impacto_alto_restauracao: number | null;
-  impacto_alto_total: number | null;
-  impacto_alto_p10: number | null;
-  impacto_alto_p90: number | null;
   criado_em: string;
   fatores: FatorRisco[];
 };
@@ -140,11 +130,6 @@ function formatData(iso: string | null): string {
   return `${dia}/${mes}/${ano}`;
 }
 
-function formatBRL(value: number | null): string {
-  if (value === null || value === undefined) return "—";
-  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
-
 function formatPct(value: number | null): string {
   if (value === null || value === undefined) return "—";
   return `${(value * 100).toFixed(0)}%`;
@@ -159,19 +144,6 @@ function valorComFaixa(valor: number | null, min: number | null, max: number | n
   return (
     <>
       {valor} <span style={{ color: "var(--text-muted)", fontSize: "0.85em" }}>({min}–{max})</span>
-    </>
-  );
-}
-
-function formatBRLComFaixa(total: number | null, p10: number | null, p90: number | null): React.ReactNode {
-  if (total === null || total === undefined) return "—";
-  if (p10 === null || p90 === null) return formatBRL(total);
-  return (
-    <>
-      {formatBRL(total)}{" "}
-      <span style={{ color: "var(--text-muted)", fontSize: "0.85em" }}>
-        (faixa p10–p90: {formatBRL(p10)} a {formatBRL(p90)})
-      </span>
     </>
   );
 }
@@ -818,7 +790,7 @@ export default function DetalheDoRisco() {
 
               {risco.sistema_critico && (
                 <div className="dash-panel">
-                  <div className="dash-panel-header">Impacto Financeiro</div>
+                  <div className="dash-panel-header">Sistema Crítico Vinculado</div>
                   <div className="dash-panel-body">
                     <table className="dash-table">
                       <tbody>
@@ -827,14 +799,6 @@ export default function DetalheDoRisco() {
                         <LinhaCampo label="% Degradação" value={valorComFaixa(risco.percentual_degradacao, risco.percentual_degradacao_min, risco.percentual_degradacao_max)} />
                         <LinhaCampo label="Pessoas na Restauração" value={valorComFaixa(risco.restauracao_pessoas, risco.restauracao_pessoas_min, risco.restauracao_pessoas_max)} />
                         <LinhaCampo label="Horas de Restauração" value={valorComFaixa(risco.restauracao_horas, risco.restauracao_horas_min, risco.restauracao_horas_max)} />
-                        <LinhaCampo
-                          label="Evento Crítico — Total (mediana)"
-                          value={formatBRLComFaixa(risco.impacto_critico_total, risco.impacto_critico_p10, risco.impacto_critico_p90)}
-                        />
-                        <LinhaCampo
-                          label="Alto Impacto (Degradação) — Total (mediana)"
-                          value={formatBRLComFaixa(risco.impacto_alto_total, risco.impacto_alto_p10, risco.impacto_alto_p90)}
-                        />
                       </tbody>
                     </table>
                   </div>

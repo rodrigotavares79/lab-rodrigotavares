@@ -27,10 +27,6 @@ function escapeHtml(value: unknown): string {
     .replace(/"/g, "&quot;");
 }
 
-function formatBRL(value: number): string {
-  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
-
 // Prefixo no assunto do e-mail fora de produção, pra quem testar em
 // HMG/DEV não confundir com um cadastro real.
 const ENV = process.env.NEXT_PUBLIC_ENV_NAME;
@@ -175,20 +171,6 @@ export async function POST(request: NextRequest) {
 
     if (sistemaNome) {
       linhas.push(["Sistema Crítico", sistemaNome]);
-
-      const faixaTexto = (p10: number | null, total: number, p90: number | null) =>
-        p10 != null && p90 != null
-          ? `${formatBRL(total)} — mais provável (faixa: ${formatBRL(p10)} a ${formatBRL(p90)})`
-          : formatBRL(total);
-
-      linhas.push([
-        "Impacto Financeiro — Evento Crítico",
-        `${faixaTexto(impactoCriticoP10, impactoCriticoTotal, impactoCriticoP90)} (indisponibilidade: ${formatBRL(impactoCriticoIndisponibilidade)}; restauração: ${formatBRL(impactoCriticoRestauracao)})`,
-      ]);
-      linhas.push([
-        "Impacto Financeiro — Alto Impacto",
-        `${faixaTexto(impactoAltoP10, impactoAltoTotal, impactoAltoP90)} (indisponibilidade: ${formatBRL(impactoAltoIndisponibilidade)}; restauração: ${formatBRL(impactoAltoRestauracao)})`,
-      ]);
     }
 
     const linhasHtml = linhas

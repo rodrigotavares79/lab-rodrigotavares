@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useMemo, FormEvent } from "react";
+import { useState, useEffect, FormEvent } from "react";
 import Footer from "@/components/Footer";
 import ImportarRiscosCSV from "@/components/ImportarRiscosCSV";
-import { simularImpactoFinanceiro, type FaixaEstimativa } from "@/lib/riscoUtils";
+import { type FaixaEstimativa } from "@/lib/riscoUtils";
 
 const NIVEIS = [
   { value: 1, label: "1 — Muito Baixo" },
@@ -40,10 +40,6 @@ function classificarRisco(probabilidade: number, impacto: number) {
   if (!probabilidade || !impacto) return null;
   const nivel = MATRIZ_5X5[probabilidade - 1][impacto - 1];
   return NIVEL_RISCO[nivel];
-}
-
-function formatBRL(value: number): string {
-  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
 // Estado de formulário para uma estimativa de 3 pontos (mín/provável/máx).
@@ -164,25 +160,6 @@ export default function CadastroDeRiscos() {
       .catch(() => setSistemas([]));
     setSistemaCriticoId("");
   }, [projetoId]);
-
-  const sistemaSelecionado = sistemas.find((s) => String(s.id) === sistemaCriticoId);
-
-  // Simulação client-side só pra preview (poucas iterações — é refeita a
-  // cada tecla digitada). O valor gravado de verdade é recalculado no
-  // servidor com mais iterações, nunca confiando neste número.
-  const preview = useMemo(() => {
-    if (!sistemaSelecionado) return null;
-    return simularImpactoFinanceiro(
-      sistemaSelecionado,
-      {
-        duracaoHoras: faixaParaEstimativa(duracaoHoras),
-        percentualDegradacao: faixaParaEstimativa(percentualDegradacao),
-        restauracaoPessoas: faixaParaEstimativa(restauracaoPessoas),
-        restauracaoHoras: faixaParaEstimativa(restauracaoHoras),
-      },
-      2000
-    );
-  }, [sistemaSelecionado, duracaoHoras, percentualDegradacao, restauracaoPessoas, restauracaoHoras]);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -430,7 +407,7 @@ export default function CadastroDeRiscos() {
             </fieldset>
 
             <fieldset className="form-section">
-              <legend>Impacto Financeiro (opcional)</legend>
+              <legend>Sistema Crítico Vinculado (opcional)</legend>
               <div className="form-grid">
                 <div className="form-field">
                   <label htmlFor="sistemaCritico">Sistema Crítico vinculado</label>
@@ -481,35 +458,6 @@ export default function CadastroDeRiscos() {
                       onChange={setRestauracaoHoras}
                       step="0.5"
                     />
-
-                    {preview && (
-                      <div className="form-field form-field-wide">
-                        <div className="financial-preview">
-                          <div className="financial-scenario">
-                            <span className="financial-scenario-title">Evento Crítico (Indisponibilidade)</span>
-                            <span className="financial-scenario-total">{formatBRL(preview.critico.total.p50)}</span>
-                            <span className="financial-scenario-detail">
-                              {formatBRL(preview.critico.indisponibilidade.p50)} perda por indisponibilidade;{" "}
-                              {formatBRL(preview.critico.restauracao.p50)} perda por restauração (homem/hora)
-                            </span>
-                            <span className="financial-scenario-range">
-                              Faixa (p10–p90): {formatBRL(preview.critico.total.p10)} a {formatBRL(preview.critico.total.p90)}
-                            </span>
-                          </div>
-                          <div className="financial-scenario">
-                            <span className="financial-scenario-title">Evento Alto Impacto (Degradação)</span>
-                            <span className="financial-scenario-total">{formatBRL(preview.alto.total.p50)}</span>
-                            <span className="financial-scenario-detail">
-                              {formatBRL(preview.alto.indisponibilidade.p50)} perda por indisponibilidade;{" "}
-                              {formatBRL(preview.alto.restauracao.p50)} perda por restauração (homem/hora)
-                            </span>
-                            <span className="financial-scenario-range">
-                              Faixa (p10–p90): {formatBRL(preview.alto.total.p10)} a {formatBRL(preview.alto.total.p90)}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </>
                 )}
               </div>
