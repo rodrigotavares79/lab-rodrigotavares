@@ -175,7 +175,7 @@ export default function CatalogoDeServicos() {
                           <tr key={s.id}>
                             <td>{s.nome}</td>
                             <td>{s.categoria || "—"}</td>
-                            <td>{s.tipo ? <span className="status-tag">{s.tipo}</span> : "—"}</td>
+                            <td>{s.tipo || "—"}</td>
                             <td>{s.urgencia ? <span className={classeUrgencia(s.urgencia)}>{s.urgencia}</span> : "—"}</td>
                             <td>{s.sla_horas}</td>
                           </tr>
