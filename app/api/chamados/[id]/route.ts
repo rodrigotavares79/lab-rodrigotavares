@@ -31,10 +31,10 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       SELECT c.id, c.titulo, c.descricao, c.urgencia, c.status, c.prazo_sla, c.global,
              c.justificativa_ultima_movimentacao, c.aberto_por_email, c.aberto_por_nome,
              c.aberto_por_unidade, c.criado_em, c.atualizado_em,
-             c.tipo_id, t.nome AS tipo,
+             c.tipo_id, s.nome AS servico,
              c.fornecedor_id, f.nome_fantasia AS fornecedor
       FROM chamados c
-      LEFT JOIN tipos_chamado t ON t.id = c.tipo_id
+      LEFT JOIN catalogo_servicos s ON s.id = c.tipo_id
       LEFT JOIN fornecedores f ON f.id = c.fornecedor_id
       WHERE c.id = ${id}
     `;

@@ -3,19 +3,33 @@
 import { useState, useEffect, FormEvent } from "react";
 import Footer from "@/components/Footer";
 
-type TipoChamado = { id: number; nome: string; sla_horas: number };
+type Servico = {
+  id: number;
+  nome: string;
+  categoria: string | null;
+  urgencia: string | null;
+  tipo: string | null;
+  sla_horas: number;
+};
+
+function classeUrgencia(urgencia: string): string {
+  if (urgencia === "Urgente") return "badge badge-critico";
+  if (urgencia === "Média") return "badge badge-medio";
+  return "badge badge-baixo";
+}
 
 export default function NovoChamado() {
-  const [tipos, setTipos] = useState<TipoChamado[]>([]);
+  const [servicos, setServicos] = useState<Servico[]>([]);
+  const [servicoId, setServicoId] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [enviado, setEnviado] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/tipos-chamado")
+    fetch("/api/catalogo-servicos")
       .then((r) => r.json())
-      .then((d) => setTipos(d.tipos || []))
-      .catch(() => setTipos([]));
+      .then((d) => setServicos(d.servicos || []))
+      .catch(() => setServicos([]));
   }, []);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
@@ -23,14 +37,18 @@ export default function NovoChamado() {
     setErro(null);
     setEnviado(false);
 
+    if (!servicoId) {
+      setErro("Selecione um serviço.");
+      return;
+    }
+
     const form = e.currentTarget;
     const formData = new FormData(form);
 
     const payload = {
       titulo: formData.get("titulo"),
       descricao: formData.get("descricao"),
-      tipoId: formData.get("tipoId"),
-      urgencia: formData.get("urgencia"),
+      servicoId,
     };
 
     setEnviando(true);
@@ -44,6 +62,7 @@ export default function NovoChamado() {
       if (!res.ok) throw new Error(body.error || "Não foi possível abrir o chamado.");
       setEnviado(true);
       form.reset();
+      setServicoId("");
     } catch (err) {
       setErro(err instanceof Error ? err.message : "Erro ao abrir o chamado.");
     } finally {
@@ -85,33 +104,49 @@ export default function NovoChamado() {
                     placeholder="Dê o máximo de detalhes possível: local exato, desde quando, etc."
                   />
                 </div>
-
-                <div className="form-field">
-                  <label htmlFor="tipoId">Tipo de Chamado</label>
-                  <select id="tipoId" name="tipoId" defaultValue="" required>
-                    <option value="" disabled>Selecione</option>
-                    {tipos.map((t) => (
-                      <option key={t.id} value={t.id}>{t.nome}</option>
-                    ))}
-                  </select>
-                  {tipos.length === 0 && (
-                    <p className="field-helper">
-                      Nenhum tipo cadastrado ainda — peça ao síndico para
-                      cadastrar em "Tipos de Chamado".
-                    </p>
-                  )}
-                </div>
-
-                <div className="form-field">
-                  <label htmlFor="urgencia">Urgência</label>
-                  <select id="urgencia" name="urgencia" defaultValue="">
-                    <option value="" disabled>Selecione</option>
-                    <option value="Baixa">Baixa</option>
-                    <option value="Média">Média</option>
-                    <option value="Urgente">Urgente</option>
-                  </select>
-                </div>
               </div>
+            </fieldset>
+
+            <fieldset className="form-section">
+              <legend>Serviço</legend>
+              <p className="field-helper" style={{ marginTop: 0 }}>
+                A urgência e o prazo de atendimento (SLA) vêm do serviço escolhido.
+              </p>
+
+              {servicos.length === 0 ? (
+                <p className="field-helper">
+                  Nenhum serviço cadastrado ainda — peça ao síndico para
+                  cadastrar em "Catálogo de Serviços".
+                </p>
+              ) : (
+                <div className="servico-list" role="radiogroup" aria-label="Selecione o serviço">
+                  {servicos.map((s) => (
+                    <label key={s.id} className="servico-item">
+                      <input
+                        type="radio"
+                        name="servico"
+                        value={s.id}
+                        checked={servicoId === String(s.id)}
+                        onChange={() => setServicoId(String(s.id))}
+                        required
+                      />
+                      <div className="servico-item-card">
+                        <div className="servico-item-card-top">
+                          <div>
+                            <div className="servico-item-nome">{s.nome}</div>
+                            {s.categoria && <div className="servico-item-categoria">{s.categoria}</div>}
+                          </div>
+                          <div className="servico-item-badges">
+                            {s.urgencia && <span className={classeUrgencia(s.urgencia)}>{s.urgencia}</span>}
+                            {s.tipo && <span className="status-tag">{s.tipo}</span>}
+                          </div>
+                        </div>
+                        <div className="servico-item-sla">SLA: {s.sla_horas}h</div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              )}
             </fieldset>
 
             <div className="form-actions">

@@ -14,7 +14,7 @@ type ChamadoLinha = {
   aberto_por_nome: string;
   aberto_por_unidade: string | null;
   criado_em: string;
-  tipo: string | null;
+  servico: string | null;
   fornecedor: string | null;
 };
 
@@ -109,7 +109,7 @@ export default function Chamados() {
                       <tr>
                         <th>ID</th>
                         <th>Título</th>
-                        <th>Tipo</th>
+                        <th>Serviço</th>
                         <th>Urgência</th>
                         <th>Status</th>
                         {gerente && <th>Unidade</th>}
@@ -132,7 +132,7 @@ export default function Chamados() {
                             {c.titulo}{" "}
                             {c.global && <span className="status-tag" style={{ marginLeft: "0.3rem" }}>Global</span>}
                           </td>
-                          <td>{c.tipo || "—"}</td>
+                          <td>{c.servico || "—"}</td>
                           <td>
                             {c.urgencia ? <span className={classeUrgencia(c.urgencia)}>{c.urgencia}</span> : "—"}
                           </td>

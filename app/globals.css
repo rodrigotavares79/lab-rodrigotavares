@@ -646,6 +646,78 @@ h1, h2, h3 {
   margin-top: 0;
 }
 
+/* --- Catálogo de Serviços: lista selecionável (Abrir Chamado) --- */
+
+.servico-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.servico-item {
+  display: block;
+  cursor: pointer;
+}
+
+.servico-item input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.servico-item-card {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  padding: 0.9rem 1.1rem;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.servico-item input:checked + .servico-item-card {
+  border-color: var(--accent);
+  background: var(--bg);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.servico-item input:focus-visible + .servico-item-card {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.servico-item-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.servico-item-nome {
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: var(--text);
+}
+
+.servico-item-categoria {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-top: 0.15rem;
+}
+
+.servico-item-badges {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.servico-item-sla {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.6rem;
+}
+
 @media (max-width: 40rem) {
   .page-sidebar-layout {
     grid-template-columns: 1fr;

@@ -8,14 +8,14 @@ import { donutSegments } from "@/lib/chartHelpers";
 type Kpis = { total: number; em_aberto: number; sla_vencido: number; resolvidos: number };
 type PorStatus = { status: string; total: number };
 type PorUrgencia = { urgencia: string; total: number };
-type PorTipo = { tipo: string; total: number };
+type PorServico = { servico: string; total: number };
 type Recente = { id: number; titulo: string; status: string; urgencia: string | null; aberto_por_nome: string; criado_em: string };
 
 type DashboardData = {
   kpis: Kpis;
   porStatus: PorStatus[];
   porUrgencia: PorUrgencia[];
-  porTipo: PorTipo[];
+  porServico: PorServico[];
   recentes: Recente[];
 };
 
@@ -56,8 +56,8 @@ export default function CondominioDashboard() {
     color: CORES_STATUS[s.status] || "#9db4c4",
   }));
   const donut = donutSegments(porStatus, 70);
-  const porTipo = data?.porTipo || [];
-  const tipoMax = Math.max(1, ...porTipo.map((t) => t.total));
+  const porServico = data?.porServico || [];
+  const servicoMax = Math.max(1, ...porServico.map((s) => s.total));
 
   return (
     <>
@@ -138,20 +138,20 @@ export default function CondominioDashboard() {
                 </div>
 
                 <div className="dash-panel">
-                  <div className="dash-panel-header">Chamados por Tipo</div>
+                  <div className="dash-panel-header">Chamados por Serviço</div>
                   <div className="dash-panel-body">
-                    {porTipo.length === 0 ? (
+                    {porServico.length === 0 ? (
                       <p className="text-muted" style={{ margin: 0, fontSize: "0.85rem" }}>Sem dados suficientes.</p>
                     ) : (
                       <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
-                        {porTipo.map((t) => (
-                          <div key={t.tipo}>
+                        {porServico.map((s) => (
+                          <div key={s.servico}>
                             <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", marginBottom: "0.2rem" }}>
-                              <span>{t.tipo}</span>
-                              <span className="text-muted">{t.total}</span>
+                              <span>{s.servico}</span>
+                              <span className="text-muted">{s.total}</span>
                             </div>
                             <div style={{ background: "var(--border)", borderRadius: "3px", height: "8px" }}>
-                              <div style={{ width: `${(t.total / tipoMax) * 100}%`, background: "var(--accent)", height: "100%", borderRadius: "3px" }} />
+                              <div style={{ width: `${(s.total / servicoMax) * 100}%`, background: "var(--accent)", height: "100%", borderRadius: "3px" }} />
                             </div>
                           </div>
                         ))}

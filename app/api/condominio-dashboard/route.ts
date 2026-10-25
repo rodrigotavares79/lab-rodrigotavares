@@ -31,10 +31,10 @@ export async function GET() {
       WHERE urgencia IS NOT NULL GROUP BY urgencia
     `;
 
-    const porTipo = await sql`
-      SELECT t.nome AS tipo, COUNT(*)::int AS total
-      FROM chamados c JOIN tipos_chamado t ON t.id = c.tipo_id
-      GROUP BY t.nome ORDER BY total DESC
+    const porServico = await sql`
+      SELECT s.nome AS servico, COUNT(*)::int AS total
+      FROM chamados c JOIN catalogo_servicos s ON s.id = c.tipo_id
+      GROUP BY s.nome ORDER BY total DESC
     `;
 
     const recentes = await sql`
@@ -46,7 +46,7 @@ export async function GET() {
       kpis: kpisRows[0],
       porStatus,
       porUrgencia,
-      porTipo,
+      porServico,
       recentes,
     });
   } catch (err) {

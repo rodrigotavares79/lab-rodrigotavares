@@ -17,7 +17,7 @@ export default function Condominio() {
                 <span className="page-submenu-admin-trigger">Administração</span>
                 <div className="page-submenu-admin-items">
                   <a href="/condominio/fornecedores">Cadastrar Fornecedor</a>
-                  <a href="/condominio/tipos-chamado">Cadastrar Tipo de Serviço</a>
+                  <a href="/condominio/catalogo-de-servicos">Catálogo de Serviços</a>
                   <a href="/condominio/condominos">Manutenção de Condôminos</a>
                 </div>
               </div>
@@ -31,11 +31,11 @@ export default function Condominio() {
 
               <div className="body">
                 <p>
-                  Qualquer condômino pode abrir um chamado descrevendo um
-                  problema; o síndico (ou conselheiro) acompanha, atribui a
-                  um fornecedor quando necessário e registra a resolução.
-                  Cada tipo de chamado tem um prazo de atendimento (SLA)
-                  configurável, calculado automaticamente a partir do
+                  Qualquer condômino pode abrir um chamado escolhendo um
+                  serviço do catálogo; o síndico (ou conselheiro) acompanha,
+                  atribui a um fornecedor quando necessário e registra a
+                  resolução. Cada serviço já define a urgência e o prazo de
+                  atendimento (SLA), calculado automaticamente a partir do
                   momento da abertura.
                 </p>
                 <p>Nesta página você encontra a estrutura completa do sistema:</p>
@@ -59,7 +59,7 @@ export default function Condominio() {
                     e conselheiro:
                     <ul>
                       <li><strong>Cadastrar Fornecedor</strong> — empresas e contatos usados para atender os chamados.</li>
-                      <li><strong>Cadastrar Tipo de Serviço</strong> — categorias de chamado, cada uma com seu prazo de atendimento (SLA) em horas.</li>
+                      <li><strong>Catálogo de Serviços</strong> — serviços disponíveis para abertura de chamado, cada um com categoria, urgência, tipo (Problema ou Demanda) e prazo de atendimento (SLA) em horas.</li>
                       <li><strong>Manutenção de Condôminos</strong> — convite de novos moradores e definição do perfil (síndico, conselheiro ou condômino) e da unidade de cada um.</li>
                     </ul>
                   </li>

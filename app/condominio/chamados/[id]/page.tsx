@@ -18,7 +18,7 @@ type ChamadoDetalhe = {
   aberto_por_nome: string;
   aberto_por_unidade: string | null;
   criado_em: string;
-  tipo: string | null;
+  servico: string | null;
   fornecedor_id: number | null;
   fornecedor: string | null;
 };
@@ -213,7 +213,7 @@ export default function DetalheDoChamado() {
                     <tbody>
                       <LinhaCampo label="Título" value={chamado.titulo} />
                       <LinhaCampo label="Descrição" value={chamado.descricao || "—"} />
-                      <LinhaCampo label="Tipo" value={chamado.tipo || "—"} />
+                      <LinhaCampo label="Serviço" value={chamado.servico || "—"} />
                       <LinhaCampo label="Aberto por" value={chamado.aberto_por_nome} />
                       <LinhaCampo label="Unidade" value={chamado.aberto_por_unidade || "—"} />
                       <LinhaCampo label="Data de abertura" value={formatDataHora(chamado.criado_em)} />
