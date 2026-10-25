@@ -29,6 +29,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# backups do banco (dados reais de condôminos — nunca commitar)
+/backups
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

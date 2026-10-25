@@ -13,6 +13,7 @@ export default function Condominio() {
               <a href="/condominio/novo-chamado">Abrir Chamado</a>
               <a href="/condominio/chamados">Chamados</a>
               <a href="/condominio/dashboard">Dashboard</a>
+              <a href="/condominio/privacidade">Política de Privacidade</a>
               <div className="page-submenu-admin">
                 <span className="page-submenu-admin-trigger">Administração</span>
                 <div className="page-submenu-admin-items">
