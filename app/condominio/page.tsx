@@ -1,6 +1,10 @@
 import Footer from "@/components/Footer";
+import { getUsuarioCondominio, podeGerirChamados } from "@/lib/condominioAuth";
 
-export default function Condominio() {
+export default async function Condominio() {
+  const usuario = await getUsuarioCondominio();
+  const gerente = usuario ? podeGerirChamados(usuario.perfil) : false;
+
   return (
     <>
       <section className="content-block">
@@ -10,18 +14,24 @@ export default function Condominio() {
 
           <div className="page-sidebar-layout">
             <nav className="page-submenu-vertical" aria-label="Navegação de Gestão de Condomínio">
-              <a href="/condominio/novo-chamado">Abrir Chamado</a>
-              <a href="/condominio/chamados">Chamados</a>
-              <a href="/condominio/dashboard">Dashboard</a>
-              <a href="/condominio/privacidade">Política de Privacidade</a>
+              {gerente && (
+                <div className="page-submenu-admin">
+                  <span className="page-submenu-admin-trigger">Administração</span>
+                  <div className="page-submenu-admin-items">
+                    <a href="/condominio/fornecedores">Cadastrar Fornecedor</a>
+                    <a href="/condominio/catalogo-de-servicos">Catálogo de Serviços</a>
+                    <a href="/condominio/condominos">Manutenção de Condôminos</a>
+                  </div>
+                </div>
+              )}
               <div className="page-submenu-admin">
-                <span className="page-submenu-admin-trigger">Administração</span>
+                <span className="page-submenu-admin-trigger">Chamados</span>
                 <div className="page-submenu-admin-items">
-                  <a href="/condominio/fornecedores">Cadastrar Fornecedor</a>
-                  <a href="/condominio/catalogo-de-servicos">Catálogo de Serviços</a>
-                  <a href="/condominio/condominos">Manutenção de Condôminos</a>
+                  <a href="/condominio/novo-chamado">Abrir Chamado</a>
+                  <a href="/condominio/chamados">Lista de Chamados</a>
                 </div>
               </div>
+              <a href="/condominio/dashboard">Dashboard</a>
             </nav>
 
             <div className="page-sidebar-content">
@@ -41,28 +51,28 @@ export default function Condominio() {
                 </p>
                 <p>Nesta página você encontra a estrutura completa do sistema:</p>
                 <ul>
+                  {gerente && (
+                    <li>
+                      <strong>Administração</strong> — área restrita a síndico
+                      e conselheiro:
+                      <ul>
+                        <li><strong>Cadastrar Fornecedor</strong> — empresas e contatos usados para atender os chamados.</li>
+                        <li><strong>Catálogo de Serviços</strong> — serviços disponíveis para abertura de chamado, cada um com categoria, urgência, tipo (Problema ou Demanda) e prazo de atendimento (SLA) em horas.</li>
+                        <li><strong>Manutenção de Condôminos</strong> — convite de novos moradores e definição do perfil (síndico, conselheiro ou condômino) e da unidade de cada um.</li>
+                      </ul>
+                    </li>
+                  )}
                   <li>
-                    <strong>Abrir Chamado</strong> — formulário usado por
-                    qualquer condômino para registrar um problema.
-                  </li>
-                  <li>
-                    <strong>Chamados</strong> — lista de chamados (os seus,
-                    se você é condômino; todos, se você é síndico ou
-                    conselheiro), com acesso ao detalhe de cada um.
+                    <strong>Chamados</strong>:
+                    <ul>
+                      <li><strong>Abrir Chamado</strong> — formulário usado por qualquer condômino para registrar um problema.</li>
+                      <li><strong>Lista de Chamados</strong> — os seus, se você é condômino; todos, se você é síndico ou conselheiro — com acesso ao detalhe de cada um.</li>
+                    </ul>
                   </li>
                   <li>
                     <strong>Dashboard</strong> — visão executiva do síndico:
                     chamados em aberto, prazos vencidos e distribuição por
                     status, urgência e tipo.
-                  </li>
-                  <li>
-                    <strong>Administração</strong> — área restrita a síndico
-                    e conselheiro:
-                    <ul>
-                      <li><strong>Cadastrar Fornecedor</strong> — empresas e contatos usados para atender os chamados.</li>
-                      <li><strong>Catálogo de Serviços</strong> — serviços disponíveis para abertura de chamado, cada um com categoria, urgência, tipo (Problema ou Demanda) e prazo de atendimento (SLA) em horas.</li>
-                      <li><strong>Manutenção de Condôminos</strong> — convite de novos moradores e definição do perfil (síndico, conselheiro ou condômino) e da unidade de cada um.</li>
-                    </ul>
                   </li>
                 </ul>
               </div>
