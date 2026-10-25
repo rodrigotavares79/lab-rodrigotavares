@@ -13,10 +13,14 @@ export default function Condominio() {
               <a href="/condominio/novo-chamado">Abrir Chamado</a>
               <a href="/condominio/chamados">Chamados</a>
               <a href="/condominio/dashboard">Dashboard</a>
-              <span className="page-submenu-group-label">Administração</span>
-              <a href="/condominio/fornecedores" className="page-submenu-sub">Cadastrar Fornecedor</a>
-              <a href="/condominio/tipos-chamado" className="page-submenu-sub">Cadastrar Tipo de Serviço</a>
-              <a href="/condominio/condominos" className="page-submenu-sub">Manutenção de Condôminos</a>
+              <div className="page-submenu-admin">
+                <span className="page-submenu-admin-trigger">Administração</span>
+                <div className="page-submenu-admin-items">
+                  <a href="/condominio/fornecedores">Cadastrar Fornecedor</a>
+                  <a href="/condominio/tipos-chamado">Cadastrar Tipo de Serviço</a>
+                  <a href="/condominio/condominos">Manutenção de Condôminos</a>
+                </div>
+              </div>
             </nav>
 
             <div className="page-sidebar-content">

@@ -567,18 +567,79 @@ h1, h2, h3 {
   border-color: var(--accent);
 }
 
-.page-submenu-group-label {
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--text-muted);
-  margin: 0.75rem 0 -0.1rem;
-  padding: 0 0.2rem;
+/* Item "Administração" do submenu — abre em sanfona ao passar o mouse
+   (ou ao focar um item dele via teclado). */
+.page-submenu-admin {
+  display: flex;
+  flex-direction: column;
 }
 
-.page-submenu-vertical a.page-submenu-sub {
+.page-submenu-admin-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  padding: 0.75rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text);
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.page-submenu-admin-trigger::after {
+  content: "▾";
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  transition: transform 0.2s ease;
+}
+
+.page-submenu-admin:hover .page-submenu-admin-trigger,
+.page-submenu-admin:focus-within .page-submenu-admin-trigger {
+  background: var(--bg);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.page-submenu-admin:hover .page-submenu-admin-trigger::after,
+.page-submenu-admin:focus-within .page-submenu-admin-trigger::after {
+  transform: rotate(180deg);
+}
+
+.page-submenu-admin-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.25s ease, margin-top 0.25s ease;
+}
+
+.page-submenu-admin:hover .page-submenu-admin-items,
+.page-submenu-admin:focus-within .page-submenu-admin-items {
+  max-height: 16rem;
+  margin-top: 0.6rem;
+}
+
+.page-submenu-admin-items a {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  padding: 0.75rem 1rem;
   margin-left: 0.75rem;
   font-size: 0.8rem;
+  font-weight: 500;
+  text-decoration: none;
+  color: var(--text);
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.page-submenu-admin-items a:hover {
+  background: var(--bg);
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 .page-sidebar-content .lede {
@@ -601,13 +662,26 @@ h1, h2, h3 {
     text-align: center;
   }
 
-  .page-submenu-vertical a.page-submenu-sub {
+  /* Sem hover em touch — "Administração" fica sempre aberta no mobile. */
+  .page-submenu-admin {
+    flex-basis: 100%;
+  }
+
+  .page-submenu-admin-items {
+    max-height: none;
+    margin-top: 0.6rem;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .page-submenu-admin-items a {
+    flex: 1 1 auto;
+    text-align: center;
     margin-left: 0;
   }
 
-  .page-submenu-group-label {
-    flex-basis: 100%;
-    margin: 0.5rem 0 -0.3rem;
+  .page-submenu-admin-trigger::after {
+    transform: rotate(180deg);
   }
 }
 
