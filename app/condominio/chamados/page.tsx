@@ -142,8 +142,9 @@ export default function Chamados() {
                           <td>
                             {formatDataHora(c.prazo_sla)}
                             {slaVencido(c.prazo_sla, c.status) && (
-                              <span className="report-vencida" style={{ marginLeft: "0.4rem", fontSize: "0.72rem" }}>
-                                ⚠ Vencido
+                              <span className="report-vencida" style={{ marginLeft: "0.5rem", fontSize: "0.72rem" }}>
+                                <span className="legend-dot" style={{ background: "var(--danger)" }} />
+                                Vencido
                               </span>
                             )}
                           </td>

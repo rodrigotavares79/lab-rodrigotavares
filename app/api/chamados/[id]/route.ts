@@ -103,6 +103,16 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       WHERE id = ${id}
     `;
 
+    // Cada atualização vira uma linha nova no histórico — não sobrescreve a
+    // anterior, diferente do campo justificativa_ultima_movimentacao.
+    await sql`
+      INSERT INTO chamados_historico (
+        chamado_id, status_anterior, status_novo, justificativa, fornecedor_id, global, autor_email, autor_nome
+      ) VALUES (
+        ${id}, ${atual.status}, ${novoStatus}, ${novaJustificativa}, ${novoFornecedorId}, ${novoGlobal}, ${usuario.email}, ${usuario.nome}
+      )
+    `;
+
     const rows = await sql`SELECT id, status, fornecedor_id, global FROM chamados WHERE id = ${id}`;
     return NextResponse.json({ chamado: rows[0] });
   } catch (err) {

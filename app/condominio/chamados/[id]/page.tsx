@@ -14,7 +14,6 @@ type ChamadoDetalhe = {
   status: string;
   prazo_sla: string | null;
   global: boolean;
-  justificativa_ultima_movimentacao: string | null;
   aberto_por_nome: string;
   aberto_por_unidade: string | null;
   criado_em: string;
@@ -29,6 +28,17 @@ type Mensagem = {
   texto: string;
   visivel_condomino: boolean;
   criado_em: string;
+};
+
+type HistoricoItem = {
+  id: number;
+  status_anterior: string | null;
+  status_novo: string;
+  justificativa: string | null;
+  global: boolean | null;
+  autor_nome: string | null;
+  criado_em: string;
+  fornecedor: string | null;
 };
 
 const STATUS_OPCOES = [
@@ -46,6 +56,11 @@ function classeUrgencia(urgencia: string | null): string {
   if (urgencia === "Média") return "badge badge-medio";
   if (urgencia === "Baixa") return "badge badge-baixo";
   return "";
+}
+
+function slaVencido(prazo: string | null, status: string): boolean {
+  if (!prazo || status === "Resolvido" || status === "Cancelado") return false;
+  return new Date(prazo) < new Date();
 }
 
 function formatDataHora(iso: string | null): string {
@@ -85,6 +100,9 @@ export default function DetalheDoChamado() {
   const [enviandoMensagem, setEnviandoMensagem] = useState(false);
   const [erroMensagem, setErroMensagem] = useState<string | null>(null);
 
+  const [historico, setHistorico] = useState<HistoricoItem[]>([]);
+  const [carregandoHistorico, setCarregandoHistorico] = useState(true);
+
   function carregarChamado() {
     if (!params?.id) return;
     setCarregando(true);
@@ -113,9 +131,20 @@ export default function DetalheDoChamado() {
       .finally(() => setCarregandoMensagens(false));
   }
 
+  function carregarHistorico() {
+    if (!params?.id) return;
+    setCarregandoHistorico(true);
+    fetch(`/api/chamados/${params.id}/historico`)
+      .then((r) => r.json())
+      .then((d) => setHistorico(d.historico || []))
+      .catch(() => setHistorico([]))
+      .finally(() => setCarregandoHistorico(false));
+  }
+
   useEffect(() => {
     carregarChamado();
     carregarMensagens();
+    carregarHistorico();
     fetch("/api/fornecedores")
       .then((r) => r.json())
       .then((d) => setFornecedores(d.fornecedores || []))
@@ -147,6 +176,7 @@ export default function DetalheDoChamado() {
       setSucessoSalvar(true);
       setJustificativaForm("");
       carregarChamado();
+      carregarHistorico();
     } catch (err) {
       setErroSalvar(err instanceof Error ? err.message : "Erro ao salvar.");
     } finally {
@@ -204,6 +234,12 @@ export default function DetalheDoChamado() {
                 {chamado.urgencia && <span className={classeUrgencia(chamado.urgencia)}>{chamado.urgencia}</span>}
                 <span className="status-tag" style={{ fontSize: "0.85rem" }}>Status: {chamado.status}</span>
                 {chamado.global && <span className="status-tag">Visível a todos</span>}
+                {slaVencido(chamado.prazo_sla, chamado.status) && (
+                  <span className="report-vencida" style={{ fontSize: "0.85rem" }}>
+                    <span className="legend-dot" style={{ background: "var(--danger)" }} />
+                    SLA vencido
+                  </span>
+                )}
               </div>
 
               <div className="dash-panel">
@@ -219,11 +255,45 @@ export default function DetalheDoChamado() {
                       <LinhaCampo label="Data de abertura" value={formatDataHora(chamado.criado_em)} />
                       <LinhaCampo label="Prazo SLA" value={formatDataHora(chamado.prazo_sla)} />
                       <LinhaCampo label="Fornecedor responsável" value={chamado.fornecedor || "—"} />
-                      {chamado.justificativa_ultima_movimentacao && (
-                        <LinhaCampo label="Justificativa da última movimentação" value={chamado.justificativa_ultima_movimentacao} />
-                      )}
                     </tbody>
                   </table>
+                </div>
+              </div>
+
+              <div className="dash-panel">
+                <div className="dash-panel-header">Histórico</div>
+                <div className="dash-panel-body">
+                  {carregandoHistorico && <p className="text-muted" style={{ fontSize: "0.85rem" }}>Carregando...</p>}
+
+                  {!carregandoHistorico && historico.length === 0 && (
+                    <p className="text-muted" style={{ fontSize: "0.85rem", margin: 0 }}>
+                      Nenhuma movimentação registrada ainda.
+                    </p>
+                  )}
+
+                  {!carregandoHistorico && historico.length > 0 && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                      {historico.map((h) => (
+                        <div key={h.id} className="dash-panel" style={{ marginBottom: 0, background: "var(--bg)" }}>
+                          <div className="dash-panel-body" style={{ padding: "0.75rem 1rem" }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", gap: "0.75rem", fontSize: "0.78rem", color: "var(--text-muted)", marginBottom: "0.35rem", flexWrap: "wrap" }}>
+                              <strong style={{ color: "var(--text)" }}>
+                                {h.status_anterior ? `${h.status_anterior} → ${h.status_novo}` : `Chamado aberto — ${h.status_novo}`}
+                              </strong>
+                              <span>{formatDataHora(h.criado_em)}{h.autor_nome ? ` · ${h.autor_nome}` : ""}</span>
+                            </div>
+                            {h.justificativa && (
+                              <p style={{ margin: "0 0 0.35rem", fontSize: "0.88rem", whiteSpace: "pre-wrap" }}>{h.justificativa}</p>
+                            )}
+                            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                              {h.fornecedor && <span className="status-tag">Fornecedor: {h.fornecedor}</span>}
+                              {h.global && <span className="status-tag">Visível a todos</span>}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 

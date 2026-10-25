@@ -85,7 +85,16 @@ export async function POST(request: NextRequest) {
       RETURNING id
     `;
 
-    return NextResponse.json({ ok: true, id: rows[0].id });
+    const chamadoId = rows[0].id;
+
+    // Primeira linha do histórico — registra a própria abertura, pra a
+    // linha do tempo do chamado começar completa.
+    await sql`
+      INSERT INTO chamados_historico (chamado_id, status_anterior, status_novo, autor_email, autor_nome)
+      VALUES (${chamadoId}, NULL, 'Novo', ${usuario.email}, ${usuario.nome})
+    `;
+
+    return NextResponse.json({ ok: true, id: chamadoId });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: "Erro ao abrir o chamado." }, { status: 500 });
