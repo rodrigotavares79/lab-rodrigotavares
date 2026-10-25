@@ -50,6 +50,7 @@ export default function NovoChamado() {
   const [enviando, setEnviando] = useState(false);
   const [enviado, setEnviado] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const [avisoAnexos, setAvisoAnexos] = useState<string | null>(null);
 
   // Só um grupo aberto por vez — abrir outro fecha o anterior. Começa tudo
   // recolhido.
@@ -80,6 +81,7 @@ export default function NovoChamado() {
     e.preventDefault();
     setErro(null);
     setEnviado(false);
+    setAvisoAnexos(null);
 
     if (!servicoId) {
       setErro("Selecione um serviço.");
@@ -88,6 +90,7 @@ export default function NovoChamado() {
 
     const form = e.currentTarget;
     const formData = new FormData(form);
+    const arquivos = formData.getAll("anexos").filter((a): a is File => a instanceof File && a.size > 0);
 
     const payload = {
       titulo: formData.get("titulo"),
@@ -104,6 +107,23 @@ export default function NovoChamado() {
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || "Não foi possível abrir o chamado.");
+
+      if (arquivos.length > 0) {
+        const falhas = (
+          await Promise.all(
+            arquivos.map(async (arquivo) => {
+              const anexoForm = new FormData();
+              anexoForm.append("arquivo", arquivo);
+              const r = await fetch(`/api/chamados/${body.id}/anexos`, { method: "POST", body: anexoForm });
+              return r.ok ? null : arquivo.name;
+            })
+          )
+        ).filter((nome): nome is string => nome !== null);
+        if (falhas.length > 0) {
+          setAvisoAnexos(`Chamado aberto, mas não foi possível anexar: ${falhas.join(", ")}.`);
+        }
+      }
+
       setEnviado(true);
       form.reset();
       setServicoId("");
@@ -148,6 +168,18 @@ export default function NovoChamado() {
                     rows={4}
                     placeholder="Dê o máximo de detalhes possível: local exato, desde quando, etc."
                   />
+                </div>
+
+                <div className="form-field form-field-wide">
+                  <label htmlFor="anexos">Fotos ou PDF (opcional)</label>
+                  <input
+                    id="anexos"
+                    name="anexos"
+                    type="file"
+                    multiple
+                    accept="image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf"
+                  />
+                  <p className="field-helper">Até 8 MB por arquivo.</p>
                 </div>
               </div>
             </fieldset>
@@ -212,6 +244,13 @@ export default function NovoChamado() {
                   <strong>Chamado aberto com sucesso.</strong>
                   <span>Acompanhe o status (incluindo a urgência) em "Chamados".</span>
                 </span>
+              </div>
+            )}
+
+            {avisoAnexos && (
+              <div className="error-banner">
+                <span className="success-icon error-icon">!</span>
+                <span className="success-text">{avisoAnexos}</span>
               </div>
             )}
 

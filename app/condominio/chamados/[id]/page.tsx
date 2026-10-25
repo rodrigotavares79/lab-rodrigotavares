@@ -41,6 +41,14 @@ type HistoricoItem = {
   fornecedor: string | null;
 };
 
+type Anexo = {
+  id: number;
+  arquivo_url: string;
+  tipo_anexo: string;
+  enviado_por_nome: string;
+  criado_em: string;
+};
+
 const STATUS_OPCOES = [
   "Novo",
   "Em andamento",
@@ -103,6 +111,11 @@ export default function DetalheDoChamado() {
   const [historico, setHistorico] = useState<HistoricoItem[]>([]);
   const [carregandoHistorico, setCarregandoHistorico] = useState(true);
 
+  const [anexos, setAnexos] = useState<Anexo[]>([]);
+  const [carregandoAnexos, setCarregandoAnexos] = useState(true);
+  const [enviandoAnexo, setEnviandoAnexo] = useState(false);
+  const [erroAnexo, setErroAnexo] = useState<string | null>(null);
+
   function carregarChamado() {
     if (!params?.id) return;
     setCarregando(true);
@@ -141,10 +154,42 @@ export default function DetalheDoChamado() {
       .finally(() => setCarregandoHistorico(false));
   }
 
+  function carregarAnexos() {
+    if (!params?.id) return;
+    setCarregandoAnexos(true);
+    fetch(`/api/chamados/${params.id}/anexos`)
+      .then((r) => r.json())
+      .then((d) => setAnexos(d.anexos || []))
+      .catch(() => setAnexos([]))
+      .finally(() => setCarregandoAnexos(false));
+  }
+
+  async function handleEnviarAnexo(e: React.ChangeEvent<HTMLInputElement>) {
+    const arquivo = e.target.files?.[0];
+    e.target.value = "";
+    if (!arquivo || !params?.id) return;
+
+    setEnviandoAnexo(true);
+    setErroAnexo(null);
+    try {
+      const formData = new FormData();
+      formData.append("arquivo", arquivo);
+      const res = await fetch(`/api/chamados/${params.id}/anexos`, { method: "POST", body: formData });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || "Falha ao enviar o anexo.");
+      carregarAnexos();
+    } catch (err) {
+      setErroAnexo(err instanceof Error ? err.message : "Erro ao enviar o anexo.");
+    } finally {
+      setEnviandoAnexo(false);
+    }
+  }
+
   useEffect(() => {
     carregarChamado();
     carregarMensagens();
     carregarHistorico();
+    carregarAnexos();
     fetch("/api/fornecedores")
       .then((r) => r.json())
       .then((d) => setFornecedores(d.fornecedores || []))
@@ -257,6 +302,56 @@ export default function DetalheDoChamado() {
                       <LinhaCampo label="Fornecedor responsável" value={chamado.fornecedor || "—"} />
                     </tbody>
                   </table>
+                </div>
+              </div>
+
+              <div className="dash-panel">
+                <div className="dash-panel-header">Anexos</div>
+                <div className="dash-panel-body">
+                  {carregandoAnexos && <p className="text-muted" style={{ fontSize: "0.85rem" }}>Carregando...</p>}
+
+                  {!carregandoAnexos && anexos.length === 0 && (
+                    <p className="text-muted" style={{ fontSize: "0.85rem", marginTop: 0, marginBottom: "1rem" }}>
+                      Nenhum anexo enviado ainda.
+                    </p>
+                  )}
+
+                  {!carregandoAnexos && anexos.length > 0 && (
+                    <div className="anexos-grid" style={{ marginBottom: "1rem" }}>
+                      {anexos.map((a) => (
+                        <a key={a.id} href={a.arquivo_url} target="_blank" rel="noopener noreferrer" className="anexo-card">
+                          {a.tipo_anexo.startsWith("image/") ? (
+                            <img src={a.arquivo_url} alt={`Anexo enviado por ${a.enviado_por_nome}`} />
+                          ) : (
+                            <div className="anexo-card-pdf">PDF</div>
+                          )}
+                          <span className="anexo-card-meta">{a.enviado_por_nome} · {formatDataHora(a.criado_em)}</span>
+                        </a>
+                      ))}
+                    </div>
+                  )}
+
+                  <label htmlFor="anexoInput" className="btn-secondary" style={{ display: "inline-block", cursor: "pointer" }}>
+                    {enviandoAnexo ? "Enviando..." : "+ Adicionar foto ou PDF"}
+                  </label>
+                  <input
+                    id="anexoInput"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf"
+                    onChange={handleEnviarAnexo}
+                    disabled={enviandoAnexo}
+                    style={{ display: "none" }}
+                  />
+                  <p className="field-helper" style={{ marginTop: "0.5rem", marginBottom: 0 }}>
+                    Foto (JPEG, PNG, WEBP, HEIC) ou PDF, até 8 MB.
+                  </p>
+
+                  {erroAnexo && (
+                    <div className="error-banner" style={{ marginTop: "0.75rem" }}>
+                      <span className="success-icon error-icon">!</span>
+                      <span className="success-text">{erroAnexo}</span>
+                    </div>
+                  )}
                 </div>
               </div>
 

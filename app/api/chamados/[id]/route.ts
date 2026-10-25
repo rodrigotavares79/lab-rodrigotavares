@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { getUsuarioCondominio, podeGerirChamados, podeVisualizarAdmin } from "@/lib/condominioAuth";
+import { enviarAvisoMudancaStatusChamado } from "@/lib/condominioEmail";
 
 export const dynamic = "force-dynamic";
 
@@ -82,7 +83,10 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
     const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
 
-    const atualRows = await sql`SELECT status, fornecedor_id, global FROM chamados WHERE id = ${id}`;
+    const atualRows = await sql`
+      SELECT status, fornecedor_id, global, titulo, aberto_por_email, aberto_por_nome
+      FROM chamados WHERE id = ${id}
+    `;
     if (atualRows.length === 0) {
       return NextResponse.json({ error: "Chamado não encontrado." }, { status: 404 });
     }
@@ -114,6 +118,25 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     `;
 
     const rows = await sql`SELECT id, status, fornecedor_id, global FROM chamados WHERE id = ${id}`;
+
+    // Avisa o condômino que abriu o chamado só quando o status realmente
+    // muda — não a cada edição de fornecedor/visibilidade. Falha de e-mail
+    // não deve quebrar a resposta da API.
+    if (status !== undefined && status !== atual.status) {
+      try {
+        await enviarAvisoMudancaStatusChamado(
+          atual.aberto_por_email,
+          atual.aberto_por_nome || atual.aberto_por_email,
+          Number(id),
+          atual.titulo,
+          novoStatus,
+          novaJustificativa
+        );
+      } catch (err) {
+        console.error("Falha ao notificar condômino sobre mudança de status:", err);
+      }
+    }
+
     return NextResponse.json({ chamado: rows[0] });
   } catch (err) {
     console.error(err);
