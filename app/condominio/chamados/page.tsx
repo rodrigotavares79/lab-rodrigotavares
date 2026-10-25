@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import Footer from "@/components/Footer";
 
@@ -42,11 +42,107 @@ function formatDataHora(iso: string | null): string {
   return new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
 }
 
+// Ordem de prioridade para a ordenação da lista — mais urgente / mais
+// perto do vencimento / mais "precisa de atenção" primeiro.
+const ORDEM_URGENCIA: Record<string, number> = { "Urgente": 0, "Média": 1, "Baixa": 2 };
+const ORDEM_STATUS: Record<string, number> = {
+  "Novo": 0,
+  "Reaberto": 1,
+  "Em andamento": 2,
+  "Aguardando fornecedor": 3,
+  "Paralisado": 4,
+  "Resolvido": 5,
+  "Cancelado": 6,
+};
+
+function encerrado(status: string): boolean {
+  return status === "Resolvido" || status === "Cancelado";
+}
+
+function valorUrgencia(c: ChamadoLinha): number {
+  return c.urgencia ? ORDEM_URGENCIA[c.urgencia] ?? 99 : 99;
+}
+
+function valorPrazo(c: ChamadoLinha): number {
+  return c.prazo_sla ? new Date(c.prazo_sla).getTime() : Infinity;
+}
+
+function valorStatus(c: ChamadoLinha): number {
+  return ORDEM_STATUS[c.status] ?? 99;
+}
+
+function valorCriado(c: ChamadoLinha): number {
+  return new Date(c.criado_em).getTime();
+}
+
+type Ordenacao = "padrao" | "prazo" | "urgencia" | "status" | "recentes" | "antigos";
+
+const OPCOES_ORDENACAO: { valor: Ordenacao; rotulo: string }[] = [
+  { valor: "padrao", rotulo: "Padrão (urgência, prazo e status)" },
+  { valor: "prazo", rotulo: "Prazo SLA — mais próximo primeiro" },
+  { valor: "urgencia", rotulo: "Urgência" },
+  { valor: "status", rotulo: "Status" },
+  { valor: "recentes", rotulo: "Mais recentes primeiro" },
+  { valor: "antigos", rotulo: "Mais antigos primeiro" },
+];
+
+function compararPorCriterio(a: ChamadoLinha, b: ChamadoLinha, ordenacao: Ordenacao): number {
+  switch (ordenacao) {
+    case "prazo":
+      return valorPrazo(a) - valorPrazo(b) || valorUrgencia(a) - valorUrgencia(b);
+    case "urgencia":
+      return valorUrgencia(a) - valorUrgencia(b) || valorPrazo(a) - valorPrazo(b);
+    case "status":
+      return valorStatus(a) - valorStatus(b) || valorPrazo(a) - valorPrazo(b);
+    case "recentes":
+      return valorCriado(b) - valorCriado(a);
+    case "antigos":
+      return valorCriado(a) - valorCriado(b);
+    case "padrao":
+    default:
+      return (
+        valorUrgencia(a) - valorUrgencia(b) ||
+        valorPrazo(a) - valorPrazo(b) ||
+        valorStatus(a) - valorStatus(b)
+      );
+  }
+}
+
+function compararChamados(a: ChamadoLinha, b: ChamadoLinha, ordenacao: Ordenacao): number {
+  // Encerrados sempre vão para o fim da fila, qualquer que seja o critério escolhido.
+  const encA = encerrado(a.status) ? 1 : 0;
+  const encB = encerrado(b.status) ? 1 : 0;
+  if (encA !== encB) return encA - encB;
+
+  return compararPorCriterio(a, b, ordenacao);
+}
+
+function IconeGlobo() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18" />
+      <path d="M12 3c2.8 2.5 4.2 5.8 4.2 9s-1.4 6.5-4.2 9c-2.8-2.5-4.2-5.8-4.2-9s1.4-6.5 4.2-9z" />
+    </svg>
+  );
+}
+
 export default function Chamados() {
   const [chamados, setChamados] = useState<ChamadoLinha[]>([]);
   const [perfil, setPerfil] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
+  const [ordenacao, setOrdenacao] = useState<Ordenacao>("padrao");
 
   useEffect(() => {
     fetch("/api/chamados")
@@ -61,6 +157,11 @@ export default function Chamados() {
   }, []);
 
   const gerente = perfil === "sindico" || perfil === "conselheiro" || perfil === "conselheiro_admin";
+
+  // Encerrados sempre no fim; dentro de cada grupo, pelo critério escolhido.
+  const chamadosOrdenados = useMemo(() => {
+    return [...chamados].sort((a, b) => compararChamados(a, b, ordenacao));
+  }, [chamados, ordenacao]);
 
   return (
     <>
@@ -98,27 +199,45 @@ export default function Chamados() {
           )}
 
           {!carregando && !erro && chamados.length > 0 && (
-            <div className="dash-panel" style={{ marginTop: "2rem" }}>
-              <div className="dash-panel-header">
-                {chamados.length} chamado{chamados.length > 1 ? "s" : ""}
+            <>
+              <div className="list-toolbar">
+                <label htmlFor="ordenacao">Ordenar por</label>
+                <select
+                  id="ordenacao"
+                  value={ordenacao}
+                  onChange={(e) => setOrdenacao(e.target.value as Ordenacao)}
+                >
+                  {OPCOES_ORDENACAO.map((o) => (
+                    <option key={o.valor} value={o.valor}>
+                      {o.rotulo}
+                    </option>
+                  ))}
+                </select>
               </div>
-              <div className="dash-panel-body">
-                <div className="dash-table-scroll">
-                  <table className="dash-table">
-                    <thead>
-                      <tr>
-                        <th>ID</th>
-                        <th>Título</th>
-                        <th>Serviço</th>
-                        <th>Urgência</th>
-                        <th>Status</th>
-                        {gerente && <th>Unidade</th>}
-                        <th>Fornecedor</th>
-                        <th>Prazo SLA</th>
-                      </tr>
-                    </thead>
+              <div className="dash-panel" style={{ marginTop: "0.75rem" }}>
+                <div className="dash-panel-header">
+                  {chamados.length} chamado{chamados.length > 1 ? "s" : ""}
+                </div>
+                <div className="dash-panel-body">
+                  <div className="dash-table-scroll">
+                    <table className="dash-table">
+                      <thead>
+                        <tr>
+                          <th>ID</th>
+                          <th>Título</th>
+                          <th style={{ textAlign: "center" }} title="Visível a todos os condôminos">
+                            <IconeGlobo />
+                          </th>
+                          <th>Serviço</th>
+                          <th>Urgência</th>
+                          <th>Status</th>
+                          {gerente && <th>Unidade</th>}
+                          <th>Fornecedor</th>
+                          <th>Prazo SLA</th>
+                        </tr>
+                      </thead>
                     <tbody>
-                      {chamados.map((c) => (
+                      {chamadosOrdenados.map((c) => (
                         <tr key={c.id}>
                           <td>
                             <Link
@@ -128,9 +247,13 @@ export default function Chamados() {
                               #{c.id}
                             </Link>
                           </td>
-                          <td style={{ whiteSpace: "normal", minWidth: "14rem" }}>
-                            {c.titulo}{" "}
-                            {c.global && <span className="status-tag" style={{ marginLeft: "0.3rem" }}>Global</span>}
+                          <td style={{ whiteSpace: "normal", minWidth: "14rem" }}>{c.titulo}</td>
+                          <td style={{ textAlign: "center", color: "var(--accent)" }}>
+                            {c.global && (
+                              <span title="Visível a todos os condôminos">
+                                <IconeGlobo />
+                              </span>
+                            )}
                           </td>
                           <td>{c.servico || "—"}</td>
                           <td>
@@ -150,11 +273,12 @@ export default function Chamados() {
                           </td>
                         </tr>
                       ))}
-                    </tbody>
-                  </table>
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
-            </div>
+            </>
           )}
 
           <a

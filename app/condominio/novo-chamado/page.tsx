@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, FormEvent } from "react";
+import { useState, useEffect, useMemo, FormEvent } from "react";
 import Footer from "@/components/Footer";
 
 type Servico = {
@@ -12,10 +12,36 @@ type Servico = {
   sla_horas: number;
 };
 
-function classeUrgencia(urgencia: string): string {
-  if (urgencia === "Urgente") return "badge badge-critico";
-  if (urgencia === "Média") return "badge badge-medio";
-  return "badge badge-baixo";
+// Uma linha densa por serviço. A urgência não aparece aqui de propósito —
+// só depois que o chamado é aberto (ver Chamados / detalhe do chamado).
+function ServicoLinha({
+  servico,
+  selecionado,
+  onSelecionar,
+}: {
+  servico: Servico;
+  selecionado: boolean;
+  onSelecionar: () => void;
+}) {
+  return (
+    <label className={`servico-linha${selecionado ? " servico-linha-selecionada" : ""}`}>
+      <input
+        type="radio"
+        name="servico"
+        value={servico.id}
+        checked={selecionado}
+        onChange={onSelecionar}
+      />
+      <div className="servico-linha-info">
+        <span className="servico-linha-nome">{servico.nome}</span>
+        {servico.categoria && <span className="servico-linha-categoria">{servico.categoria}</span>}
+      </div>
+      <div className="servico-linha-meta">
+        {servico.tipo && <span className="status-tag">{servico.tipo}</span>}
+        <span className="servico-linha-sla">SLA {servico.sla_horas}h</span>
+      </div>
+    </label>
+  );
 }
 
 export default function NovoChamado() {
@@ -25,12 +51,30 @@ export default function NovoChamado() {
   const [enviado, setEnviado] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
+  // Só um grupo aberto por vez — abrir outro fecha o anterior. Começa tudo
+  // recolhido.
+  const [grupoAberto, setGrupoAberto] = useState<string | null>(null);
+
   useEffect(() => {
     fetch("/api/catalogo-servicos")
       .then((r) => r.json())
       .then((d) => setServicos(d.servicos || []))
       .catch(() => setServicos([]));
   }, []);
+
+  const servicosPorCategoria = useMemo(() => {
+    const grupos = new Map<string, Servico[]>();
+    for (const s of servicos) {
+      const chave = s.categoria || "Sem categoria";
+      if (!grupos.has(chave)) grupos.set(chave, []);
+      grupos.get(chave)!.push(s);
+    }
+    return Array.from(grupos.entries()).sort(([a], [b]) => a.localeCompare(b, "pt-BR"));
+  }, [servicos]);
+
+  function toggleGrupo(categoria: string) {
+    setGrupoAberto((atual) => (atual === categoria ? null : categoria));
+  }
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -63,6 +107,7 @@ export default function NovoChamado() {
       setEnviado(true);
       form.reset();
       setServicoId("");
+      setGrupoAberto(null);
     } catch (err) {
       setErro(err instanceof Error ? err.message : "Erro ao abrir o chamado.");
     } finally {
@@ -110,7 +155,7 @@ export default function NovoChamado() {
             <fieldset className="form-section">
               <legend>Serviço</legend>
               <p className="field-helper" style={{ marginTop: 0 }}>
-                A urgência e o prazo de atendimento (SLA) vêm do serviço escolhido.
+                Escolha a categoria e depois o serviço. O prazo de atendimento (SLA) já vem definido por ele.
               </p>
 
               {servicos.length === 0 ? (
@@ -119,32 +164,37 @@ export default function NovoChamado() {
                   cadastrar em "Catálogo de Serviços".
                 </p>
               ) : (
-                <div className="servico-list" role="radiogroup" aria-label="Selecione o serviço">
-                  {servicos.map((s) => (
-                    <label key={s.id} className="servico-item">
-                      <input
-                        type="radio"
-                        name="servico"
-                        value={s.id}
-                        checked={servicoId === String(s.id)}
-                        onChange={() => setServicoId(String(s.id))}
-                        required
-                      />
-                      <div className="servico-item-card">
-                        <div className="servico-item-card-top">
-                          <div>
-                            <div className="servico-item-nome">{s.nome}</div>
-                            {s.categoria && <div className="servico-item-categoria">{s.categoria}</div>}
+                <div role="radiogroup" aria-label="Selecione o serviço">
+                  {servicosPorCategoria.map(([categoria, itens]) => {
+                    const aberto = grupoAberto === categoria;
+                    return (
+                      <div key={categoria} className="servico-grupo">
+                        <button
+                          type="button"
+                          className="servico-grupo-header"
+                          onClick={() => toggleGrupo(categoria)}
+                          aria-expanded={aberto}
+                        >
+                          <span>{categoria}</span>
+                          <span className="text-muted" style={{ fontSize: "0.78rem", fontWeight: 400 }}>
+                            {itens.length} serviço{itens.length !== 1 ? "s" : ""} {aberto ? "▾" : "▸"}
+                          </span>
+                        </button>
+                        {aberto && (
+                          <div className="servico-lista">
+                            {itens.map((s) => (
+                              <ServicoLinha
+                                key={s.id}
+                                servico={s}
+                                selecionado={servicoId === String(s.id)}
+                                onSelecionar={() => setServicoId(String(s.id))}
+                              />
+                            ))}
                           </div>
-                          <div className="servico-item-badges">
-                            {s.urgencia && <span className={classeUrgencia(s.urgencia)}>{s.urgencia}</span>}
-                            {s.tipo && <span className="status-tag">{s.tipo}</span>}
-                          </div>
-                        </div>
-                        <div className="servico-item-sla">SLA: {s.sla_horas}h</div>
+                        )}
                       </div>
-                    </label>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </fieldset>
@@ -160,7 +210,7 @@ export default function NovoChamado() {
                 <span className="success-icon">✓</span>
                 <span className="success-text">
                   <strong>Chamado aberto com sucesso.</strong>
-                  <span>Acompanhe o status em "Chamados".</span>
+                  <span>Acompanhe o status (incluindo a urgência) em "Chamados".</span>
                 </span>
               </div>
             )}
