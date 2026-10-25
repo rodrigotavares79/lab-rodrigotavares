@@ -42,6 +42,32 @@ Quem pode logar é controlado no painel do Clerk (Users > Invite), não
 no código — cadastro público deve ficar desativado (User & Authentication
 > Restrictions > "Allow sign-ups" desligado), pra funcionar só por convite.
 
+## Gestão de Condomínio
+
+Reconstrução do app que estava sendo feito no Bubble (app "tavaresrodrigo").
+Schema em `db/migrations/0005_condominio_schema.sql` — rode no Neon antes de
+usar o módulo (`psql "$DATABASE_URL" -f db/migrations/0005_condominio_schema.sql`).
+
+Não existe uma tabela própria de usuários — papel e unidade de cada pessoa
+ficam no Clerk (Dashboard > Users > selecionar o usuário > Metadata > Public),
+como um JSON:
+
+```json
+{
+  "perfilCondominio": "sindico",
+  "unidadeCondominio": "Bloco 2, Apto 304"
+}
+```
+
+`perfilCondominio` aceita `"sindico"`, `"conselheiro"` ou `"condomino"`. Sem
+esse campo definido, o usuário é tratado como condômino (perfil menos
+privilegiado). Síndico e conselheiro veem e resolvem todos os chamados;
+condômino só vê os que abriu, mais os marcados como "visível a todos".
+
+Upload de anexo (foto/vídeo do chamado) ainda não está implementado — a
+tabela `anexos` já existe no schema, mas falta decidir e configurar onde
+os arquivos ficam armazenados (ex.: Vercel Blob) antes de ligar essa tela.
+
 ## Deploy
 
 Mesmo fluxo dos outros projetos: repositório próprio no GitHub, importado
