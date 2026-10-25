@@ -12,9 +12,11 @@ export default function Condominio() {
             <nav className="page-submenu-vertical" aria-label="Navegação de Gestão de Condomínio">
               <a href="/condominio/novo-chamado">Abrir Chamado</a>
               <a href="/condominio/chamados">Chamados</a>
-              <a href="/condominio/fornecedores">Fornecedores</a>
-              <a href="/condominio/tipos-chamado">Tipos de Chamado</a>
               <a href="/condominio/dashboard">Dashboard</a>
+              <span className="page-submenu-group-label">Administração</span>
+              <a href="/condominio/fornecedores" className="page-submenu-sub">Cadastrar Fornecedor</a>
+              <a href="/condominio/tipos-chamado" className="page-submenu-sub">Cadastrar Tipo de Serviço</a>
+              <a href="/condominio/condominos" className="page-submenu-sub">Manutenção de Condôminos</a>
             </nav>
 
             <div className="page-sidebar-content">
@@ -44,18 +46,18 @@ export default function Condominio() {
                     conselheiro), com acesso ao detalhe de cada um.
                   </li>
                   <li>
-                    <strong>Fornecedores</strong> — cadastro das empresas e
-                    contatos usados para atender os chamados.
-                  </li>
-                  <li>
-                    <strong>Tipos de Chamado</strong> — categorias
-                    configuráveis pelo síndico, cada uma com seu prazo de
-                    atendimento (SLA) em horas.
-                  </li>
-                  <li>
                     <strong>Dashboard</strong> — visão executiva do síndico:
                     chamados em aberto, prazos vencidos e distribuição por
                     status, urgência e tipo.
+                  </li>
+                  <li>
+                    <strong>Administração</strong> — área restrita a síndico
+                    e conselheiro:
+                    <ul>
+                      <li><strong>Cadastrar Fornecedor</strong> — empresas e contatos usados para atender os chamados.</li>
+                      <li><strong>Cadastrar Tipo de Serviço</strong> — categorias de chamado, cada uma com seu prazo de atendimento (SLA) em horas.</li>
+                      <li><strong>Manutenção de Condôminos</strong> — convite de novos moradores e definição do perfil (síndico, conselheiro ou condômino) e da unidade de cada um.</li>
+                    </ul>
                   </li>
                 </ul>
               </div>

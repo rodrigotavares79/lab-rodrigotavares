@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
-import { getUsuarioCondominio, podeGerirChamados } from "@/lib/condominioAuth";
+import { getUsuarioCondominio, podeVisualizarAdmin } from "@/lib/condominioAuth";
 
 export const dynamic = "force-dynamic";
 
-// Síndico/Conselheiro veem todos os chamados. Condômino vê só os que ele
-// mesmo abriu, mais os marcados como "Global (visível a todos)" — mesma
-// regra do app original no Bubble.
+// Síndico/Conselheiro/Conselheiro-Admin veem todos os chamados (os dois
+// primeiros podem resolver; o conselheiro-admin só visualiza). Condômino vê
+// só os que ele mesmo abriu, mais os marcados como "Global (visível a
+// todos)" — mesma regra do app original no Bubble.
 export async function GET() {
   try {
     const usuario = await getUsuarioCondominio();
@@ -15,7 +16,7 @@ export async function GET() {
     }
 
     const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
-    const gerente = podeGerirChamados(usuario.perfil);
+    const gerente = podeVisualizarAdmin(usuario.perfil);
 
     const rows = gerente
       ? await sql`

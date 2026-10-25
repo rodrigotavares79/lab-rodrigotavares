@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
-import { getUsuarioCondominio, podeGerirChamados } from "@/lib/condominioAuth";
+import { getUsuarioCondominio, podeVisualizarAdmin } from "@/lib/condominioAuth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
     const usuario = await getUsuarioCondominio();
-    if (!usuario || !podeGerirChamados(usuario.perfil)) {
-      return NextResponse.json({ error: "Só o síndico ou conselheiro vê o dashboard." }, { status: 403 });
+    if (!usuario || !podeVisualizarAdmin(usuario.perfil)) {
+      return NextResponse.json({ error: "Só síndico, conselheiro ou conselheiro-admin vê o dashboard." }, { status: 403 });
     }
 
     const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });

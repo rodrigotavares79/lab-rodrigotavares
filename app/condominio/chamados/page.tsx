@@ -60,7 +60,7 @@ export default function Chamados() {
       .finally(() => setCarregando(false));
   }, []);
 
-  const gerente = perfil === "sindico" || perfil === "conselheiro";
+  const gerente = perfil === "sindico" || perfil === "conselheiro" || perfil === "conselheiro_admin";
 
   return (
     <>

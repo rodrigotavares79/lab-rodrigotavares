@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
-import { getUsuarioCondominio, podeGerirChamados } from "@/lib/condominioAuth";
+import { getUsuarioCondominio, podeGerirChamados, podeVisualizarAdmin } from "@/lib/condominioAuth";
 
 export const dynamic = "force-dynamic";
 
@@ -44,8 +44,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     }
     const chamado = rows[0];
 
-    const gerente = podeGerirChamados(usuario.perfil);
-    const podeVer = gerente || chamado.global || chamado.aberto_por_email === usuario.email;
+    const podeVer = podeVisualizarAdmin(usuario.perfil) || chamado.global || chamado.aberto_por_email === usuario.email;
     if (!podeVer) {
       return NextResponse.json({ error: "Você não tem acesso a este chamado." }, { status: 403 });
     }

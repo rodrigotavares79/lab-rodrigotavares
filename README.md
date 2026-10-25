@@ -59,10 +59,45 @@ como um JSON:
 }
 ```
 
-`perfilCondominio` aceita `"sindico"`, `"conselheiro"` ou `"condomino"`. Sem
-esse campo definido, o usuário é tratado como condômino (perfil menos
-privilegiado). Síndico e conselheiro veem e resolvem todos os chamados;
-condômino só vê os que abriu, mais os marcados como "visível a todos".
+`perfilCondominio` aceita `"sindico"`, `"conselheiro"`, `"conselheiro_admin"`
+ou `"condomino"`. Sem esse campo definido, o usuário é tratado como condômino
+(perfil menos privilegiado). Síndico e conselheiro veem e resolvem todos os
+chamados, cadastram fornecedor/tipo de chamado e gerenciam condôminos;
+condômino só vê os chamados que abriu, mais os marcados como "visível a
+todos".
+
+### Sucessão de síndico (conselheiro-admin)
+
+Só pode existir **um síndico** e **um conselheiro-admin** por vez — a API
+bloqueia um segundo cadastro de qualquer um dos dois (`409`).
+
+O síndico não promove outro usuário a síndico diretamente. Pra trocar de
+síndico (fim de mandato, por exemplo), o fluxo é:
+
+1. O síndico elege um condômino como **conselheiro-admin** (editando o
+   perfil dele em Manutenção de Condôminos). Isso abre um prazo de **30 dias
+   úteis**, gravado em `conselheiroAdminPrazoAte`.
+2. Dentro do prazo, o conselheiro-admin tem as funções de condômino, mais o
+   poder exclusivo de cadastrar o novo síndico (`POST
+   /api/condominio-cadastrar-sindico`). Em tudo mais que é exclusivo de
+   síndico (dashboard, todos os chamados, lista de condôminos), ele só
+   visualiza — não edita.
+3. Ao cadastrar o novo síndico, ele escolhe o que acontece com o síndico
+   atual: rebaixar para Conselheiro, rebaixar para Condômino, ou Inativar
+   (bane o acesso via Clerk — para o caso de síndico profissional,
+   não-morador). Essa decisão não é automática, depende da assembleia.
+4. Depois disso, o novo síndico decide se mantém ou remove o conselheiro-admin
+   (edição normal de perfil).
+
+O prazo é renovável a qualquer momento, tanto pelo síndico quanto pelo
+próprio conselheiro-admin (`POST
+/api/condominio-usuarios/[id]/renovar-prazo`). Faltando 7 dias úteis pro
+vencimento, o conselheiro-admin recebe um aviso em tela (banner na página de
+Manutenção de Condôminos) e um e-mail único por ciclo (via Resend — precisa
+de `RESEND_API_KEY` configurada; sem ela, só o aviso em tela funciona). Se o
+prazo vencer sem renovação, o usuário continua marcado como conselheiro-admin
+(histórico), mas a ação de cadastrar síndico fica bloqueada até alguém
+renovar.
 
 Upload de anexo (foto/vídeo do chamado) ainda não está implementado — a
 tabela `anexos` já existe no schema, mas falta decidir e configurar onde

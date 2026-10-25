@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
-import { getUsuarioCondominio } from "@/lib/condominioAuth";
+import { getUsuarioCondominio, podeGerirChamados } from "@/lib/condominioAuth";
 
 export const dynamic = "force-dynamic";
 
@@ -21,8 +21,8 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const usuario = await getUsuarioCondominio();
-    if (!usuario) {
-      return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+    if (!usuario || !podeGerirChamados(usuario.perfil)) {
+      return NextResponse.json({ error: "Só o síndico ou conselheiro cadastra fornecedor." }, { status: 403 });
     }
 
     const { nomeFantasia, cnpj, categoriaServico, nomeContato, email, telefone } = await request.json();

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
-import { getUsuarioCondominio, podeGerirChamados } from "@/lib/condominioAuth";
+import { getUsuarioCondominio, podeGerirChamados, podeVisualizarAdmin } from "@/lib/condominioAuth";
 
 export const dynamic = "force-dynamic";
 
@@ -17,11 +17,11 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     }
 
     const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
-    const gerente = podeGerirChamados(usuario.perfil);
+    const vePrivadas = podeVisualizarAdmin(usuario.perfil);
 
     // Condômino só vê mensagens marcadas como visíveis a ele — notas
-    // internas do síndico/conselheiro ficam de fora.
-    const rows = gerente
+    // internas do síndico/conselheiro/conselheiro-admin ficam de fora.
+    const rows = vePrivadas
       ? await sql`
           SELECT id, autor_nome, texto, visivel_condomino, criado_em
           FROM mensagens WHERE chamado_id = ${id} ORDER BY criado_em ASC
