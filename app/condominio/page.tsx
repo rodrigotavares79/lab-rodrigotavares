@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Footer from "@/components/Footer";
 import { getUsuarioCondominio, podeGerirChamados } from "@/lib/condominioAuth";
 
@@ -9,8 +10,11 @@ export default async function Condominio() {
     <>
       <section className="content-block">
         <div className="container">
-          <span className="eyebrow">Projeto</span>
-          <h1>Gestão de Condomínio</h1>
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            <Image src="/condominio/logo.png" alt="Gestão de Condomínio" width={200} height={150} priority />
+          </div>
+          <span className="eyebrow" style={{ display: "block", textAlign: "center", marginTop: "1.5rem" }}>Projeto</span>
+          <h1 style={{ textAlign: "center" }}>Gestão de Condomínio</h1>
 
           <div className="page-sidebar-layout">
             <nav className="page-submenu-vertical" aria-label="Navegação de Gestão de Condomínio">

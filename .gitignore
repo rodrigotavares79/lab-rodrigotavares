@@ -32,6 +32,10 @@ yarn-error.log*
 # backups do banco (dados reais de condôminos — nunca commitar)
 /backups
 
+# imagens de origem (não tratadas) — só a versão final processada em
+# public/ é versionada
+/images
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
