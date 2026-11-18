@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { SignOutButton } from "@clerk/nextjs";
 import s from "@/app/condominio/condominio.module.css";
 import { NOME_CONDOMINIO } from "@/lib/condominioFonts";
 
@@ -80,7 +81,15 @@ export default function CondominioSidebar({ nome, unidade, gerente, chamadosAber
           {unidade && <div className={s.usuarioUnidade}>{unidade}</div>}
         </span>
       </div>
-      <a href="/condominio/privacidade" className={s.privacidade}>Política de Privacidade</a>
+      <div className={s.rodapeMenu}>
+        <a href="/condominio/privacidade" className={s.privacidade}>Política de Privacidade</a>
+        <span className={s.rodapeLinks}>
+          <a href="/" className={s.privacidade}>Lab</a>
+          <SignOutButton redirectUrl="/sign-in">
+            <button type="button" className={s.sair}>Sair</button>
+          </SignOutButton>
+        </span>
+      </div>
     </aside>
   );
 }

@@ -62,9 +62,15 @@
 .avatar { width: 36px; height: 36px; flex-shrink: 0; border-radius: 50%; background: var(--mc-azul-2); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; }
 .usuarioNome { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .usuarioUnidade { font-size: 12px; color: #AEB8D6; white-space: nowrap; }
-.privacidade { font-size: 11px; color: #7F8BB3 !important; padding: 0 6px; text-decoration: none; }
+.privacidade { font-size: 11px; color: #7F8BB3 !important; text-decoration: none; }
+.privacidade:hover { color: #fff !important; }
+.rodapeMenu { display: flex; flex-direction: column; gap: 8px; padding: 0 6px; margin-top: -16px; }
+.rodapeLinks { display: flex; gap: 14px; align-items: center; }
+.sair { background: none; border: 0; padding: 0; font: inherit; font-size: 11px; color: #7F8BB3; cursor: pointer; }
+.sair:hover { color: #fff; }
 
 /* ---------- Conteúdo ---------- */
+.conteudo { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .main { flex: 1; min-width: 0; padding: 40px clamp(20px, 4vw, 56px); display: flex; flex-direction: column; gap: 32px; }
 .cabecalho { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 20px; }
 .data { font-family: var(--mc-mono), monospace; font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--mc-suave); }
@@ -118,6 +124,55 @@
 .status { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; }
 .statusPonto { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
 .chamadoTitulo { font-size: 14px; font-weight: 500; }
+
+/* ---------- Tema aplicado às telas internas ----------
+   As telas do módulo usam as classes globais do lab (content-block,
+   dash-panel, kpi-card, form-field, btn-primary...). Aqui elas recebem
+   as cores, fontes e cantos do design do condomínio sem precisar
+   reescrever cada página. */
+.shell {
+  --bg: var(--mc-fundo);
+  --surface: #fff;
+  --text: var(--mc-tinta);
+  --text-muted: var(--mc-suave);
+  --accent: var(--mc-azul);
+  --border: var(--mc-borda);
+  --font-body: var(--mc-sans), Helvetica, sans-serif;
+  --max-width: none;
+}
+.conteudo :global(.content-block) { padding: 40px 0 56px; }
+.conteudo :global(.container) { padding: 0 clamp(20px, 4vw, 56px); }
+.conteudo :global(.eyebrow) {
+  font-family: var(--mc-mono), monospace; font-size: 11px; letter-spacing: .2em; color: var(--mc-suave);
+}
+.conteudo :global(.content-block h1) {
+  font-family: var(--mc-serif), serif; font-weight: 400; font-size: 38px; line-height: 1.1;
+  color: var(--mc-azul); letter-spacing: 0; max-width: none; margin-top: 6px;
+}
+.conteudo :global(.content-block h2),
+.conteudo :global(.content-block h3) { color: var(--mc-azul); }
+.conteudo :global(.content-block .body h2) { font-family: var(--mc-serif), serif; font-weight: 400; }
+.conteudo :global(.dash-panel),
+.conteudo :global(.dash-group-panel),
+.conteudo :global(.kpi-card),
+.conteudo :global(.form-section) { border-radius: 12px; border-color: var(--mc-borda); }
+.conteudo :global(.dash-panel-header),
+.conteudo :global(.kpi-card-header) {
+  font-family: var(--mc-mono), monospace; font-weight: 500; letter-spacing: .08em; text-transform: uppercase;
+}
+.conteudo :global(.btn-primary) {
+  background: var(--mc-vermelho); border-radius: 8px; font-weight: 600; min-height: 44px;
+}
+.conteudo :global(.btn-primary:hover) { background: var(--mc-vermelho-hover); opacity: 1; }
+.conteudo :global(.btn-secondary) { border-radius: 8px; }
+.conteudo :global(.form-field input),
+.conteudo :global(.form-field select),
+.conteudo :global(.form-field textarea) { border-radius: 8px; border-color: #DCD9D2; background: #fff; }
+.conteudo :global(.form-field input:focus),
+.conteudo :global(.form-field select:focus),
+.conteudo :global(.form-field textarea:focus) { border-color: var(--mc-azul); outline: none; box-shadow: 0 0 0 3px rgba(27,47,107,.12); }
+.conteudo :global(.status-tag) { border-radius: 10px; }
+.conteudo :global(.dash-table th) { font-family: var(--mc-mono), monospace; font-weight: 500; letter-spacing: .1em; }
 
 @media (max-width: 860px) {
   .shell { flex-direction: column; }

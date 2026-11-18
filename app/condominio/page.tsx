@@ -1,9 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { neon } from "@neondatabase/serverless";
-import { getUsuarioCondominio, podeGerirChamados } from "@/lib/condominioAuth";
-import { fonteMono, fonteSans, fonteSerif } from "@/lib/condominioFonts";
-import CondominioSidebar from "@/components/condominio/CondominioSidebar";
+import { getUsuarioCondominio } from "@/lib/condominioAuth";
 import QuadroMensagens, { type Comunicado } from "@/components/condominio/QuadroMensagens";
 import s from "./condominio.module.css";
 
@@ -23,7 +21,6 @@ export default async function Condominio() {
   const usuario = await getUsuarioCondominio();
   if (!usuario) redirect("/sign-in");
 
-  const gerente = podeGerirChamados(usuario.perfil);
   const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
 
   const [comunicados, chamados] = await Promise.all([
@@ -49,17 +46,11 @@ export default async function Condominio() {
     ` as unknown as Promise<ChamadoResumo[]>,
   ]);
 
-  const abertos = chamados.filter((c) => !ENCERRADOS.includes(c.status)).length;
-  const naoLidas = comunicados.filter((c) => !c.lido).length;
   const primeiroNome = usuario.nome.split(" ")[0];
   const hoje = new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long", timeZone: "America/Sao_Paulo" });
 
   return (
-    <div className={`${s.shell} ${fonteSerif.variable} ${fonteMono.variable} ${fonteSans.variable}`}>
-      <CondominioSidebar nome={usuario.nome} unidade={usuario.unidade} gerente={gerente}
-        chamadosAbertos={abertos} naoLidas={naoLidas} />
-
-      <main className={s.main}>
+    <main className={s.main}>
         <header className={s.cabecalho}>
           <div>
             <div className={s.data}>{hoje}</div>
@@ -100,6 +91,5 @@ export default async function Condominio() {
           </section>
         </div>
       </main>
-    </div>
   );
 }

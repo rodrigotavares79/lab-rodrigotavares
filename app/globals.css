@@ -1812,3 +1812,10 @@ table.report-table th {
   visibility: visible;
   opacity: 1;
 }
+
+/* Gestão de Condomínio tem moldura própria (menu lateral em
+   app/condominio/layout.tsx): esconde o cabeçalho e o rodapé do lab. */
+body:has(.condominio-shell) .site-header,
+body:has(.condominio-shell) .site-footer {
+  display: none;
+}
