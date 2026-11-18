@@ -1,0 +1,25 @@
+# Verificação de prazos vencidos (alerta de SLA do módulo de Condomínio).
+# A Vercel no plano Hobby só agenda tarefas uma vez por dia; este
+# agendamento do GitHub roda a cada 15 minutos e chama a mesma rota, que é
+# idempotente (cada estouro de prazo gera um único alerta).
+# Se a variável CRON_SECRET for criada na Vercel, crie também o secret
+# CRON_SECRET aqui no GitHub (Settings > Secrets and variables > Actions).
+name: Alerta de SLA do condomínio
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Disparar verificação
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          curl -fsS -X POST \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            https://lab.rodrigotavares.com.br/api/condominio-sla/verificar

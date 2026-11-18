@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/condominio-sla/verificar",
+      "schedule": "0 11 * * *"
+    }
+  ]
+}

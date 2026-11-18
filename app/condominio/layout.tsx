@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { verificarAlertasSla } from "@/lib/condominioAlertaSla";
 import { neon } from "@neondatabase/serverless";
 import { getUsuarioCondominio, podeGerirChamados } from "@/lib/condominioAuth";
 import { fonteMono, fonteSans, fonteSerif } from "@/lib/condominioFonts";
@@ -15,6 +16,15 @@ export default async function CondominioLayout({ children }: { children: React.R
   if (!usuario) redirect("/sign-in");
 
   const gerente = podeGerirChamados(usuario.perfil);
+
+  // Verificação de prazos vencidos "pegando carona" no uso do sistema: no
+  // máximo uma a cada 10 minutos (a reserva no banco descarta as demais
+  // na hora). Falha aqui nunca impede a página de abrir.
+  try {
+    await verificarAlertasSla({ intervaloMinimoMinutos: 10 });
+  } catch (err) {
+    console.error("Verificação de alertas de SLA falhou:", err);
+  }
 
   let chamadosAbertos = 0;
   let naoLidas = 0;

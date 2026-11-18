@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { getUsuarioCondominio, podeGerirChamados, podeVisualizarAdmin } from "@/lib/condominioAuth";
 import { emVisaoRestrita, emailsDaAdministracao, nomeVisivel } from "@/lib/condominioPrivacidade";
+import { avisarSindicoSobreNotaDoConselho } from "@/lib/condominioAlertaSla";
 
 export const dynamic = "force-dynamic";
 
@@ -92,7 +93,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
     // Só quem pode ver o chamado lê ou escreve mensagens nele — mesma regra
     // da tela do chamado, do histórico e dos anexos.
-    const chamadoRows = await sql`SELECT aberto_por_email, global FROM chamados WHERE id = ${id}`;
+    const chamadoRows = await sql`SELECT aberto_por_email, global, titulo FROM chamados WHERE id = ${id}`;
     if (chamadoRows.length === 0) {
       return NextResponse.json({ error: "Chamado não encontrado." }, { status: 404 });
     }
@@ -107,6 +108,16 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       VALUES (${id}, ${usuario.email}, ${usuario.nome}, ${texto}, ${visivel})
       RETURNING id, autor_nome, texto, visivel_condomino, criado_em
     `;
+
+    // Nota interna de conselheiro = mensagem para o síndico: avisa por
+    // e-mail. Falha no e-mail não impede a mensagem de ser gravada.
+    if (usuario.perfil === "conselheiro" && !visivel) {
+      try {
+        await avisarSindicoSobreNotaDoConselho({ id, titulo: chamado.titulo }, { nome: usuario.nome }, String(texto));
+      } catch (err) {
+        console.error("Falha ao avisar o síndico sobre nota do conselho:", err);
+      }
+    }
 
     return NextResponse.json({ mensagem: rows[0] });
   } catch (err) {
