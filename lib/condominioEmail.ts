@@ -31,11 +31,22 @@ export function layoutEmail(titulo: string, corpoHtml: string): string {
   `;
 }
 
+function ehEnderecoDeTeste(email: string): boolean {
+  const dominio = email.split("@")[1]?.toLowerCase() ?? "";
+  return (
+    /(^|\.)example\.(com|org|net)$/.test(dominio) ||
+    /\.(test|invalid|example|localhost)$/.test(dominio)
+  );
+}
+
 // Envia pelo Resend. Sem RESEND_API_KEY, não envia (o sistema segue
 // funcionando sem e-mail). Devolve true se o Resend aceitou o envio.
 export async function enviarEmail(para: string[], assunto: string, html: string): Promise<boolean> {
   const apiKey = process.env.RESEND_API_KEY;
-  const destinatarios = para.filter(Boolean);
+  // Domínios reservados para teste (example.com, .test, .invalid...) não
+  // recebem e-mail de verdade: enviar para eles só gera devolução e
+  // prejudica a reputação do remetente no Resend.
+  const destinatarios = para.filter((e) => !!e && !ehEnderecoDeTeste(e));
   if (!apiKey || destinatarios.length === 0) return false;
   const resp = await fetch("https://api.resend.com/emails", {
     method: "POST",
