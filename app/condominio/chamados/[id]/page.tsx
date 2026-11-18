@@ -276,9 +276,9 @@ export default function DetalheDoChamado() {
           {!carregando && !erro && chamado && (
             <div className="dashboard" style={{ marginTop: "1.5rem" }}>
               <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap" }}>
-                {chamado.urgencia && <span className={classeUrgencia(chamado.urgencia)}>{chamado.urgencia}</span>}
-                <span className="status-tag" style={{ fontSize: "0.85rem" }}>Status: {chamado.status}</span>
-                {chamado.global && <span className="status-tag">Visível a todos</span>}
+                {chamado.urgencia && <span className={classeUrgencia(chamado.urgencia)} style={{ alignSelf: "center", padding: "0.3rem 0.75rem" }}>{chamado.urgencia}</span>}
+                <span className="status-tag" style={{ fontSize: "0.8rem", marginTop: 0, padding: "0.3rem 0.75rem" }}>Status: {chamado.status}</span>
+                {chamado.global && <span className="status-tag" style={{ fontSize: "0.8rem", marginTop: 0, padding: "0.3rem 0.75rem" }}>Visível a todos</span>}
                 {slaVencido(chamado.prazo_sla, chamado.status) && (
                   <span className="report-vencida" style={{ fontSize: "0.85rem" }}>
                     <span className="legend-dot" style={{ background: "var(--danger)" }} />
