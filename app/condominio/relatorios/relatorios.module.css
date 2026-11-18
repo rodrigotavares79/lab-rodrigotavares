@@ -190,3 +190,50 @@
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
+
+/* --- Barra de período e exportação --- */
+.barraPeriodo {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+  margin-top: 1.5rem;
+  padding: 0.85rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.barraPeriodoFiltro,
+.barraPeriodoAcoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.barraPeriodoFiltro label {
+  font-weight: 600;
+}
+
+.barraPeriodoFiltro select,
+.barraPeriodoFiltro input {
+  font-family: inherit;
+  font-size: 0.85rem;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.4rem 0.55rem;
+}
+
+.barraPeriodo :global(.btn-secondary) {
+  padding: 0.45rem 0.9rem;
+}
+
+.periodoAtual {
+  margin: 1rem 0 0;
+  font-size: 0.85rem;
+}

@@ -14,7 +14,11 @@ type Props = {
   naoLidas: number;
 };
 
-type Item = { rotulo: string; href: string; badge?: number };
+type Item = { rotulo: string; href: string; badge?: number; dica?: string; destaque?: boolean };
+
+function plural(n: number, um: string, varios: string) {
+  return `${n} ${n === 1 ? um : varios}`;
+}
 
 function iniciais(nome: string) {
   return nome.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase()).join("");
@@ -24,9 +28,21 @@ export default function CondominioSidebar({ nome, unidade, gerente, chamadosAber
   const pathname = usePathname();
 
   const principais: Item[] = [
-    { rotulo: "Início", href: "/condominio", badge: naoLidas },
+    {
+      rotulo: "Início", href: "/condominio", badge: naoLidas,
+      dica: plural(naoLidas, "comunicado não lido", "comunicados não lidos"),
+      destaque: true,
+    },
     { rotulo: "Abrir chamado", href: "/condominio/novo-chamado" },
-    { rotulo: "Lista de chamados", href: "/condominio/chamados", badge: chamadosAbertos },
+    {
+      rotulo: "Lista de chamados", href: "/condominio/chamados", badge: chamadosAbertos,
+      // Para a administração o número é de chamados com prazo vencido (em
+      // vermelho); para o condômino, os chamados dele ainda em aberto.
+      dica: gerente
+        ? plural(chamadosAbertos, "chamado com prazo vencido", "chamados com prazo vencido")
+        : plural(chamadosAbertos, "chamado seu em aberto", "chamados seus em aberto"),
+      destaque: gerente,
+    },
     { rotulo: "Relatórios", href: "/condominio/relatorios" },
   ];
   const admin: Item[] = [
@@ -42,11 +58,19 @@ export default function CondominioSidebar({ nome, unidade, gerente, chamadosAber
   const render = (it: Item) => {
     n += 1;
     return (
-      <Link key={it.href} href={it.href} className={`${s.menuItem} ${ativo(it.href) ? s.menuItemAtivo : ""}`}
+      <Link key={it.href} href={it.href} title={it.badge ? it.dica : undefined} className={`${s.menuItem} ${ativo(it.href) ? s.menuItemAtivo : ""}`}
         aria-current={ativo(it.href) ? "page" : undefined}>
         <span className={s.menuNum}>{String(n).padStart(2, "0")}</span>
         <span className={s.menuRotulo}>{it.rotulo}</span>
-        {!!it.badge && <span className={s.menuBadge}>{it.badge}</span>}
+        {!!it.badge && (
+          <span
+            className={`${s.menuBadge} ${it.destaque ? "" : s.menuBadgeNeutro}`}
+            title={it.dica}
+            aria-label={it.dica}
+          >
+            {it.badge}
+          </span>
+        )}
       </Link>
     );
   };

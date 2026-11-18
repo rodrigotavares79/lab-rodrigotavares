@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import Footer from "@/components/Footer";
+import cs from "../condominio.module.css";
 
 type ChamadoLinha = {
   id: number;
@@ -98,6 +99,24 @@ function valorCriado(c: ChamadoLinha): number {
   return new Date(c.criado_em).getTime();
 }
 
+// Filtros rápidos por situação do chamado.
+type Situacao = "todos" | "abertos" | "vencidos" | "encerrados";
+const OPCOES_SITUACAO: { valor: Situacao; rotulo: string }[] = [
+  { valor: "todos", rotulo: "Todos" },
+  { valor: "abertos", rotulo: "Em aberto" },
+  { valor: "vencidos", rotulo: "Prazo vencido" },
+  { valor: "encerrados", rotulo: "Encerrados" },
+];
+
+function correspondeSituacao(c: ChamadoLinha, situacao: Situacao): boolean {
+  if (situacao === "abertos") return !encerrado(c.status);
+  if (situacao === "vencidos") return slaVencido(c.prazo_sla, c.status);
+  if (situacao === "encerrados") return encerrado(c.status);
+  return true;
+}
+
+const POR_PAGINA = 25;
+
 type Ordenacao = "padrao" | "prazo" | "urgencia" | "status" | "recentes" | "antigos";
 
 const OPCOES_ORDENACAO: { valor: Ordenacao; rotulo: string }[] = [
@@ -167,6 +186,10 @@ export default function Chamados() {
   const [erro, setErro] = useState<string | null>(null);
   const [ordenacao, setOrdenacao] = useState<Ordenacao>("padrao");
   const [busca, setBusca] = useState("");
+  const [situacao, setSituacao] = useState<Situacao>("abertos");
+  const [urgenciaFiltro, setUrgenciaFiltro] = useState("");
+  const [statusFiltro, setStatusFiltro] = useState("");
+  const [pagina, setPagina] = useState(1);
 
   useEffect(() => {
     fetch("/api/chamados")
@@ -187,9 +210,42 @@ export default function Chamados() {
     const termos = normalizar(busca).split(/\s+/).filter(Boolean);
     return chamados
       .filter((c) => correspondeBusca(c, termos))
+      .filter((c) => correspondeSituacao(c, situacao))
+      .filter((c) => !urgenciaFiltro || c.urgencia === urgenciaFiltro)
+      .filter((c) => !statusFiltro || c.status === statusFiltro)
       .sort((a, b) => compararChamados(a, b, ordenacao));
-  }, [chamados, ordenacao, busca]);
-  const filtrando = busca.trim().length > 0;
+  }, [chamados, ordenacao, busca, situacao, urgenciaFiltro, statusFiltro]);
+  const filtrando = busca.trim().length > 0 || situacao !== "todos" || !!urgenciaFiltro || !!statusFiltro;
+
+  // Contagem de cada filtro rápido (considerando só a busca por texto).
+  const contagemSituacao = useMemo(() => {
+    const termos = normalizar(busca).split(/\s+/).filter(Boolean);
+    const base = chamados.filter((c) => correspondeBusca(c, termos));
+    return Object.fromEntries(
+      OPCOES_SITUACAO.map((o) => [o.valor, base.filter((c) => correspondeSituacao(c, o.valor)).length])
+    ) as Record<Situacao, number>;
+  }, [chamados, busca]);
+
+  const statusDisponiveis = useMemo(
+    () => Object.keys(ORDEM_STATUS).filter((st) => chamados.some((c) => c.status === st)),
+    [chamados]
+  );
+
+  // Qualquer mudança de filtro, busca ou ordenação volta para a página 1.
+  useEffect(() => {
+    setPagina(1);
+  }, [busca, situacao, urgenciaFiltro, statusFiltro, ordenacao]);
+
+  const totalPaginas = Math.max(1, Math.ceil(chamadosOrdenados.length / POR_PAGINA));
+  const paginaAtual = Math.min(pagina, totalPaginas);
+  const chamadosDaPagina = chamadosOrdenados.slice((paginaAtual - 1) * POR_PAGINA, paginaAtual * POR_PAGINA);
+
+  function limparFiltros() {
+    setBusca("");
+    setSituacao("todos");
+    setUrgenciaFiltro("");
+    setStatusFiltro("");
+  }
 
   return (
     <>
@@ -252,6 +308,49 @@ export default function Chamados() {
                 </select>
                 </span>
               </div>
+              <div className={cs.filtrosRapidos}>
+                <div className={cs.chips} role="group" aria-label="Filtrar por situação">
+                  {OPCOES_SITUACAO.map((o) => (
+                    <button
+                      key={o.valor}
+                      type="button"
+                      className={`${cs.chip} ${situacao === o.valor ? cs.chipAtivo : ""}`}
+                      aria-pressed={situacao === o.valor}
+                      onClick={() => setSituacao(o.valor)}
+                    >
+                      {o.rotulo}
+                      <span className={cs.chipContagem}>{contagemSituacao[o.valor]}</span>
+                    </button>
+                  ))}
+                </div>
+                <select
+                  className={cs.filtroSelect}
+                  aria-label="Filtrar por urgência"
+                  value={urgenciaFiltro}
+                  onChange={(e) => setUrgenciaFiltro(e.target.value)}
+                >
+                  <option value="">Todas as urgências</option>
+                  <option value="Urgente">Urgente</option>
+                  <option value="Média">Média</option>
+                  <option value="Baixa">Baixa</option>
+                </select>
+                <select
+                  className={cs.filtroSelect}
+                  aria-label="Filtrar por status"
+                  value={statusFiltro}
+                  onChange={(e) => setStatusFiltro(e.target.value)}
+                >
+                  <option value="">Todos os status</option>
+                  {statusDisponiveis.map((st) => (
+                    <option key={st} value={st}>{st}</option>
+                  ))}
+                </select>
+                {filtrando && (
+                  <button type="button" className={cs.limparFiltros} onClick={limparFiltros}>
+                    Limpar filtros
+                  </button>
+                )}
+              </div>
               <div className="dash-panel" style={{ marginTop: "0.75rem" }}>
                 <div className="dash-panel-header">
                   {filtrando
@@ -259,7 +358,7 @@ export default function Chamados() {
                     : `${chamados.length} chamado${chamados.length > 1 ? "s" : ""}`}
                 </div>
                 <div className="dash-panel-body">
-                  <div className="dash-table-scroll">
+                  <div className={cs.tabelaRolagemHorizontal}>
                     <table className="dash-table">
                       <thead>
                         <tr>
@@ -277,7 +376,7 @@ export default function Chamados() {
                         </tr>
                       </thead>
                     <tbody>
-                      {chamadosOrdenados.map((c) => (
+                      {chamadosDaPagina.map((c) => (
                         <tr key={c.id}>
                           <td>
                             <Link
@@ -316,25 +415,33 @@ export default function Chamados() {
                       {chamadosOrdenados.length === 0 && (
                         <tr>
                           <td colSpan={gerente ? 9 : 8} className="text-muted" style={{ whiteSpace: "normal", padding: "1.5rem 0.65rem" }}>
-                            Nenhum chamado encontrado para &ldquo;{busca.trim()}&rdquo;.
+                            Nenhum chamado encontrado com os filtros escolhidos.
                           </td>
                         </tr>
                       )}
                       </tbody>
                     </table>
                   </div>
+                  {chamadosOrdenados.length > POR_PAGINA && (
+                    <div className={cs.paginacao}>
+                      <span>
+                        Mostrando {(paginaAtual - 1) * POR_PAGINA + 1}–{Math.min(paginaAtual * POR_PAGINA, chamadosOrdenados.length)} de {chamadosOrdenados.length} · página {paginaAtual} de {totalPaginas}
+                      </span>
+                      <span className={cs.paginacaoBotoes}>
+                        <button type="button" className={cs.acaoTabela} disabled={paginaAtual <= 1} onClick={() => setPagina(paginaAtual - 1)}>
+                          ← Anterior
+                        </button>
+                        <button type="button" className={cs.acaoTabela} disabled={paginaAtual >= totalPaginas} onClick={() => setPagina(paginaAtual + 1)}>
+                          Próxima →
+                        </button>
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             </>
           )}
 
-          <a
-            href="/condominio"
-            className="status-tag"
-            style={{ marginTop: "2.5rem", display: "inline-block" }}
-          >
-            ← Voltar para Gestão de Condomínio
-          </a>
         </div>
       </section>
       <Footer />

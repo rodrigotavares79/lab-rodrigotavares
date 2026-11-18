@@ -266,13 +266,6 @@ export default function NovoChamado() {
             )}
           </form>
 
-          <a
-            href="/condominio"
-            className="status-tag"
-            style={{ marginTop: "2.5rem", display: "inline-block" }}
-          >
-            ← Voltar para Gestão de Condomínio
-          </a>
         </div>
       </section>
       <Footer />

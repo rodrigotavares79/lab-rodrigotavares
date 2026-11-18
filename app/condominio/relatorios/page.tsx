@@ -5,6 +5,7 @@ import Link from "next/link";
 import Footer from "@/components/Footer";
 import { pieSlices, linePath, areaPath } from "@/lib/chartHelpers";
 import r from "./relatorios.module.css";
+import { exportarRelatorioExcel } from "./exportarExcel";
 
 type Kpis = {
   total: number;
@@ -52,7 +53,49 @@ type RelatoriosData = {
   porTipoMensal: TotalPorTipo[];
   recentes: Recente[];
   apenasMeusChamados?: boolean;
+  periodo?: { de: string | null; ate: string | null; rotulo: string; rotuloGrafico: string; filtrado: boolean };
 };
+
+// --- Período do relatório ---
+type OpcaoPeriodo = "todo" | "mes" | "30" | "90" | "ano" | "personalizado";
+const OPCOES_PERIODO: { valor: OpcaoPeriodo; rotulo: string }[] = [
+  { valor: "todo", rotulo: "Todo o período" },
+  { valor: "mes", rotulo: "Este mês" },
+  { valor: "30", rotulo: "Últimos 30 dias" },
+  { valor: "90", rotulo: "Últimos 90 dias" },
+  { valor: "ano", rotulo: "Este ano" },
+  { valor: "personalizado", rotulo: "Personalizado…" },
+];
+
+// Data de hoje (AAAA-MM-DD) no horário de Brasília, com deslocamento em dias.
+function diaBrasilia(deslocamentoDias = 0): string {
+  const d = new Date(Date.now() + deslocamentoDias * 24 * 60 * 60 * 1000);
+  return d.toLocaleDateString("sv-SE", { timeZone: "America/Sao_Paulo" });
+}
+
+function intervaloDaOpcao(opcao: OpcaoPeriodo): { de: string; ate: string } | null {
+  const hoje = diaBrasilia();
+  if (opcao === "mes") return { de: `${hoje.slice(0, 7)}-01`, ate: hoje };
+  if (opcao === "30") return { de: diaBrasilia(-29), ate: hoje };
+  if (opcao === "90") return { de: diaBrasilia(-89), ate: hoje };
+  if (opcao === "ano") return { de: `${hoje.slice(0, 4)}-01-01`, ate: hoje };
+  return null;
+}
+
+// Na impressão (Exportar PDF) some o menu lateral, o cabeçalho do lab, o
+// rodapé e os controles; as cores dos gráficos são mantidas.
+const ESTILO_IMPRESSAO = `
+@media print {
+  @page { size: A4; margin: 12mm; }
+  .site-header, .site-footer, .condominio-shell > aside, .nao-imprimir { display: none !important; }
+  .condominio-shell { display: block !important; min-height: 0 !important; background: #fff !important; }
+  .content-block { padding: 0 !important; }
+  body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .dash-panel, .dash-group-panel, .kpi-card { break-inside: avoid; }
+  .somente-impressao { display: block !important; }
+}
+.somente-impressao { display: none; }
+`;
 
 const CORES_TIPO: Record<string, string> = {
   "Problema": "var(--danger)",
@@ -177,7 +220,7 @@ function GraficoBarraHorizontal({
 
 // --- Linhas: chamados abertos (vermelho) x encerrados (verde) ao longo do
 // mês corrente, com eixo de quantidade à esquerda e dias embaixo. ---
-function GraficoAtividadeMensal({ dados }: { dados: AtividadeDia[] }) {
+function GraficoAtividadeMensal({ dados, rotulo }: { dados: AtividadeDia[]; rotulo: string }) {
   const larguraTotal = 640;
   const padLeft = 30;
   const padRight = 8;
@@ -203,7 +246,7 @@ function GraficoAtividadeMensal({ dados }: { dados: AtividadeDia[] }) {
 
   return (
     <div className="dash-panel">
-      <div className="dash-panel-header">Atividade do Mês — Abertos x Encerrados</div>
+      <div className="dash-panel-header">Atividade — Abertos x Encerrados · {rotulo}</div>
       <div className="dash-panel-body">
         {dados.length === 0 ? (
           <SemDados />
@@ -259,14 +302,14 @@ function GraficoAtividadeMensal({ dados }: { dados: AtividadeDia[] }) {
 
 // --- Problemas x Demandas no mês: dois números grandes e uma barra de
 // proporção, mais fácil de ler que bolhas com só duas categorias. ---
-function GraficoBolhas({ dados }: { dados: TotalPorTipo[] }) {
+function GraficoBolhas({ dados, rotulo }: { dados: TotalPorTipo[]; rotulo: string }) {
   const totalProblema = dados.find((d) => d.tipo === "Problema")?.total ?? 0;
   const totalDemanda = dados.find((d) => d.tipo === "Demanda")?.total ?? 0;
   const soma = totalProblema + totalDemanda;
 
   return (
     <div className="dash-panel">
-      <div className="dash-panel-header">Problemas x Demandas — {mesAtualRotulo()}</div>
+      <div className="dash-panel-header">Problemas x Demandas — {rotulo}</div>
       <div className="dash-panel-body">
         {soma === 0 ? (
           <SemDados />
@@ -286,7 +329,7 @@ function GraficoBolhas({ dados }: { dados: TotalPorTipo[] }) {
               <div style={{ width: `${(totalProblema / soma) * 100}%`, background: CORES_TIPO["Problema"] }} />
               <div style={{ width: `${(totalDemanda / soma) * 100}%`, background: CORES_TIPO["Demanda"] }} />
             </div>
-            <p className={r.comparativoNota}>{soma} chamados abertos no mês</p>
+            <p className={r.comparativoNota}>{soma} chamados abertos no período</p>
           </>
         )}
       </div>
@@ -338,17 +381,98 @@ export default function CondominioRelatorios() {
   const [data, setData] = useState<RelatoriosData | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
+  const [atualizando, setAtualizando] = useState(false);
+  const [erroPeriodo, setErroPeriodo] = useState<string | null>(null);
+  const [opcaoPeriodo, setOpcaoPeriodo] = useState<OpcaoPeriodo>("todo");
+  const [deCustom, setDeCustom] = useState(diaBrasilia(-29));
+  const [ateCustom, setAteCustom] = useState(diaBrasilia());
 
-  useEffect(() => {
-    fetch("/api/condominio-relatorios")
-      .then((r) => r.json())
+  function carregar(intervalo: { de: string; ate: string } | null) {
+    const qs = intervalo ? `?de=${intervalo.de}&ate=${intervalo.ate}` : "";
+    setAtualizando(true);
+    setErroPeriodo(null);
+    fetch(`/api/condominio-relatorios${qs}`)
+      .then((resp) => resp.json())
       .then((d) => {
         if (d.error) throw new Error(d.error);
         setData(d);
+        setErro(null);
       })
-      .catch((e) => setErro(e.message || "Erro ao carregar os relatórios."))
-      .finally(() => setCarregando(false));
+      .catch((e) => {
+        // Na primeira carga o erro ocupa a tela; depois, só avisa no filtro.
+        if (data) setErroPeriodo(e.message || "Não foi possível aplicar o período.");
+        else setErro(e.message || "Erro ao carregar os relatórios.");
+      })
+      .finally(() => {
+        setCarregando(false);
+        setAtualizando(false);
+      });
+  }
+
+  useEffect(() => {
+    carregar(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  function escolherPeriodo(opcao: OpcaoPeriodo) {
+    setOpcaoPeriodo(opcao);
+    if (opcao === "personalizado") return; // espera o "Aplicar"
+    carregar(intervaloDaOpcao(opcao));
+  }
+
+  function aplicarPersonalizado() {
+    if (!deCustom || !ateCustom) {
+      setErroPeriodo("Informe as duas datas.");
+      return;
+    }
+    if (deCustom > ateCustom) {
+      setErroPeriodo("A data inicial precisa ser anterior ou igual à final.");
+      return;
+    }
+    carregar({ de: deCustom, ate: ateCustom });
+  }
+
+  function exportarExcel() {
+    if (!data) return;
+    const painel = (p: Painel, slaLabels: { ok: string; nok: string }) => ({
+      porStatus: p.porStatus,
+      porServico: p.porServico,
+      porFornecedor: p.porFornecedor,
+      sla: [
+        { rotulo: slaLabels.ok, total: p.sla.dentro_prazo ?? 0 },
+        { rotulo: slaLabels.nok, total: p.sla.fora_prazo ?? p.sla.vencido ?? 0 },
+      ],
+    });
+    const k = data.kpis;
+    const sufixoArquivo = data.periodo?.filtrado && data.periodo.de && data.periodo.ate
+      ? `${data.periodo.de}_a_${data.periodo.ate}`
+      : `ate_${diaBrasilia()}`;
+    exportarRelatorioExcel(
+      {
+        periodo: data.periodo?.rotulo ?? "Todo o período",
+        geradoEm: new Date().toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" }),
+        kpis: [
+          { indicador: "Chamados cadastrados", valor: k.total },
+          { indicador: "Chamados urgentes cadastrados", valor: k.urgentes_total },
+          { indicador: "Chamados urgentes finalizados", valor: k.urgentes_finalizados },
+          { indicador: "Demandas em aberto", valor: k.demandas_em_aberto },
+          { indicador: "Demandas atendidas", valor: k.demandas_atendidas },
+          { indicador: "Em aberto", valor: k.em_aberto },
+          { indicador: "SLA vencido", valor: k.sla_vencido },
+          { indicador: "Resolvidos", valor: k.resolvidos },
+          { indicador: "Serviço mais solicitado", valor: data.servicoMaisSolicitado ? `${data.servicoMaisSolicitado.servico} (${data.servicoMaisSolicitado.total})` : "—" },
+        ],
+        finalizados: painel(data.finalizados, { ok: "Dentro do prazo", nok: "Fora do prazo" }),
+        andamento: painel(data.andamento, { ok: "Dentro do prazo", nok: "Vencido" }),
+        rotuloAtividade: data.periodo?.rotuloGrafico ?? mesAtualRotulo(),
+        atividade: data.atividadeMensal,
+        porTipo: data.porTipoMensal,
+        rotuloRecentes: data.apenasMeusChamados ? "Meus chamados recentes" : "Chamados recentes",
+        recentes: data.recentes,
+      },
+      `relatorio-chamados_${sufixoArquivo}.xlsx`
+    );
+  }
 
   const kpis = data?.kpis;
 
@@ -366,6 +490,50 @@ export default function CondominioRelatorios() {
           <span className="eyebrow">Gestão de Condomínio</span>
           <h1>Relatórios</h1>
           <p className="lede">Visão executiva dos chamados do condomínio.</p>
+          <style>{ESTILO_IMPRESSAO}</style>
+
+          {data && (
+            <div className={`${r.barraPeriodo} nao-imprimir`}>
+              <div className={r.barraPeriodoFiltro}>
+                <label htmlFor="periodo">Período</label>
+                <select id="periodo" value={opcaoPeriodo} onChange={(e) => escolherPeriodo(e.target.value as OpcaoPeriodo)}>
+                  {OPCOES_PERIODO.map((o) => (
+                    <option key={o.valor} value={o.valor}>{o.rotulo}</option>
+                  ))}
+                </select>
+                {opcaoPeriodo === "personalizado" && (
+                  <>
+                    <input type="date" aria-label="Data inicial" value={deCustom} max={ateCustom} onChange={(e) => setDeCustom(e.target.value)} />
+                    <span className="text-muted">a</span>
+                    <input type="date" aria-label="Data final" value={ateCustom} min={deCustom} onChange={(e) => setAteCustom(e.target.value)} />
+                    <button type="button" className="btn-secondary" onClick={aplicarPersonalizado}>Aplicar</button>
+                  </>
+                )}
+                {atualizando && <span className="text-muted">Atualizando…</span>}
+              </div>
+              <div className={r.barraPeriodoAcoes}>
+                <button type="button" className="btn-secondary" onClick={() => window.print()} disabled={atualizando}>
+                  Exportar PDF
+                </button>
+                <button type="button" className="btn-secondary" onClick={exportarExcel} disabled={atualizando}>
+                  Exportar Excel
+                </button>
+              </div>
+            </div>
+          )}
+          {erroPeriodo && (
+            <div className="error-banner nao-imprimir" style={{ marginTop: "1rem" }}>
+              <span className="success-icon error-icon">!</span>
+              <span className="success-text">{erroPeriodo}</span>
+            </div>
+          )}
+          {data?.periodo && (
+            <p className={r.periodoAtual}>
+              Período: <strong>{data.periodo.rotulo}</strong>
+              {data.periodo.filtrado && <span className="text-muted"> · considera os chamados abertos nesse intervalo</span>}
+              <span className="somente-impressao"> · Gerado em {new Date().toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}</span>
+            </p>
+          )}
 
           {carregando && <p className="text-muted" style={{ marginTop: "2rem" }}>Carregando...</p>}
 
@@ -390,7 +558,7 @@ export default function CondominioRelatorios() {
                       <span className="text-muted">sem comparativo</span>
                     ) : (
                       <span className={`kpi-trend kpi-trend-${tendenciaDirecao}`}>
-                        {tendenciaDirecao === "alta" ? "▲" : tendenciaDirecao === "baixa" ? "▼" : "►"} {Math.abs(tendenciaPct)}% (30 dias)
+                        {tendenciaDirecao === "alta" ? "▲" : tendenciaDirecao === "baixa" ? "▼" : "►"} {Math.abs(tendenciaPct)}% {data.periodo?.filtrado ? "vs. período anterior" : "(30 dias)"}
                       </span>
                     )}
                   </div>
@@ -424,7 +592,7 @@ export default function CondominioRelatorios() {
                   <div className="kpi-card-value">{kpis.resolvidos}</div>
                 </div>
                 <div className="kpi-card kpi-card-square">
-                  <div className="kpi-card-header">Serviço Mais Solicitado (30 dias)</div>
+                  <div className="kpi-card-header">Serviço Mais Solicitado {data.periodo?.filtrado ? "(no período)" : "(30 dias)"}</div>
                   {servico ? (
                     <>
                       <div className="kpi-card-value kpi-card-value-texto">{servico.servico}</div>
@@ -452,8 +620,8 @@ export default function CondominioRelatorios() {
               </div>
 
               <div className={r.linhaGraficos}>
-                <GraficoAtividadeMensal dados={data.atividadeMensal} />
-                <GraficoBolhas dados={data.porTipoMensal} />
+                <GraficoAtividadeMensal dados={data.atividadeMensal} rotulo={data.periodo?.rotuloGrafico ?? mesAtualRotulo()} />
+                <GraficoBolhas dados={data.porTipoMensal} rotulo={data.periodo?.rotuloGrafico ?? mesAtualRotulo()} />
               </div>
 
               <div className="dash-panel">
@@ -496,13 +664,6 @@ export default function CondominioRelatorios() {
             </div>
           )}
 
-          <a
-            href="/condominio"
-            className="status-tag"
-            style={{ marginTop: "2.5rem", display: "inline-block" }}
-          >
-            ← Voltar para Gestão de Condomínio
-          </a>
         </div>
       </section>
       <Footer />

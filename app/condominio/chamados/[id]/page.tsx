@@ -263,11 +263,13 @@ export default function DetalheDoChamado() {
       const res = await fetch(`/api/chamados/${chamado.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
+        // Status só vai quando muda: assim trocar só o fornecedor ou a
+        // visibilidade não exige justificativa.
         body: JSON.stringify({
-          status: statusForm,
+          ...(statusForm !== chamado.status ? { status: statusForm } : {}),
           fornecedorId: fornecedorForm ? Number(fornecedorForm) : null,
           global: globalForm,
-          justificativa: justificativaForm,
+          justificativa: justificativaForm.trim() || undefined,
         }),
       });
       const body = await res.json();
@@ -359,6 +361,113 @@ export default function DetalheDoChamado() {
                 </div>
               </div>
 
+              {/* Ação principal logo após a identificação, antes de anexos e histórico. */}
+              {gerente && (
+                <div className="dash-panel">
+                  <div className="dash-panel-header">Atualizar Chamado</div>
+                  <div className="dash-panel-body">
+                    <p className="field-helper" style={{ marginTop: 0, marginBottom: "1rem" }}>
+                      Mudar o status exige justificativa; trocar só o fornecedor ou a visibilidade, não.
+                    </p>
+                    <form onSubmit={handleSalvar} className="form-grid" style={{ maxWidth: "34rem" }}>
+                      <div className="form-field">
+                        <label htmlFor="statusForm">Status</label>
+                        <select id="statusForm" value={statusForm} onChange={(e) => setStatusForm(e.target.value)}>
+                          {STATUS_OPCOES.map((s) => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                      </div>
+                      <div className="form-field">
+                        <label htmlFor="fornecedorForm">Fornecedor Responsável</label>
+                        <select id="fornecedorForm" value={fornecedorForm} onChange={(e) => setFornecedorForm(e.target.value)}>
+                          <option value="">Nenhum</option>
+                          {fornecedoresSelecionaveis.map((f) => (
+                            <option key={f.id} value={f.id}>
+                              {f.nome_fantasia}{f.ativo === false ? " (inativo)" : ""}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="form-field form-field-wide">
+                        <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontWeight: 400 }}>
+                          <input
+                            type="checkbox"
+                            checked={globalForm}
+                            onChange={(e) => setGlobalForm(e.target.checked)}
+                          />
+                          Visível a todos os condôminos (ex.: problema em área comum)
+                        </label>
+                      </div>
+                      <div className="form-field form-field-wide">
+                        <label htmlFor="justificativaForm">Justificativa da Alteração</label>
+                        <textarea
+                          id="justificativaForm"
+                          rows={3}
+                          value={justificativaForm}
+                          onChange={(e) => setJustificativaForm(e.target.value)}
+                          placeholder="Ex.: Fornecedor acionado, visita agendada para amanhã às 10h."
+                        />
+                      </div>
+                      <div className="form-field-wide form-actions">
+                        <button type="submit" className="btn-primary" disabled={salvando}>
+                          {salvando ? "Salvando..." : "Salvar"}
+                        </button>
+                        {sucessoSalvar && <span className="text-muted" style={{ fontSize: "0.85rem" }}>Salvo.</span>}
+                      </div>
+                      {erroSalvar && (
+                        <div className="error-banner form-field-wide" style={{ marginTop: 0 }}>
+                          <span className="success-icon error-icon">!</span>
+                          <span className="success-text">{erroSalvar}</span>
+                        </div>
+                      )}
+
+              {!gerente && eAutor && acoesDoAutor(chamado.status).length > 0 && (
+                <div className="dash-panel">
+                  <div className="dash-panel-header">Atualizar meu chamado</div>
+                  <div className="dash-panel-body">
+                    <form onSubmit={handleAcaoAutor} className="form-grid" style={{ maxWidth: "34rem" }}>
+                      <div className="form-field form-field-wide">
+                        <span style={{ fontSize: "0.85rem", fontWeight: 600 }}>O que você quer fazer?</span>
+                        {acoesDoAutor(chamado.status).map((a) => (
+                          <label key={a.status} style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem", fontWeight: 400, marginTop: "0.5rem" }}>
+                            <input
+                              type="radio"
+                              name="acaoAutor"
+                              value={a.status}
+                              checked={acaoAutor === a.status}
+                              onChange={() => setAcaoAutor(a.status)}
+                              style={{ marginTop: "0.2rem" }}
+                            />
+                            <span>
+                              <strong>{a.rotulo}</strong>
+                              <span className="text-muted" style={{ display: "block", fontSize: "0.8rem" }}>{a.dica}</span>
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                      <div className="form-field form-field-wide">
+                        <label htmlFor="justificativaAutor">Justificativa</label>
+                        <textarea
+                          id="justificativaAutor"
+                          rows={3}
+                          value={justificativaAutor}
+                          onChange={(e) => setJustificativaAutor(e.target.value)}
+                          placeholder="Explique o motivo (obrigatório)."
+                          required
+                        />
+                      </div>
+                      <div className="form-field-wide form-actions">
+                        <button type="submit" className="btn-primary" disabled={salvandoAutor || !acaoAutor}>
+                          {salvandoAutor ? "Salvando..." : "Confirmar"}
+                        </button>
+                        {sucessoAutor && <span className="text-muted" style={{ fontSize: "0.85rem" }}>{sucessoAutor}</span>}
+                      </div>
+                      {erroAutor && (
+                        <div className="error-banner form-field-wide" style={{ marginTop: 0 }}>
+                          <span className="success-icon error-icon">!</span>
+                          <span className="success-text">{erroAutor}</span>
+                        </div>
+                      )}
+
               <div className="dash-panel">
                 <div className="dash-panel-header">Anexos</div>
                 <div className="dash-panel-body">
@@ -446,115 +555,11 @@ export default function DetalheDoChamado() {
                 </div>
               </div>
 
-              {gerente && (
-                <div className="dash-panel">
-                  <div className="dash-panel-header">Atualizar Chamado</div>
-                  <div className="dash-panel-body">
-                    <p className="field-helper" style={{ marginTop: 0, marginBottom: "1rem" }}>
-                      Toda mudança de status exige uma justificativa.
-                    </p>
-                    <form onSubmit={handleSalvar} className="form-grid" style={{ maxWidth: "34rem" }}>
-                      <div className="form-field">
-                        <label htmlFor="statusForm">Status</label>
-                        <select id="statusForm" value={statusForm} onChange={(e) => setStatusForm(e.target.value)}>
-                          {STATUS_OPCOES.map((s) => <option key={s} value={s}>{s}</option>)}
-                        </select>
-                      </div>
-                      <div className="form-field">
-                        <label htmlFor="fornecedorForm">Fornecedor Responsável</label>
-                        <select id="fornecedorForm" value={fornecedorForm} onChange={(e) => setFornecedorForm(e.target.value)}>
-                          <option value="">Nenhum</option>
-                          {fornecedoresSelecionaveis.map((f) => (
-                            <option key={f.id} value={f.id}>
-                              {f.nome_fantasia}{f.ativo === false ? " (inativo)" : ""}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="form-field form-field-wide">
-                        <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontWeight: 400 }}>
-                          <input
-                            type="checkbox"
-                            checked={globalForm}
-                            onChange={(e) => setGlobalForm(e.target.checked)}
-                          />
-                          Visível a todos os condôminos (ex.: problema em área comum)
-                        </label>
-                      </div>
-                      <div className="form-field form-field-wide">
-                        <label htmlFor="justificativaForm">Justificativa da Alteração</label>
-                        <textarea
-                          id="justificativaForm"
-                          rows={3}
-                          value={justificativaForm}
-                          onChange={(e) => setJustificativaForm(e.target.value)}
-                          placeholder="Ex.: Fornecedor acionado, visita agendada para amanhã às 10h."
-                        />
-                      </div>
-                      <div className="form-field-wide form-actions">
-                        <button type="submit" className="btn-primary" disabled={salvando}>
-                          {salvando ? "Salvando..." : "Salvar"}
-                        </button>
-                        {sucessoSalvar && <span className="text-muted" style={{ fontSize: "0.85rem" }}>Salvo.</span>}
-                      </div>
-                      {erroSalvar && (
-                        <div className="error-banner form-field-wide" style={{ marginTop: 0 }}>
-                          <span className="success-icon error-icon">!</span>
-                          <span className="success-text">{erroSalvar}</span>
-                        </div>
-                      )}
                     </form>
                   </div>
                 </div>
               )}
 
-              {!gerente && eAutor && acoesDoAutor(chamado.status).length > 0 && (
-                <div className="dash-panel">
-                  <div className="dash-panel-header">Atualizar meu chamado</div>
-                  <div className="dash-panel-body">
-                    <form onSubmit={handleAcaoAutor} className="form-grid" style={{ maxWidth: "34rem" }}>
-                      <div className="form-field form-field-wide">
-                        <span style={{ fontSize: "0.85rem", fontWeight: 600 }}>O que você quer fazer?</span>
-                        {acoesDoAutor(chamado.status).map((a) => (
-                          <label key={a.status} style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem", fontWeight: 400, marginTop: "0.5rem" }}>
-                            <input
-                              type="radio"
-                              name="acaoAutor"
-                              value={a.status}
-                              checked={acaoAutor === a.status}
-                              onChange={() => setAcaoAutor(a.status)}
-                              style={{ marginTop: "0.2rem" }}
-                            />
-                            <span>
-                              <strong>{a.rotulo}</strong>
-                              <span className="text-muted" style={{ display: "block", fontSize: "0.8rem" }}>{a.dica}</span>
-                            </span>
-                          </label>
-                        ))}
-                      </div>
-                      <div className="form-field form-field-wide">
-                        <label htmlFor="justificativaAutor">Justificativa</label>
-                        <textarea
-                          id="justificativaAutor"
-                          rows={3}
-                          value={justificativaAutor}
-                          onChange={(e) => setJustificativaAutor(e.target.value)}
-                          placeholder="Explique o motivo (obrigatório)."
-                          required
-                        />
-                      </div>
-                      <div className="form-field-wide form-actions">
-                        <button type="submit" className="btn-primary" disabled={salvandoAutor || !acaoAutor}>
-                          {salvandoAutor ? "Salvando..." : "Confirmar"}
-                        </button>
-                        {sucessoAutor && <span className="text-muted" style={{ fontSize: "0.85rem" }}>{sucessoAutor}</span>}
-                      </div>
-                      {erroAutor && (
-                        <div className="error-banner form-field-wide" style={{ marginTop: 0 }}>
-                          <span className="success-icon error-icon">!</span>
-                          <span className="success-text">{erroAutor}</span>
-                        </div>
-                      )}
                     </form>
                   </div>
                 </div>

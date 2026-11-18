@@ -21,10 +21,17 @@ export default async function CondominioLayout({ children }: { children: React.R
   try {
     const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
     const [abertos, mensagens] = await Promise.all([
-      sql`
-        SELECT count(*)::int AS n FROM chamados
-        WHERE aberto_por_email = ${usuario.email} AND status NOT IN ('Resolvido','Cancelado')
-      `,
+      // Síndico/conselheiro: chamados de todo o condomínio com prazo vencido
+      // (o que pede ação). Demais: os próprios chamados ainda em aberto.
+      gerente
+        ? sql`
+            SELECT count(*)::int AS n FROM chamados
+            WHERE status NOT IN ('Resolvido','Cancelado') AND prazo_sla < now()
+          `
+        : sql`
+            SELECT count(*)::int AS n FROM chamados
+            WHERE aberto_por_email = ${usuario.email} AND status NOT IN ('Resolvido','Cancelado')
+          `,
       sql`
         SELECT count(*)::int AS n FROM comunicados c
         WHERE NOT EXISTS (
