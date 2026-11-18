@@ -58,17 +58,14 @@ export default function CondominioSidebar({ nome, unidade, gerente, chamadosAber
   const render = (it: Item) => {
     n += 1;
     return (
-      <Link key={it.href} href={it.href} title={it.badge ? it.dica : undefined} className={`${s.menuItem} ${ativo(it.href) ? s.menuItemAtivo : ""}`}
+      <Link key={it.href} href={it.href} className={`${s.menuItem} ${ativo(it.href) ? s.menuItemAtivo : ""}`}
         aria-current={ativo(it.href) ? "page" : undefined}>
         <span className={s.menuNum}>{String(n).padStart(2, "0")}</span>
         <span className={s.menuRotulo}>{it.rotulo}</span>
         {!!it.badge && (
-          <span
-            className={`${s.menuBadge} ${it.destaque ? "" : s.menuBadgeNeutro}`}
-            title={it.dica}
-            aria-label={it.dica}
-          >
-            {it.badge}
+          <span className={`${s.menuBadge} ${it.destaque ? "" : s.menuBadgeNeutro}`} title={it.dica}>
+            <span aria-hidden="true">{it.badge}</span>
+            <span className={s.somenteLeitor}>({it.dica})</span>
           </span>
         )}
       </Link>

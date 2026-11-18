@@ -291,7 +291,7 @@ function GraficoAtividadeMensal({ dados, rotulo }: { dados: AtividadeDia[]; rotu
             <div className={r.legendaLinha}>
               <span><span className={r.legendaCor} style={{ background: "var(--danger)" }} /> Abertos: <strong>{totalAbertos}</strong></span>
               <span><span className={r.legendaCor} style={{ background: "var(--success)" }} /> Encerrados: <strong>{totalEncerrados}</strong></span>
-              <span className="text-muted">eixo horizontal = dia do mês</span>
+              <span className="text-muted">eixo horizontal = dia</span>
             </div>
           </>
         )}
