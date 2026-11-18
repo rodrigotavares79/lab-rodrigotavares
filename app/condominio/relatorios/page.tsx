@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Footer from "@/components/Footer";
 import { pieSlices, linePath, areaPath } from "@/lib/chartHelpers";
+import r from "./relatorios.module.css";
 
 type Kpis = {
   total: number;
@@ -63,11 +64,12 @@ function mesAtualRotulo(): string {
   return texto.charAt(0).toUpperCase() + texto.slice(1);
 }
 
+// Cada status tem cor própria, para que nenhum par de fatias se confunda.
 const CORES_STATUS: Record<string, string> = {
   "Novo": "var(--accent)",
   "Em andamento": "var(--warning)",
-  "Aguardando fornecedor": "var(--warning)",
-  "Paralisado": "var(--danger)",
+  "Aguardando fornecedor": "#7a5ea8",
+  "Paralisado": "#5c6670",
   "Resolvido": "var(--success)",
   "Reaberto": "var(--danger)",
   "Cancelado": "#9db4c4",
@@ -81,8 +83,17 @@ function diaDoMes(dia: string): number {
   return Number(dia.slice(8, 10));
 }
 
-// --- Gráfico de pizza (fatias preenchidas, sem furo), com legenda ao
-// lado, rotulada. ---
+function formatPct(pct: string | number): string {
+  return Number(pct).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + "%";
+}
+
+function SemDados() {
+  return <p className="text-muted" style={{ margin: 0, fontSize: "0.85rem" }}>Sem dados suficientes.</p>;
+}
+
+// --- Rosca com o total no centro e legenda em colunas alinhadas
+// (cor · rótulo · quantidade · %). Em painel estreito, a legenda desce
+// para baixo do gráfico em vez de espremer o texto ao lado. ---
 function GraficoPizza({
   titulo,
   dados,
@@ -90,34 +101,38 @@ function GraficoPizza({
   titulo: string;
   dados: { label: string; value: number; color: string }[];
 }) {
-  const fatias = pieSlices(dados, 100, 100, 90);
+  const fatias = pieSlices(dados, 100, 100, 92);
+  const total = dados.reduce((soma, d) => soma + d.value, 0);
   return (
     <div className="dash-panel">
       <div className="dash-panel-header">{titulo}</div>
-      <div className="dash-panel-body">
+      <div className={`dash-panel-body ${r.painelCorpo}`}>
         {fatias.length === 0 ? (
-          <p className="text-muted" style={{ margin: 0, fontSize: "0.85rem" }}>Sem dados suficientes.</p>
+          <SemDados />
         ) : (
-          <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-            <svg
-              viewBox="0 0 200 200"
-              width="100%"
-              style={{ maxWidth: "110px", flex: "0 0 auto", display: "block" }}
-              role="img"
-              aria-label={titulo}
-            >
+          <div className={r.pizza}>
+            <svg viewBox="0 0 200 200" className={r.pizzaSvg} role="img" aria-label={`${titulo}: ${total} chamados`}>
               {fatias.map((d) => (
-                <path key={d.label} d={d.path} fill={d.color} stroke="var(--surface)" strokeWidth="1.5" />
+                <path key={d.label} d={d.path} fill={d.color} stroke="var(--surface)" strokeWidth="2" />
               ))}
+              <circle cx="100" cy="100" r="54" fill="var(--surface)" />
+              <text x="100" y="96" fontSize="34" fontWeight="700" fill="var(--text)" textAnchor="middle" dominantBaseline="middle">
+                {total}
+              </text>
+              <text x="100" y="124" fontSize="14" fill="var(--text-muted)" textAnchor="middle">
+                total
+              </text>
             </svg>
-            <div style={{ display: "flex", flexDirection: "column", gap: "0.3rem" }}>
+            <ul className={r.legenda}>
               {fatias.map((d) => (
-                <span key={d.label} style={{ fontSize: "0.72rem", color: "var(--text)" }}>
-                  <span className="legend-dot" style={{ background: d.color }} />
-                  {d.label} — {d.value} ({d.pct}%)
-                </span>
+                <li key={d.label} className={r.legendaItem}>
+                  <span className={r.legendaCor} style={{ background: d.color }} />
+                  <span className={r.legendaRotulo}>{d.label}</span>
+                  <span className={r.legendaValor}>{d.value}</span>
+                  <span className={r.legendaPct}>{formatPct(d.pct)}</span>
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
         )}
       </div>
@@ -125,7 +140,7 @@ function GraficoPizza({
   );
 }
 
-// --- Gráfico de barra horizontal genérico, com rótulo e valor por linha. ---
+// --- Barra horizontal: rótulo à esquerda, quantidade em destaque à direita. ---
 function GraficoBarraHorizontal({
   titulo,
   dados,
@@ -139,17 +154,17 @@ function GraficoBarraHorizontal({
       <div className="dash-panel-header">{titulo}</div>
       <div className="dash-panel-body">
         {dados.length === 0 ? (
-          <p className="text-muted" style={{ margin: 0, fontSize: "0.85rem" }}>Sem dados suficientes.</p>
+          <SemDados />
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.55rem" }}>
+          <div className={r.barras}>
             {dados.map((d) => (
               <div key={d.label}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.76rem", marginBottom: "0.2rem" }}>
-                  <span>{d.label}</span>
-                  <span className="text-muted">{d.total}</span>
+                <div className={r.barraCabecalho}>
+                  <span className={r.barraRotulo}>{d.label}</span>
+                  <span className={r.barraValor}>{d.total}</span>
                 </div>
-                <div style={{ background: "var(--border)", borderRadius: "3px", height: "8px" }}>
-                  <div style={{ width: `${(d.total / max) * 100}%`, background: "var(--accent)", height: "100%", borderRadius: "3px" }} />
+                <div className={r.barraTrilho}>
+                  <div className={r.barraPreenchimento} style={{ width: `${(d.total / max) * 100}%` }} />
                 </div>
               </div>
             ))}
@@ -160,23 +175,30 @@ function GraficoBarraHorizontal({
   );
 }
 
-// --- Linha com grade ao fundo: chamados abertos (vermelho) x encerrados
-// (verde) ao longo do mês corrente. ---
+// --- Linhas: chamados abertos (vermelho) x encerrados (verde) ao longo do
+// mês corrente, com eixo de quantidade à esquerda e dias embaixo. ---
 function GraficoAtividadeMensal({ dados }: { dados: AtividadeDia[] }) {
-  const w = 1000;
-  const h = 220;
-  const padTop = 22;
-  const padBottom = 56;
-  const max = Math.max(1, ...dados.flatMap((d) => [d.abertos, d.encerrados]));
+  const larguraTotal = 640;
+  const padLeft = 30;
+  const padRight = 8;
+  const padTop = 16;
+  const padBottom = 26;
+  const w = larguraTotal - padLeft - padRight;
+  const h = 170;
+  const maxBruto = Math.max(1, ...dados.flatMap((d) => [d.abertos, d.encerrados]));
+  const linhasGrade = 4;
+  const max = Math.ceil(maxBruto / linhasGrade) * linhasGrade;
   const abertosValores = dados.map((d) => d.abertos);
   const encerradosValores = dados.map((d) => d.encerrados);
-  const linhasGrade = 4;
-  const passoRotulo = Math.max(1, Math.ceil(dados.length / 15));
+  const passoRotulo = Math.max(1, Math.ceil(dados.length / 10));
+  const totalAbertos = abertosValores.reduce((a, b) => a + b, 0);
+  const totalEncerrados = encerradosValores.reduce((a, b) => a + b, 0);
 
-  function pontoXY(valores: number[], i: number) {
-    const x = dados.length > 1 ? (i / (dados.length - 1)) * w : w / 2;
-    const y = h - (valores[i] / max) * h;
-    return { x, y };
+  function px(i: number) {
+    return dados.length > 1 ? (i / (dados.length - 1)) * w : w / 2;
+  }
+  function py(v: number) {
+    return h - (v / max) * h;
   }
 
   return (
@@ -184,57 +206,49 @@ function GraficoAtividadeMensal({ dados }: { dados: AtividadeDia[] }) {
       <div className="dash-panel-header">Atividade do Mês — Abertos x Encerrados</div>
       <div className="dash-panel-body">
         {dados.length === 0 ? (
-          <p className="text-muted" style={{ margin: 0, fontSize: "0.85rem" }}>Sem dados suficientes.</p>
+          <SemDados />
         ) : (
           <>
-            <svg viewBox={`0 0 ${w} ${padTop + h + padBottom}`} width="100%" role="img" aria-label="Chamados abertos e encerrados ao longo do mês">
-              <g transform={`translate(0 ${padTop})`}>
+            <svg viewBox={`0 0 ${larguraTotal} ${padTop + h + padBottom}`} width="100%" role="img" aria-label="Chamados abertos e encerrados ao longo do mês">
+              <g transform={`translate(${padLeft} ${padTop})`}>
                 {Array.from({ length: linhasGrade + 1 }).map((_, i) => {
                   const y = (i / linhasGrade) * h;
-                  return <line key={i} x1={0} y1={y} x2={w} y2={y} stroke="var(--border)" strokeWidth="1" />;
-                })}
-                <path d={areaPath(abertosValores, w, h, max)} fill="var(--danger)" opacity="0.1" />
-                <path d={linePath(abertosValores, w, h, max)} fill="none" stroke="var(--danger)" strokeWidth="2" />
-                <path d={areaPath(encerradosValores, w, h, max)} fill="var(--success)" opacity="0.1" />
-                <path d={linePath(encerradosValores, w, h, max)} fill="none" stroke="var(--success)" strokeWidth="2" />
-
-                {/* Cada número fica no próprio vértice da linha, deslocado
-                    pra fora da área preenchida — acima do ponto, pra
-                    abertos; abaixo, pra encerrados. */}
-                {dados.map((d, i) => {
-                  if (d.abertos === 0) return null;
-                  const { x, y } = pontoXY(abertosValores, i);
+                  const valor = Math.round(max - (i / linhasGrade) * max);
                   return (
-                    <text key={`a-${d.dia}`} x={x} y={y - 8} fontSize="10" fill="var(--danger)" textAnchor="middle" fontWeight="700">
-                      {d.abertos}
-                    </text>
+                    <g key={i}>
+                      <line x1={0} y1={y} x2={w} y2={y} stroke="var(--border)" strokeWidth="1" />
+                      <text x={-8} y={y} fontSize="11" fill="var(--text-muted)" textAnchor="end" dominantBaseline="middle">
+                        {valor}
+                      </text>
+                    </g>
                   );
                 })}
+                <path d={areaPath(abertosValores, w, h, max)} fill="var(--danger)" opacity="0.08" />
+                <path d={linePath(abertosValores, w, h, max)} fill="none" stroke="var(--danger)" strokeWidth="2" />
+                <path d={areaPath(encerradosValores, w, h, max)} fill="var(--success)" opacity="0.08" />
+                <path d={linePath(encerradosValores, w, h, max)} fill="none" stroke="var(--success)" strokeWidth="2" />
+                {dados.map((d, i) => (
+                  <g key={d.dia}>
+                    {d.abertos > 0 && <circle cx={px(i)} cy={py(d.abertos)} r="3" fill="var(--danger)" />}
+                    {d.encerrados > 0 && <circle cx={px(i)} cy={py(d.encerrados)} r="3" fill="var(--success)" />}
+                    <title>{`Dia ${diaDoMes(d.dia)}: ${d.abertos} aberto(s), ${d.encerrados} encerrado(s)`}</title>
+                  </g>
+                ))}
                 {dados.map((d, i) => {
-                  if (d.encerrados === 0) return null;
-                  const { x, y } = pontoXY(encerradosValores, i);
+                  const ultimo = i === dados.length - 1;
+                  if (i % passoRotulo !== 0 && !ultimo) return null;
                   return (
-                    <text key={`e-${d.dia}`} x={x} y={y + 18} fontSize="10" fill="var(--success)" textAnchor="middle" fontWeight="700">
-                      {d.encerrados}
+                    <text key={`x-${d.dia}`} x={px(i)} y={h + 18} fontSize="11" fill="var(--text-muted)" textAnchor="middle">
+                      {diaDoMes(d.dia)}
                     </text>
                   );
                 })}
               </g>
-
-              {dados.map((d, i) => {
-                const ultimo = i === dados.length - 1;
-                if (i % passoRotulo !== 0 && !ultimo) return null;
-                const x = dados.length > 1 ? (i / (dados.length - 1)) * w : w / 2;
-                return (
-                  <text key={d.dia} x={x} y={padTop + h + 40} fontSize="9" fill="var(--text-muted)" textAnchor="middle">
-                    {diaDoMes(d.dia)}
-                  </text>
-                );
-              })}
             </svg>
-            <div style={{ display: "flex", gap: "1.25rem", marginTop: "0.5rem", fontSize: "0.76rem" }}>
-              <span><span className="legend-dot" style={{ background: "var(--danger)" }} /> Abertos</span>
-              <span><span className="legend-dot" style={{ background: "var(--success)" }} /> Encerrados</span>
+            <div className={r.legendaLinha}>
+              <span><span className={r.legendaCor} style={{ background: "var(--danger)" }} /> Abertos: <strong>{totalAbertos}</strong></span>
+              <span><span className={r.legendaCor} style={{ background: "var(--success)" }} /> Encerrados: <strong>{totalEncerrados}</strong></span>
+              <span className="text-muted">eixo horizontal = dia do mês</span>
             </div>
           </>
         )}
@@ -243,79 +257,36 @@ function GraficoAtividadeMensal({ dados }: { dados: AtividadeDia[] }) {
   );
 }
 
-// --- Bolhas: eixo X é o mês, eixo Y é a quantidade (com grade cinza-clara
-// ao fundo) — uma bolha para o total de Problemas e outra para o total de
-// Demandas no mês corrente. O tamanho da bolha reforça a quantidade. ---
+// --- Problemas x Demandas no mês: dois números grandes e uma barra de
+// proporção, mais fácil de ler que bolhas com só duas categorias. ---
 function GraficoBolhas({ dados }: { dados: TotalPorTipo[] }) {
-  const w = 640;
-  const h = 80;
-  const padTop = 26;
-  const padBottom = 22;
-  const padLeft = 32;
-  const linhasGrade = 4;
-
   const totalProblema = dados.find((d) => d.tipo === "Problema")?.total ?? 0;
   const totalDemanda = dados.find((d) => d.tipo === "Demanda")?.total ?? 0;
-  const maxValor = Math.max(1, totalProblema, totalDemanda);
-
-  function r(total: number) {
-    const rMin = 8;
-    const rMax = 20;
-    return total === 0 ? 0 : rMin + Math.sqrt(total / maxValor) * (rMax - rMin);
-  }
-
-  function y(total: number) {
-    return padTop + h - (total / maxValor) * h;
-  }
-
-  const bolhas = [
-    { tipo: "Problema", total: totalProblema, cx: padLeft + (w - padLeft) * 0.35 },
-    { tipo: "Demanda", total: totalDemanda, cx: padLeft + (w - padLeft) * 0.65 },
-  ];
-
-  const semDados = totalProblema === 0 && totalDemanda === 0;
+  const soma = totalProblema + totalDemanda;
 
   return (
     <div className="dash-panel">
       <div className="dash-panel-header">Problemas x Demandas — {mesAtualRotulo()}</div>
       <div className="dash-panel-body">
-        {semDados ? (
-          <p className="text-muted" style={{ margin: 0, fontSize: "0.85rem" }}>Sem dados suficientes.</p>
+        {soma === 0 ? (
+          <SemDados />
         ) : (
           <>
-            <svg viewBox={`0 0 ${w} ${padTop + h + padBottom}`} width="100%" role="img" aria-label="Total de chamados do tipo Problema e do tipo Demanda no mês corrente, por quantidade">
-              {Array.from({ length: linhasGrade + 1 }).map((_, i) => {
-                const gy = padTop + (i / linhasGrade) * h;
-                const valor = Math.round(maxValor - (i / linhasGrade) * maxValor);
-                return (
-                  <g key={i}>
-                    <line x1={padLeft} y1={gy} x2={w} y2={gy} stroke="var(--border)" strokeWidth="1" />
-                    <text x={padLeft - 6} y={gy} fontSize="9" fill="var(--text-muted)" textAnchor="end" dominantBaseline="middle">
-                      {valor}
-                    </text>
-                  </g>
-                );
-              })}
-              <line x1={padLeft} y1={padTop} x2={padLeft} y2={padTop + h} stroke="var(--border)" strokeWidth="1" />
-
-              {bolhas.map((b) => (
-                <g key={b.tipo}>
-                  <circle cx={b.cx} cy={y(b.total)} r={r(b.total)} fill={CORES_TIPO[b.tipo]} opacity="0.85" />
-                  <text x={b.cx} y={y(b.total)} fontSize="9" fill="#fff" fontWeight="700" textAnchor="middle" dominantBaseline="middle">
-                    {b.total}
-                  </text>
-                </g>
-              ))}
-
-              <text x={padLeft + (w - padLeft) / 2} y={padTop + h + padBottom - 4} fontSize="10" fill="var(--text)" fontWeight="600" textAnchor="middle">
-                {mesAtualRotulo()}
-              </text>
-            </svg>
-            <div style={{ display: "flex", gap: "1.25rem", marginTop: "0.5rem", fontSize: "0.76rem", justifyContent: "center" }}>
-              <span><span className="legend-dot" style={{ background: "var(--danger)" }} /> Problema</span>
-              <span><span className="legend-dot" style={{ background: "var(--accent)" }} /> Demanda</span>
-              <span className="text-muted">tamanho = quantidade no mês</span>
+            <div className={r.comparativo}>
+              <div className={r.comparativoCartao}>
+                <div className={r.comparativoValor} style={{ color: CORES_TIPO["Problema"] }}>{totalProblema}</div>
+                <div className={r.comparativoRotulo}>Problemas · {formatPct((totalProblema / soma) * 100)}</div>
+              </div>
+              <div className={r.comparativoCartao}>
+                <div className={r.comparativoValor} style={{ color: CORES_TIPO["Demanda"] }}>{totalDemanda}</div>
+                <div className={r.comparativoRotulo}>Demandas · {formatPct((totalDemanda / soma) * 100)}</div>
+              </div>
             </div>
+            <div className={r.comparativoBarra} role="img" aria-label={`${totalProblema} problemas e ${totalDemanda} demandas`}>
+              <div style={{ width: `${(totalProblema / soma) * 100}%`, background: CORES_TIPO["Problema"] }} />
+              <div style={{ width: `${(totalDemanda / soma) * 100}%`, background: CORES_TIPO["Demanda"] }} />
+            </div>
+            <p className={r.comparativoNota}>{soma} chamados abertos no mês</p>
           </>
         )}
       </div>
@@ -480,7 +451,7 @@ export default function CondominioRelatorios() {
                 />
               </div>
 
-              <div className="dash-row-charts" style={{ gridTemplateColumns: "1fr 1fr" }}>
+              <div className={r.linhaGraficos}>
                 <GraficoAtividadeMensal dados={data.atividadeMensal} />
                 <GraficoBolhas dados={data.porTipoMensal} />
               </div>
@@ -491,6 +462,7 @@ export default function CondominioRelatorios() {
                   {(!data.recentes || data.recentes.length === 0) ? (
                     <p className="text-muted" style={{ margin: 0, fontSize: "0.85rem" }}>{data.apenasMeusChamados ? "Você ainda não abriu nenhum chamado." : "Nenhum chamado cadastrado ainda."}</p>
                   ) : (
+                    <div className={r.tabelaRolagem}>
                     <table className="dash-table">
                       <thead>
                         <tr>
@@ -502,21 +474,22 @@ export default function CondominioRelatorios() {
                         </tr>
                       </thead>
                       <tbody>
-                        {data.recentes.map((r) => (
-                          <tr key={r.id}>
+                        {data.recentes.map((c) => (
+                          <tr key={c.id}>
                             <td>
-                              <Link href={`/condominio/chamados/${r.id}`} style={{ color: "var(--accent)", fontWeight: 600 }}>
-                                #{r.id}
+                              <Link href={`/condominio/chamados/${c.id}`} style={{ color: "var(--accent)", fontWeight: 600 }}>
+                                #{c.id}
                               </Link>
                             </td>
-                            <td style={{ whiteSpace: "normal", minWidth: "14rem" }}>{r.titulo}</td>
-                            <td>{r.status}</td>
-                            <td>{r.aberto_por_nome}</td>
-                            <td>{formatDataHora(r.criado_em)}</td>
+                            <td style={{ whiteSpace: "normal", minWidth: "14rem" }}>{c.titulo}</td>
+                            <td>{c.status}</td>
+                            <td>{c.aberto_por_nome}</td>
+                            <td>{formatDataHora(c.criado_em)}</td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
+                    </div>
                   )}
                 </div>
               </div>
