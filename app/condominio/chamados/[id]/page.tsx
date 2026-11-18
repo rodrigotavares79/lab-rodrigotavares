@@ -419,6 +419,10 @@ export default function DetalheDoChamado() {
                           <span className="success-text">{erroSalvar}</span>
                         </div>
                       )}
+                    </form>
+                  </div>
+                </div>
+              )}
 
               {!gerente && eAutor && acoesDoAutor(chamado.status).length > 0 && (
                 <div className="dash-panel">
@@ -467,6 +471,10 @@ export default function DetalheDoChamado() {
                           <span className="success-text">{erroAutor}</span>
                         </div>
                       )}
+                    </form>
+                  </div>
+                </div>
+              )}
 
               <div className="dash-panel">
                 <div className="dash-panel-header">Anexos</div>
@@ -554,16 +562,6 @@ export default function DetalheDoChamado() {
                   )}
                 </div>
               </div>
-
-                    </form>
-                  </div>
-                </div>
-              )}
-
-                    </form>
-                  </div>
-                </div>
-              )}
 
               <div className="dash-panel">
                 <div className="dash-panel-header">Mensagens</div>
