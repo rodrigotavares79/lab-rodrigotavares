@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
-import { getUsuarioCondominio, podeGerirChamados } from "@/lib/condominioAuth";
+import { getUsuarioCondominio, podeGerirChamados, podeVisualizarAdmin } from "@/lib/condominioAuth";
 
 export const dynamic = "force-dynamic";
 
+// Lista de fornecedores (CNPJ, contato, e-mail, telefone) é informação
+// administrativa — condômino comum não tem acesso.
 export async function GET() {
   try {
+    const usuario = await getUsuarioCondominio();
+    if (!usuario || !podeVisualizarAdmin(usuario.perfil)) {
+      return NextResponse.json({ error: "Só síndico, conselheiro ou conselheiro-admin vê os fornecedores." }, { status: 403 });
+    }
+
     const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
     const rows = await sql`
       SELECT id, nome_fantasia, cnpj, categoria_servico, nome_contato, email, telefone, criado_em

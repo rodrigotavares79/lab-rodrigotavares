@@ -17,6 +17,19 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     }
 
     const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
+
+    // Só quem pode ver o chamado lê ou escreve mensagens nele — mesma regra
+    // da tela do chamado, do histórico e dos anexos.
+    const chamadoRows = await sql`SELECT aberto_por_email, global FROM chamados WHERE id = ${id}`;
+    if (chamadoRows.length === 0) {
+      return NextResponse.json({ error: "Chamado não encontrado." }, { status: 404 });
+    }
+    const chamado = chamadoRows[0];
+    const podeVer = podeVisualizarAdmin(usuario.perfil) || chamado.global || chamado.aberto_por_email === usuario.email;
+    if (!podeVer) {
+      return NextResponse.json({ error: "Você não tem acesso a este chamado." }, { status: 403 });
+    }
+
     const vePrivadas = podeVisualizarAdmin(usuario.perfil);
 
     // Condômino só vê mensagens marcadas como visíveis a ele — notas
@@ -61,6 +74,19 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     const visivel = gerente ? Boolean(visivelCondomino) : true;
 
     const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
+
+    // Só quem pode ver o chamado lê ou escreve mensagens nele — mesma regra
+    // da tela do chamado, do histórico e dos anexos.
+    const chamadoRows = await sql`SELECT aberto_por_email, global FROM chamados WHERE id = ${id}`;
+    if (chamadoRows.length === 0) {
+      return NextResponse.json({ error: "Chamado não encontrado." }, { status: 404 });
+    }
+    const chamado = chamadoRows[0];
+    const podeVer = podeVisualizarAdmin(usuario.perfil) || chamado.global || chamado.aberto_por_email === usuario.email;
+    if (!podeVer) {
+      return NextResponse.json({ error: "Você não tem acesso a este chamado." }, { status: 403 });
+    }
+
     const rows = await sql`
       INSERT INTO mensagens (chamado_id, autor_email, autor_nome, texto, visivel_condomino)
       VALUES (${id}, ${usuario.email}, ${usuario.nome}, ${texto}, ${visivel})
