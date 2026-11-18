@@ -16,7 +16,25 @@ type ChamadoLinha = {
   criado_em: string;
   servico: string | null;
   fornecedor: string | null;
+  descricao: string | null;
 };
+
+// Minúsculas e sem acento, para "agua" encontrar "Água".
+function normalizar(texto: string): string {
+  return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+
+// Todas as palavras digitadas precisam aparecer em algum campo do chamado.
+function correspondeBusca(c: ChamadoLinha, termos: string[]): boolean {
+  if (termos.length === 0) return true;
+  const alvo = normalizar(
+    [
+      `#${c.id}`, c.titulo, c.descricao, c.servico, c.status, c.urgencia,
+      c.aberto_por_nome, c.aberto_por_unidade, c.fornecedor,
+    ].filter(Boolean).join(" ")
+  );
+  return termos.every((t) => alvo.includes(t));
+}
 
 function classeStatus(status: string): string {
   if (status === "Resolvido") return "status-resolved";
@@ -143,6 +161,7 @@ export default function Chamados() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [ordenacao, setOrdenacao] = useState<Ordenacao>("padrao");
+  const [busca, setBusca] = useState("");
 
   useEffect(() => {
     fetch("/api/chamados")
@@ -160,8 +179,12 @@ export default function Chamados() {
 
   // Encerrados sempre no fim; dentro de cada grupo, pelo critério escolhido.
   const chamadosOrdenados = useMemo(() => {
-    return [...chamados].sort((a, b) => compararChamados(a, b, ordenacao));
-  }, [chamados, ordenacao]);
+    const termos = normalizar(busca).split(/\s+/).filter(Boolean);
+    return chamados
+      .filter((c) => correspondeBusca(c, termos))
+      .sort((a, b) => compararChamados(a, b, ordenacao));
+  }, [chamados, ordenacao, busca]);
+  const filtrando = busca.trim().length > 0;
 
   return (
     <>
@@ -201,6 +224,14 @@ export default function Chamados() {
           {!carregando && !erro && chamados.length > 0 && (
             <>
               <div className="list-toolbar">
+                <input
+                  type="search"
+                  className="list-toolbar-busca"
+                  placeholder="Buscar por palavra-chave (título, descrição, serviço, unidade...)"
+                  aria-label="Buscar chamados por palavra-chave"
+                  value={busca}
+                  onChange={(e) => setBusca(e.target.value)}
+                />
                 <label htmlFor="ordenacao">Ordenar por</label>
                 <select
                   id="ordenacao"
@@ -216,7 +247,9 @@ export default function Chamados() {
               </div>
               <div className="dash-panel" style={{ marginTop: "0.75rem" }}>
                 <div className="dash-panel-header">
-                  {chamados.length} chamado{chamados.length > 1 ? "s" : ""}
+                  {filtrando
+                    ? `${chamadosOrdenados.length} de ${chamados.length} chamados`
+                    : `${chamados.length} chamado${chamados.length > 1 ? "s" : ""}`}
                 </div>
                 <div className="dash-panel-body">
                   <div className="dash-table-scroll">
@@ -273,6 +306,13 @@ export default function Chamados() {
                           </td>
                         </tr>
                       ))}
+                      {chamadosOrdenados.length === 0 && (
+                        <tr>
+                          <td colSpan={gerente ? 9 : 8} className="text-muted" style={{ whiteSpace: "normal", padding: "1.5rem 0.65rem" }}>
+                            Nenhum chamado encontrado para &ldquo;{busca.trim()}&rdquo;.
+                          </td>
+                        </tr>
+                      )}
                       </tbody>
                     </table>
                   </div>

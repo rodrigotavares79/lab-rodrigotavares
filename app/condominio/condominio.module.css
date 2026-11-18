@@ -171,6 +171,9 @@
 .conteudo :global(.form-field input:focus),
 .conteudo :global(.form-field select:focus),
 .conteudo :global(.form-field textarea:focus) { border-color: var(--mc-azul); outline: none; box-shadow: 0 0 0 3px rgba(27,47,107,.12); }
+.conteudo :global(.list-toolbar-busca),
+.conteudo :global(.list-toolbar select) { border-radius: 8px; min-height: 40px; }
+.conteudo :global(.list-toolbar-busca:focus) { outline: none; border-color: var(--mc-azul); box-shadow: 0 0 0 3px rgba(27,47,107,.12); }
 .conteudo :global(.status-tag),
 .conteudo :global(.badge) { border-radius: 10px; line-height: 1.4; }
 .conteudo :global(.dash-table th) { font-family: var(--mc-mono), monospace; font-weight: 500; letter-spacing: .1em; }

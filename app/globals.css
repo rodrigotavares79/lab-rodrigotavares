@@ -1819,3 +1819,22 @@ body:has(.condominio-shell) .site-header,
 body:has(.condominio-shell) .site-footer {
   display: none;
 }
+
+/* Busca por palavra-chave na barra de uma lista (ex.: Lista de Chamados). */
+.list-toolbar-busca {
+  flex: 1 1 18rem;
+  max-width: 32rem;
+  margin-right: auto;
+  font-family: inherit;
+  font-size: 0.85rem;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
+}
+.list-toolbar-busca:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.list-toolbar { flex-wrap: wrap; }

@@ -21,7 +21,7 @@ export async function GET() {
     const rows = gerente
       ? await sql`
           SELECT c.id, c.titulo, c.status, c.urgencia, c.prazo_sla, c.global,
-                 c.aberto_por_nome, c.aberto_por_unidade, c.criado_em,
+                 c.aberto_por_nome, c.aberto_por_unidade, c.criado_em, c.descricao,
                  s.nome AS servico, f.nome_fantasia AS fornecedor
           FROM chamados c
           LEFT JOIN catalogo_servicos s ON s.id = c.tipo_id
@@ -30,7 +30,7 @@ export async function GET() {
         `
       : await sql`
           SELECT c.id, c.titulo, c.status, c.urgencia, c.prazo_sla, c.global,
-                 c.aberto_por_nome, c.aberto_por_unidade, c.criado_em,
+                 c.aberto_por_nome, c.aberto_por_unidade, c.criado_em, c.descricao,
                  s.nome AS servico, f.nome_fantasia AS fornecedor
           FROM chamados c
           LEFT JOIN catalogo_servicos s ON s.id = c.tipo_id
