@@ -375,7 +375,7 @@ export default function CondominioDashboard() {
         if (d.error) throw new Error(d.error);
         setData(d);
       })
-      .catch((e) => setErro(e.message || "Erro ao carregar o dashboard."))
+      .catch((e) => setErro(e.message || "Erro ao carregar os relatórios."))
       .finally(() => setCarregando(false));
   }, []);
 
@@ -393,7 +393,7 @@ export default function CondominioDashboard() {
       <section className="content-block">
         <div className="container">
           <span className="eyebrow">Gestão de Condomínio</span>
-          <h1>Dashboard</h1>
+          <h1>Relatórios</h1>
           <p className="lede">Visão executiva dos chamados do condomínio.</p>
 
           {carregando && <p className="text-muted" style={{ marginTop: "2rem" }}>Carregando...</p>}
@@ -402,7 +402,7 @@ export default function CondominioDashboard() {
             <div className="error-banner" style={{ marginTop: "2rem" }}>
               <span className="success-icon error-icon">!</span>
               <span className="success-text">
-                <strong>Não foi possível carregar o dashboard.</strong>
+                <strong>Não foi possível carregar os relatórios.</strong>
                 <span>{erro}</span>
               </span>
             </div>
@@ -469,12 +469,12 @@ export default function CondominioDashboard() {
 
               <div className="dash-dual-panel-row">
                 <PainelChamados
-                  titulo="Dashboard — Chamados Finalizados"
+                  titulo="Relatórios — Chamados Finalizados"
                   painel={data.finalizados}
                   slaLabels={{ ok: "Dentro do prazo", nok: "Fora do prazo" }}
                 />
                 <PainelChamados
-                  titulo="Dashboard — Chamados em Andamento"
+                  titulo="Relatórios — Chamados em Andamento"
                   painel={data.andamento}
                   slaLabels={{ ok: "Dentro do prazo", nok: "Vencido" }}
                 />
