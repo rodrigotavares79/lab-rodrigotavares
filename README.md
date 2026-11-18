@@ -53,7 +53,7 @@ usar o módulo (`psql "$DATABASE_URL" -f db/migrations/0005_condominio_schema.sq
 Fotos e PDFs dos chamados ficam num Blob store **privado** da Vercel, separado
 do store público do projeto. Crie em Vercel > projeto > Storage > Create >
 Blob, com acesso **Private**, e conecte ao projeto com o prefixo de variável
-`CONDOMINIO_BLOB` (gera `CONDOMINIO_BLOB_READ_WRITE_TOKEN`). Os arquivos só
+`CONDOMINIO_BLOB` (gera `CONDOMINIO_BLOB_STORE_ID`, com autenticação OIDC, ou `CONDOMINIO_BLOB_READ_WRITE_TOKEN` em conexões antigas). Os arquivos só
 abrem pela rota `/api/chamados/[id]/anexos/[anexoId]`, que confere a
 permissão a cada acesso. Anexos antigos (store público) são migrados na
 primeira abertura ou em lote pelo síndico via `POST /api/condominio-anexos/migrar`.

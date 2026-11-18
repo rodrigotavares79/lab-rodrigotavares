@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { getUsuarioCondominio, podeVisualizarAdmin } from "@/lib/condominioAuth";
 import { emVisaoRestrita, emailsDaAdministracao, nomeVisivel } from "@/lib/condominioPrivacidade";
-import { enviarAnexoPrivado, tokenPrivado, urlDoAnexoNaApi } from "@/lib/condominioAnexos";
+import { enviarAnexoPrivado, armazenamentoPrivadoConfigurado, urlDoAnexoNaApi } from "@/lib/condominioAnexos";
 
 export const dynamic = "force-dynamic";
 
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       return NextResponse.json({ error: "Arquivo muito grande — o limite é 8 MB." }, { status: 400 });
     }
 
-    if (!tokenPrivado()) {
+    if (!armazenamentoPrivadoConfigurado()) {
       return NextResponse.json(
         { error: "O armazenamento privado de anexos ainda não foi configurado. Avise o síndico." },
         { status: 503 }

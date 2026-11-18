@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { getUsuarioCondominio, podeVisualizarAdmin } from "@/lib/condominioAuth";
 import { emVisaoRestrita, emailsDaAdministracao } from "@/lib/condominioPrivacidade";
-import { ehUrlPrivada, lerAnexoPrivado, migrarAnexoPublico, tokenPrivado } from "@/lib/condominioAnexos";
+import { ehUrlPrivada, lerAnexoPrivado, migrarAnexoPublico, armazenamentoPrivadoConfigurado } from "@/lib/condominioAnexos";
 
 export const dynamic = "force-dynamic";
 
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       }
     }
 
-    if (!tokenPrivado()) {
+    if (!armazenamentoPrivadoConfigurado()) {
       return NextResponse.json({ error: "Armazenamento privado de anexos não configurado." }, { status: 503 });
     }
 

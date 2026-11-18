@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { getUsuarioCondominio } from "@/lib/condominioAuth";
-import { ehUrlPrivada, migrarAnexoPublico, tokenPrivado } from "@/lib/condominioAnexos";
+import { ehUrlPrivada, migrarAnexoPublico, armazenamentoPrivadoConfigurado } from "@/lib/condominioAnexos";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -26,14 +26,14 @@ export async function GET() {
     SELECT count(*)::int AS pendentes FROM anexos
     WHERE arquivo_url IS NOT NULL AND arquivo_url NOT LIKE '%.private.blob.vercel-storage.com%'
   `;
-  return NextResponse.json({ pendentes: rows[0].pendentes, armazenamentoPrivadoConfigurado: !!tokenPrivado() });
+  return NextResponse.json({ pendentes: rows[0].pendentes, armazenamentoPrivadoConfigurado: !!armazenamentoPrivadoConfigurado() });
 }
 
 export async function POST() {
   if (!(await exigirSindico())) {
     return NextResponse.json({ error: "Só o síndico pode migrar anexos." }, { status: 403 });
   }
-  if (!tokenPrivado()) {
+  if (!armazenamentoPrivadoConfigurado()) {
     return NextResponse.json({ error: "Armazenamento privado de anexos não configurado." }, { status: 503 });
   }
 
