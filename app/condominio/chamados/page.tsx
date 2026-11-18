@@ -24,7 +24,8 @@ function normalizar(texto: string): string {
   return texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
 
-// Todas as palavras digitadas precisam aparecer em algum campo do chamado.
+// Todas as palavras digitadas precisam aparecer em algum campo do chamado;
+// números precisam bater por inteiro.
 function correspondeBusca(c: ChamadoLinha, termos: string[]): boolean {
   if (termos.length === 0) return true;
   const alvo = normalizar(
@@ -33,7 +34,11 @@ function correspondeBusca(c: ChamadoLinha, termos: string[]): boolean {
       c.aberto_por_nome, c.aberto_por_unidade, c.fornecedor,
     ].filter(Boolean).join(" ")
   );
-  return termos.every((t) => alvo.includes(t));
+  return termos.every((t) =>
+    // Termo só com dígitos bate apenas com o número inteiro: "2" acha
+    // "Bloco 2" e "#2", mas não "Apto 220" nem "#25".
+    /^\d+$/.test(t) ? new RegExp(`(^|\\D)${t}(\\D|$)`).test(alvo) : alvo.includes(t)
+  );
 }
 
 function classeStatus(status: string): string {
