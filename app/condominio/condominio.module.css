@@ -1,0 +1,128 @@
+.shell {
+  --mc-azul: #1B2F6B;
+  --mc-azul-2: #2E4486;
+  --mc-vermelho: #C8102E;
+  --mc-vermelho-hover: #A90D26;
+  --mc-tinta: #14182A;
+  --mc-texto: #4A4F60;
+  --mc-suave: #6B7080;
+  --mc-borda: #E4E2DC;
+  --mc-linha: #EFEDE8;
+  --mc-fundo: #F4F3EF;
+  display: flex;
+  min-height: 100dvh;
+  background: var(--mc-fundo);
+  color: var(--mc-tinta);
+  font-family: var(--mc-sans), Helvetica, sans-serif;
+}
+.shell *, .shell *::before, .shell *::after { box-sizing: border-box; }
+.shell a { color: var(--mc-azul); }
+.shell a:hover { color: var(--mc-vermelho); }
+
+/* ---------- Sidebar ---------- */
+.sidebar {
+  width: 248px; flex-shrink: 0;
+  background: var(--mc-azul); color: #fff;
+  display: flex; flex-direction: column; gap: 32px;
+  padding: 28px 16px;
+  position: sticky; top: 0; height: 100dvh; overflow-y: auto;
+}
+.marca { display: flex; align-items: center; gap: 12px; padding: 0 6px; text-decoration: none; }
+.simbolo { position: relative; width: 40px; height: 40px; flex-shrink: 0; }
+.simboloBalao {
+  width: 40px; height: 40px; border-radius: 20px 20px 20px 3px; background: #FAFAF7;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mc-serif), serif; font-size: 23px; line-height: 1; color: var(--mc-azul);
+}
+.simboloPonto {
+  position: absolute; top: -2px; right: -2px; width: 11px; height: 11px;
+  border-radius: 50%; background: var(--mc-vermelho); border: 3px solid var(--mc-azul);
+}
+.marcaNome { font-family: var(--mc-serif), serif; font-size: 17px; line-height: 1.15; color: #fff; }
+.marcaTag { font-family: var(--mc-mono), monospace; font-size: 9px; letter-spacing: .24em; text-transform: uppercase; color: #AEB8D6; margin-top: 3px; }
+
+.menu { display: flex; flex-direction: column; gap: 2px; }
+.menuGrupo { font-family: var(--mc-mono), monospace; font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: #7F8BB3; padding: 18px 12px 6px; }
+.menuItem {
+  display: flex; align-items: center; gap: 12px; height: 44px; padding: 0 12px;
+  border-radius: 8px; color: #C9D0E6 !important; text-decoration: none; font-size: 14px;
+  transition: background .15s;
+}
+.menuItem:hover { background: rgba(255,255,255,.08); color: #fff !important; }
+.menuItemAtivo { background: rgba(255,255,255,.12); color: #fff !important; }
+.menuNum { width: 20px; text-align: center; font-family: var(--mc-mono), monospace; font-size: 11px; color: #7F8BB3; }
+.menuItemAtivo .menuNum { color: #fff; }
+.menuRotulo { flex: 1; white-space: nowrap; }
+.menuBadge {
+  min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; background: var(--mc-vermelho);
+  color: #fff; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center;
+}
+
+.usuario { margin-top: auto; display: flex; align-items: center; gap: 12px; padding: 12px 6px 0; border-top: 1px solid rgba(255,255,255,.12); }
+.avatar { width: 36px; height: 36px; flex-shrink: 0; border-radius: 50%; background: var(--mc-azul-2); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; }
+.usuarioNome { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.usuarioUnidade { font-size: 12px; color: #AEB8D6; white-space: nowrap; }
+.privacidade { font-size: 11px; color: #7F8BB3 !important; padding: 0 6px; text-decoration: none; }
+
+/* ---------- Conteúdo ---------- */
+.main { flex: 1; min-width: 0; padding: 40px clamp(20px, 4vw, 56px); display: flex; flex-direction: column; gap: 32px; }
+.cabecalho { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 20px; }
+.data { font-family: var(--mc-mono), monospace; font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--mc-suave); }
+.saudacao { font-family: var(--mc-serif), serif; font-size: 38px; line-height: 1.1; color: var(--mc-azul); margin: 6px 0 0; font-weight: 400; }
+.botaoPrimario {
+  height: 44px; padding: 0 20px; border-radius: 8px; background: var(--mc-vermelho); color: #fff !important;
+  font-size: 14px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 10px;
+}
+.botaoPrimario:hover { background: var(--mc-vermelho-hover); }
+
+.grade { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
+.cartao { background: #fff; border: 1px solid var(--mc-borda); border-radius: 12px; min-width: 0; }
+.quadro { flex: 2 1 520px; display: flex; flex-direction: column; }
+.lateral { flex: 1 1 280px; padding: 22px 24px; display: flex; flex-direction: column; gap: 18px; }
+
+.quadroTopo { padding: 22px 24px 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; }
+.titulo { font-family: var(--mc-serif), serif; font-size: 24px; color: var(--mc-azul); margin: 0; font-weight: 400; }
+.naoLidas { font-family: var(--mc-mono), monospace; font-size: 11px; color: var(--mc-vermelho); margin-left: 12px; }
+.filtros { display: flex; flex-wrap: wrap; gap: 4px; }
+.filtro { height: 32px; padding: 0 12px; border-radius: 16px; border: 1px solid #DCD9D2; background: transparent; color: var(--mc-texto); font: inherit; font-size: 12px; font-weight: 500; cursor: pointer; }
+.filtroAtivo { background: var(--mc-azul); border-color: var(--mc-azul); color: #fff; }
+
+.fixado { margin: 20px 24px 0; padding: 20px; border-radius: 10px; background: #F2F4FA; display: flex; flex-direction: column; gap: 10px; }
+.fixadoRotulo { display: flex; align-items: center; gap: 10px; font-family: var(--mc-mono), monospace; font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: var(--mc-azul); }
+.losango { width: 6px; height: 6px; background: var(--mc-vermelho); transform: rotate(45deg); }
+.fixadoTitulo { font-size: 18px; font-weight: 600; }
+.fixadoCorpo { font-size: 14px; line-height: 1.6; color: var(--mc-texto); white-space: pre-line; text-wrap: pretty; }
+.meta { font-size: 12px; color: var(--mc-suave); }
+
+.lista { display: flex; flex-direction: column; padding: 8px 0; }
+.mensagem {
+  display: grid; grid-template-columns: 10px minmax(0,1fr) auto; gap: 16px; align-items: start;
+  padding: 18px 24px; border: 0; border-bottom: 1px solid var(--mc-linha); background: #fff;
+  font: inherit; text-align: left; cursor: pointer; color: inherit; width: 100%;
+}
+.mensagem:hover { background: #FAFAF7; }
+.ponto { width: 8px; height: 8px; margin-top: 7px; border-radius: 50%; background: var(--mc-borda); }
+.pontoNovo { background: var(--mc-vermelho); }
+.categoria { font-family: var(--mc-mono), monospace; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--mc-azul); }
+.mensagemTitulo { font-size: 15px; font-weight: 500; margin-top: 5px; }
+.mensagemNova .mensagemTitulo { font-weight: 600; }
+.previa { font-size: 13px; line-height: 1.55; color: var(--mc-texto); margin-top: 5px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.mensagemAberta .previa { display: block; -webkit-line-clamp: unset; white-space: pre-line; }
+.vazio { padding: 32px 24px; color: var(--mc-suave); font-size: 14px; }
+
+.lateralTopo { display: flex; align-items: baseline; justify-content: space-between; }
+.chamado { display: flex; flex-direction: column; gap: 6px; padding: 14px 0; border-bottom: 1px solid var(--mc-linha); text-decoration: none; color: inherit !important; }
+.chamado:hover .chamadoTitulo { color: var(--mc-azul); }
+.chamadoLinha { display: flex; justify-content: space-between; gap: 12px; }
+.chamadoId { font-family: var(--mc-mono), monospace; font-size: 11px; color: var(--mc-suave); }
+.status { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; }
+.statusPonto { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.chamadoTitulo { font-size: 14px; font-weight: 500; }
+
+@media (max-width: 860px) {
+  .shell { flex-direction: column; }
+  .sidebar { width: 100%; height: auto; position: static; padding: 16px; gap: 16px; }
+  .menu { flex-direction: row; flex-wrap: wrap; }
+  .menuGrupo { display: none; }
+  .usuario { display: none; }
+}
