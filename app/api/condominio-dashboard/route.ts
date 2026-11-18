@@ -9,9 +9,15 @@ const ENCERRADOS = ["Resolvido", "Cancelado"];
 export async function GET() {
   try {
     const usuario = await getUsuarioCondominio();
-    if (!usuario || !podeVisualizarAdmin(usuario.perfil)) {
-      return NextResponse.json({ error: "Só síndico, conselheiro ou conselheiro-admin vê o dashboard." }, { status: 403 });
+    if (!usuario) {
+      return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
     }
+
+    // Todos os perfis veem os números globais do condomínio (KPIs e
+    // gráficos são agregados, sem identificar morador). A única parte com
+    // dados individuais — a lista de chamados recentes — é filtrada: o
+    // condômino comum só vê os chamados que ele mesmo abriu.
+    const veTodosChamados = podeVisualizarAdmin(usuario.perfil);
 
     const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
 
@@ -152,10 +158,17 @@ export async function GET() {
       GROUP BY 1
     `;
 
-    const recentes = await sql`
-      SELECT c.id, c.titulo, c.status, c.urgencia, c.aberto_por_nome, c.criado_em
-      FROM chamados c ORDER BY c.criado_em DESC LIMIT 8
-    `;
+    const recentes = veTodosChamados
+      ? await sql`
+          SELECT c.id, c.titulo, c.status, c.urgencia, c.aberto_por_nome, c.criado_em
+          FROM chamados c ORDER BY c.criado_em DESC LIMIT 8
+        `
+      : await sql`
+          SELECT c.id, c.titulo, c.status, c.urgencia, c.aberto_por_nome, c.criado_em
+          FROM chamados c
+          WHERE c.aberto_por_email = ${usuario.email}
+          ORDER BY c.criado_em DESC LIMIT 8
+        `;
 
     return NextResponse.json({
       kpis: { ...kpisRows[0], ...demandasRows[0] },
@@ -175,6 +188,7 @@ export async function GET() {
       atividadeMensal,
       porTipoMensal,
       recentes,
+      apenasMeusChamados: !veTodosChamados,
     });
   } catch (err) {
     console.error(err);

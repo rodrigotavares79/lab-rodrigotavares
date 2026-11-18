@@ -50,6 +50,7 @@ type DashboardData = {
   atividadeMensal: AtividadeDia[];
   porTipoMensal: TotalPorTipo[];
   recentes: Recente[];
+  apenasMeusChamados?: boolean;
 };
 
 const CORES_TIPO: Record<string, string> = {
@@ -485,10 +486,10 @@ export default function CondominioDashboard() {
               </div>
 
               <div className="dash-panel">
-                <div className="dash-panel-header">Chamados Recentes</div>
+                <div className="dash-panel-header">{data.apenasMeusChamados ? "Meus Chamados Recentes" : "Chamados Recentes"}</div>
                 <div className="dash-panel-body">
                   {(!data.recentes || data.recentes.length === 0) ? (
-                    <p className="text-muted" style={{ margin: 0, fontSize: "0.85rem" }}>Nenhum chamado cadastrado ainda.</p>
+                    <p className="text-muted" style={{ margin: 0, fontSize: "0.85rem" }}>{data.apenasMeusChamados ? "Você ainda não abriu nenhum chamado." : "Nenhum chamado cadastrado ainda."}</p>
                   ) : (
                     <table className="dash-table">
                       <thead>
