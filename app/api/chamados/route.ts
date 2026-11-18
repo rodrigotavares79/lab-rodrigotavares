@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { getUsuarioCondominio, podeVisualizarAdmin } from "@/lib/condominioAuth";
+import { mascararAutorDoChamado } from "@/lib/condominioPrivacidade";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +31,7 @@ export async function GET() {
         `
       : await sql`
           SELECT c.id, c.titulo, c.status, c.urgencia, c.prazo_sla, c.global,
-                 c.aberto_por_nome, c.aberto_por_unidade, c.criado_em, c.descricao,
+                 c.aberto_por_nome, c.aberto_por_unidade, c.aberto_por_email, c.criado_em, c.descricao,
                  s.nome AS servico, f.nome_fantasia AS fornecedor
           FROM chamados c
           LEFT JOIN catalogo_servicos s ON s.id = c.tipo_id
@@ -39,7 +40,16 @@ export async function GET() {
           ORDER BY c.criado_em DESC
         `;
 
-    return NextResponse.json({ chamados: rows, perfil: usuario.perfil });
+    // Condômino: nos chamados globais abertos por outra pessoa, o autor
+    // aparece só como "Morador" (sem nome nem unidade).
+    const chamados = gerente
+      ? rows
+      : rows.map((c) => {
+          const { aberto_por_email, ...resto } = c;
+          return aberto_por_email === usuario.email ? resto : mascararAutorDoChamado(resto);
+        });
+
+    return NextResponse.json({ chamados, perfil: usuario.perfil });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: "Erro ao buscar chamados." }, { status: 500 });
@@ -73,26 +83,27 @@ export async function POST(request: NextRequest) {
 
     // Prazo SLA = agora + SLA (horas) do serviço escolhido — mesma regra
     // automática que existia no app original.
+    // Abertura e primeira linha do histórico numa única instrução SQL: ou
+    // as duas gravações acontecem, ou nenhuma — o chamado nunca fica sem o
+    // registro de abertura na linha do tempo.
     const rows = await sql`
-      INSERT INTO chamados (
-        titulo, descricao, tipo_id, urgencia, status, prazo_sla,
-        aberto_por_email, aberto_por_nome, aberto_por_unidade
-      ) VALUES (
-        ${titulo}, ${descricao || null}, ${servicoId}, ${urgencia || null}, 'Novo',
-        now() + make_interval(hours => ${slaHoras}),
-        ${usuario.email}, ${usuario.nome}, ${usuario.unidade}
+      WITH novo AS (
+        INSERT INTO chamados (
+          titulo, descricao, tipo_id, urgencia, status, prazo_sla,
+          aberto_por_email, aberto_por_nome, aberto_por_unidade
+        ) VALUES (
+          ${titulo}, ${descricao || null}, ${servicoId}, ${urgencia || null}, 'Novo',
+          now() + make_interval(hours => ${slaHoras}),
+          ${usuario.email}, ${usuario.nome}, ${usuario.unidade}
+        )
+        RETURNING id
       )
-      RETURNING id
+      INSERT INTO chamados_historico (chamado_id, status_anterior, status_novo, autor_email, autor_nome)
+      SELECT id, NULL, 'Novo', ${usuario.email}, ${usuario.nome} FROM novo
+      RETURNING chamado_id AS id
     `;
 
     const chamadoId = rows[0].id;
-
-    // Primeira linha do histórico — registra a própria abertura, pra a
-    // linha do tempo do chamado começar completa.
-    await sql`
-      INSERT INTO chamados_historico (chamado_id, status_anterior, status_novo, autor_email, autor_nome)
-      VALUES (${chamadoId}, NULL, 'Novo', ${usuario.email}, ${usuario.nome})
-    `;
 
     return NextResponse.json({ ok: true, id: chamadoId });
   } catch (err) {

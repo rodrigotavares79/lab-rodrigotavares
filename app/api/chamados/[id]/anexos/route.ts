@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
-import { put } from "@vercel/blob";
 import { getUsuarioCondominio, podeVisualizarAdmin } from "@/lib/condominioAuth";
+import { emVisaoRestrita, emailsDaAdministracao, nomeVisivel } from "@/lib/condominioPrivacidade";
+import { enviarAnexoPrivado, tokenPrivado, urlDoAnexoNaApi } from "@/lib/condominioAnexos";
 
 export const dynamic = "force-dynamic";
 
@@ -33,11 +34,26 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     }
 
     const rows = await sql`
-      SELECT id, arquivo_url, tipo_anexo, enviado_por_nome, criado_em
+      SELECT id, tipo_anexo, enviado_por_email, enviado_por_nome, criado_em
       FROM anexos WHERE chamado_id = ${id} ORDER BY criado_em ASC
     `;
 
-    return NextResponse.json({ anexos: rows });
+    // Em chamado global de outra pessoa, o condômino só vê os anexos que ele
+    // mesmo enviou ou que a administração enviou — fotos de outros moradores
+    // (que podem mostrar o interior de um apartamento) ficam ocultas.
+    const restrita = emVisaoRestrita(usuario, chamado);
+    const administracao = restrita ? await emailsDaAdministracao(rows.map((a) => a.enviado_por_email)) : new Set<string>();
+    const anexos = rows
+      .filter((a) => !restrita || a.enviado_por_email === usuario.email || administracao.has(a.enviado_por_email))
+      .map(({ enviado_por_email, ...a }) => ({
+        ...a,
+        // O endereço real do arquivo nunca sai da API: o navegador abre o
+        // anexo pela rota que confere a permissão a cada acesso.
+        arquivo_url: urlDoAnexoNaApi(id, a.id),
+        enviado_por_nome: restrita ? nomeVisivel(enviado_por_email, a.enviado_por_nome, usuario, administracao) : a.enviado_por_nome,
+      }));
+
+    return NextResponse.json({ anexos });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: "Erro ao buscar anexos." }, { status: 500 });
@@ -80,21 +96,21 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       return NextResponse.json({ error: "Arquivo muito grande — o limite é 8 MB." }, { status: 400 });
     }
 
-    if (!process.env.BLOB_READ_WRITE_TOKEN) {
-      return NextResponse.json({ error: "Upload de anexos não está configurado neste ambiente." }, { status: 503 });
+    if (!tokenPrivado()) {
+      return NextResponse.json(
+        { error: "O armazenamento privado de anexos ainda não foi configurado. Avise o síndico." },
+        { status: 503 }
+      );
     }
 
-    const nomeNoStorage = `chamados/${id}/${Date.now()}-${arquivo.name}`;
-    const blob = await put(nomeNoStorage, arquivo, {
-      access: "public",
-      addRandomSuffix: true,
-    });
+    const blob = await enviarAnexoPrivado(id, arquivo, arquivo.name, arquivo.type);
 
     const rows = await sql`
       INSERT INTO anexos (chamado_id, arquivo_url, tipo_anexo, enviado_por_email, enviado_por_nome)
       VALUES (${id}, ${blob.url}, ${arquivo.type}, ${usuario.email}, ${usuario.nome})
-      RETURNING id, arquivo_url, tipo_anexo, enviado_por_nome, criado_em
+      RETURNING id, tipo_anexo, enviado_por_nome, criado_em
     `;
+    rows[0].arquivo_url = urlDoAnexoNaApi(id, rows[0].id);
 
     return NextResponse.json({ anexo: rows[0] });
   } catch (err) {

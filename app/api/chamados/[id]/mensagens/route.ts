@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { getUsuarioCondominio, podeGerirChamados, podeVisualizarAdmin } from "@/lib/condominioAuth";
+import { emVisaoRestrita, emailsDaAdministracao, nomeVisivel } from "@/lib/condominioPrivacidade";
 
 export const dynamic = "force-dynamic";
 
@@ -40,12 +41,26 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
           FROM mensagens WHERE chamado_id = ${id} ORDER BY criado_em ASC
         `
       : await sql`
-          SELECT id, autor_nome, texto, visivel_condomino, criado_em
+          SELECT id, autor_email, autor_nome, texto, visivel_condomino, criado_em
           FROM mensagens WHERE chamado_id = ${id} AND visivel_condomino = true
           ORDER BY criado_em ASC
         `;
 
-    return NextResponse.json({ mensagens: rows });
+    if (vePrivadas) {
+      return NextResponse.json({ mensagens: rows });
+    }
+
+    // Condômino: o e-mail do autor nunca sai da API. Em chamado global de
+    // outra pessoa, moradores aparecem como "Morador"; a administração e o
+    // próprio usuário continuam identificados pelo nome.
+    const restrita = emVisaoRestrita(usuario, chamado);
+    const administracao = restrita ? await emailsDaAdministracao(rows.map((m) => m.autor_email)) : new Set<string>();
+    const mensagens = rows.map(({ autor_email, ...m }) => ({
+      ...m,
+      autor_nome: restrita ? nomeVisivel(autor_email, m.autor_nome, usuario, administracao) : m.autor_nome,
+    }));
+
+    return NextResponse.json({ mensagens });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: "Erro ao buscar mensagens." }, { status: 500 });

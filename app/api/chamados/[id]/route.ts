@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { getUsuarioCondominio, podeGerirChamados, podeVisualizarAdmin } from "@/lib/condominioAuth";
 import { enviarAvisoMudancaStatusChamado } from "@/lib/condominioEmail";
+import { emVisaoRestrita, mascararAutorDoChamado } from "@/lib/condominioPrivacidade";
 
 export const dynamic = "force-dynamic";
 
@@ -50,7 +51,11 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ error: "Você não tem acesso a este chamado." }, { status: 403 });
     }
 
-    return NextResponse.json({ chamado, perfil: usuario.perfil });
+    // Chamado global visto por outro condômino: sem nome, unidade ou e-mail
+    // de quem abriu.
+    const chamadoVisivel = emVisaoRestrita(usuario, chamado) ? mascararAutorDoChamado(chamado) : chamado;
+
+    return NextResponse.json({ chamado: chamadoVisivel, perfil: usuario.perfil });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: "Erro ao buscar o chamado." }, { status: 500 });
@@ -81,43 +86,73 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       return NextResponse.json({ error: "Justificativa é obrigatória para mudar o status." }, { status: 400 });
     }
 
+    // fornecedorId: undefined = manter; null/"" = remover; número = trocar.
+    const fornecedorDefinido = fornecedorId !== undefined;
+    const fornecedorParam =
+      fornecedorDefinido && fornecedorId !== null && fornecedorId !== "" ? Number(fornecedorId) : null;
+    if (fornecedorParam !== null && !Number.isInteger(fornecedorParam)) {
+      return NextResponse.json({ error: "Fornecedor inválido." }, { status: 400 });
+    }
+    const statusParam: string | null = status ?? null;
+    const globalParam: boolean | null = isGlobal !== undefined ? Boolean(isGlobal) : null;
+    const justificativaParam: string | null =
+      justificativa !== undefined && justificativa !== null ? String(justificativa) : null;
+
     const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
 
-    const atualRows = await sql`
-      SELECT status, fornecedor_id, global, titulo, aberto_por_email, aberto_por_nome
-      FROM chamados WHERE id = ${id}
-    `;
-    if (atualRows.length === 0) {
+    // Leitura do estado atual, atualização e linha do histórico numa única
+    // instrução SQL (atômica): se qualquer parte falhar, nada é gravado, e o
+    // FOR UPDATE impede que duas movimentações simultâneas se atropelem.
+    let rows: Record<string, any>[];
+    try {
+      rows = await sql`
+        WITH atual AS (
+          SELECT id, status, fornecedor_id, global, titulo, aberto_por_email, aberto_por_nome
+          FROM chamados WHERE id = ${id}
+          FOR UPDATE
+        ),
+        upd AS (
+          UPDATE chamados c
+          SET status = COALESCE(${statusParam}::text, a.status),
+              fornecedor_id = CASE WHEN ${fornecedorDefinido}::boolean THEN ${fornecedorParam}::int ELSE a.fornecedor_id END,
+              global = COALESCE(${globalParam}::boolean, a.global),
+              justificativa_ultima_movimentacao = COALESCE(${justificativaParam}::text, c.justificativa_ultima_movimentacao),
+              atualizado_em = now()
+          FROM atual a
+          WHERE c.id = a.id
+          RETURNING c.id, c.status, c.fornecedor_id, c.global,
+                    a.status AS status_anterior, a.titulo, a.aberto_por_email, a.aberto_por_nome
+        ),
+        hist AS (
+          INSERT INTO chamados_historico (
+            chamado_id, status_anterior, status_novo, justificativa, fornecedor_id, global, autor_email, autor_nome
+          )
+          SELECT id, status_anterior, status, ${justificativaParam}::text, fornecedor_id, global,
+                 ${usuario.email}, ${usuario.nome}
+          FROM upd
+        )
+        SELECT * FROM upd
+      `;
+    } catch (err) {
+      // 23503 = violação de chave estrangeira (fornecedor inexistente).
+      if ((err as { code?: string })?.code === "23503") {
+        return NextResponse.json({ error: "Fornecedor não encontrado." }, { status: 400 });
+      }
+      throw err;
+    }
+
+    if (rows.length === 0) {
       return NextResponse.json({ error: "Chamado não encontrado." }, { status: 404 });
     }
-    const atual = atualRows[0];
-
-    const novoStatus = status ?? atual.status;
-    const novoFornecedorId = fornecedorId !== undefined ? fornecedorId : atual.fornecedor_id;
-    const novoGlobal = isGlobal !== undefined ? Boolean(isGlobal) : atual.global;
-    const novaJustificativa = justificativa !== undefined ? justificativa : null;
-
-    await sql`
-      UPDATE chamados
-      SET status = ${novoStatus},
-          fornecedor_id = ${novoFornecedorId},
-          global = ${novoGlobal},
-          justificativa_ultima_movimentacao = COALESCE(${novaJustificativa}, justificativa_ultima_movimentacao),
-          atualizado_em = now()
-      WHERE id = ${id}
-    `;
-
-    // Cada atualização vira uma linha nova no histórico — não sobrescreve a
-    // anterior, diferente do campo justificativa_ultima_movimentacao.
-    await sql`
-      INSERT INTO chamados_historico (
-        chamado_id, status_anterior, status_novo, justificativa, fornecedor_id, global, autor_email, autor_nome
-      ) VALUES (
-        ${id}, ${atual.status}, ${novoStatus}, ${novaJustificativa}, ${novoFornecedorId}, ${novoGlobal}, ${usuario.email}, ${usuario.nome}
-      )
-    `;
-
-    const rows = await sql`SELECT id, status, fornecedor_id, global FROM chamados WHERE id = ${id}`;
+    const resultado = rows[0];
+    const atual = {
+      status: resultado.status_anterior,
+      titulo: resultado.titulo,
+      aberto_por_email: resultado.aberto_por_email,
+      aberto_por_nome: resultado.aberto_por_nome,
+    };
+    const novoStatus = resultado.status;
+    const novaJustificativa = justificativaParam;
 
     // Avisa o condômino que abriu o chamado só quando o status realmente
     // muda — não a cada edição de fornecedor/visibilidade. Falha de e-mail
@@ -137,7 +172,9 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       }
     }
 
-    return NextResponse.json({ chamado: rows[0] });
+    return NextResponse.json({
+      chamado: { id: resultado.id, status: resultado.status, fornecedor_id: resultado.fornecedor_id, global: resultado.global },
+    });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: "Erro interno ao atualizar o chamado." }, { status: 500 });

@@ -48,6 +48,16 @@ Reconstrução do app que estava sendo feito no Bubble (app "tavaresrodrigo").
 Schema em `db/migrations/0005_condominio_schema.sql` — rode no Neon antes de
 usar o módulo (`psql "$DATABASE_URL" -f db/migrations/0005_condominio_schema.sql`).
 
+### Anexos de chamados (armazenamento privado)
+
+Fotos e PDFs dos chamados ficam num Blob store **privado** da Vercel, separado
+do store público do projeto. Crie em Vercel > projeto > Storage > Create >
+Blob, com acesso **Private**, e conecte ao projeto com o prefixo de variável
+`CONDOMINIO_BLOB` (gera `CONDOMINIO_BLOB_READ_WRITE_TOKEN`). Os arquivos só
+abrem pela rota `/api/chamados/[id]/anexos/[anexoId]`, que confere a
+permissão a cada acesso. Anexos antigos (store público) são migrados na
+primeira abertura ou em lote pelo síndico via `POST /api/condominio-anexos/migrar`.
+
 Não existe uma tabela própria de usuários — papel e unidade de cada pessoa
 ficam no Clerk (Dashboard > Users > selecionar o usuário > Metadata > Public),
 como um JSON:

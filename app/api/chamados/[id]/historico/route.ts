@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { getUsuarioCondominio, podeVisualizarAdmin } from "@/lib/condominioAuth";
+import { emVisaoRestrita, emailsDaAdministracao, nomeVisivel } from "@/lib/condominioPrivacidade";
 
 export const dynamic = "force-dynamic";
 
@@ -33,14 +34,24 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
     const historico = await sql`
       SELECT h.id, h.status_anterior, h.status_novo, h.justificativa, h.global,
-             h.autor_nome, h.criado_em, f.nome_fantasia AS fornecedor
+             h.autor_email, h.autor_nome, h.criado_em, f.nome_fantasia AS fornecedor
       FROM chamados_historico h
       LEFT JOIN fornecedores f ON f.id = h.fornecedor_id
       WHERE h.chamado_id = ${id}
       ORDER BY h.criado_em DESC
     `;
 
-    return NextResponse.json({ historico });
+    // Em chamado global de outra pessoa, quem movimentou aparece pelo nome
+    // só se for da administração; a abertura (feita pelo morador) vira
+    // "Morador". O e-mail do autor nunca sai da API.
+    const restrita = emVisaoRestrita(usuario, chamado);
+    const administracao = restrita ? await emailsDaAdministracao(historico.map((h) => h.autor_email)) : new Set<string>();
+    const linhas = historico.map(({ autor_email, ...h }) => ({
+      ...h,
+      autor_nome: restrita ? nomeVisivel(autor_email, h.autor_nome, usuario, administracao) : h.autor_nome,
+    }));
+
+    return NextResponse.json({ historico: linhas });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: "Erro ao buscar o histórico." }, { status: 500 });
