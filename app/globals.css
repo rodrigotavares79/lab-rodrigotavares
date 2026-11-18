@@ -1838,3 +1838,4 @@ body:has(.condominio-shell) .site-footer {
   outline-offset: 1px;
 }
 .list-toolbar { flex-wrap: wrap; }
+.list-toolbar-grupo { display: inline-flex; align-items: center; gap: 0.6rem; white-space: nowrap; }

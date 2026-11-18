@@ -232,6 +232,7 @@ export default function Chamados() {
                   value={busca}
                   onChange={(e) => setBusca(e.target.value)}
                 />
+                <span className="list-toolbar-grupo">
                 <label htmlFor="ordenacao">Ordenar por</label>
                 <select
                   id="ordenacao"
@@ -244,6 +245,7 @@ export default function Chamados() {
                     </option>
                   ))}
                 </select>
+                </span>
               </div>
               <div className="dash-panel" style={{ marginTop: "0.75rem" }}>
                 <div className="dash-panel-header">
