@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, FormEvent } from "react";
 import Footer from "@/components/Footer";
+import { rotuloSla } from "@/lib/condominioSla";
 
 type Servico = {
   id: number;
@@ -38,7 +39,7 @@ function ServicoLinha({
       </div>
       <div className="servico-linha-meta">
         {servico.tipo && <span className="status-tag">{servico.tipo}</span>}
-        <span className="servico-linha-sla">SLA {servico.sla_horas}h</span>
+        <span className="servico-linha-sla">SLA {rotuloSla(servico.sla_horas, servico.urgencia)}</span>
       </div>
     </label>
   );
@@ -59,7 +60,7 @@ export default function NovoChamado() {
   useEffect(() => {
     fetch("/api/catalogo-servicos")
       .then((r) => r.json())
-      .then((d) => setServicos(d.servicos || []))
+      .then((d) => setServicos((d.servicos || []).filter((x: { ativo?: boolean }) => x.ativo !== false)))
       .catch(() => setServicos([]));
   }, []);
 

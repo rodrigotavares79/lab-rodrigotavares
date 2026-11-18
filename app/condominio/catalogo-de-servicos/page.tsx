@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useEffect, FormEvent } from "react";
+import { useState, useEffect, useRef, FormEvent } from "react";
 import Footer from "@/components/Footer";
+import cs from "../condominio.module.css";
+import { EXPEDIENTE_DESCRICAO, rotuloSla } from "@/lib/condominioSla";
 
 type Servico = {
   id: number;
@@ -10,6 +12,7 @@ type Servico = {
   urgencia: string | null;
   tipo: string | null;
   sla_horas: number;
+  ativo: boolean;
 };
 
 function classeUrgencia(urgencia: string): string {
@@ -24,6 +27,37 @@ export default function CatalogoDeServicos() {
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [erroLista, setErroLista] = useState<string | null>(null);
+  const [editando, setEditando] = useState<Servico | null>(null);
+  const [alterandoId, setAlterandoId] = useState<number | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  function iniciarEdicao(servico: Servico) {
+    setErro(null);
+    setEditando(servico);
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  // Desativar não apaga: o serviço sai do formulário de abertura de
+  // chamado, mas continua nos chamados antigos. Reativar desfaz.
+  async function alternarAtivo(servico: Servico) {
+    setAlterandoId(servico.id);
+    setErroLista(null);
+    try {
+      const res = await fetch(`/api/catalogo-servicos/${servico.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ativo: !servico.ativo }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || "Não foi possível alterar o serviço.");
+      if (editando?.id === servico.id) setEditando(null);
+      carregarServicos();
+    } catch (err) {
+      setErroLista(err instanceof Error ? err.message : "Erro ao alterar o serviço.");
+    } finally {
+      setAlterandoId(null);
+    }
+  }
 
   function carregarServicos() {
     setCarregando(true);
@@ -58,14 +92,15 @@ export default function CatalogoDeServicos() {
 
     setEnviando(true);
     try {
-      const res = await fetch("/api/catalogo-servicos", {
-        method: "POST",
+      const res = await fetch(editando ? `/api/catalogo-servicos/${editando.id}` : "/api/catalogo-servicos", {
+        method: editando ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
       const body = await res.json();
-      if (!res.ok) throw new Error(body.error || "Não foi possível cadastrar o serviço.");
+      if (!res.ok) throw new Error(body.error || "Não foi possível salvar o serviço.");
       form.reset();
+      setEditando(null);
       carregarServicos();
     } catch (err) {
       setErro(err instanceof Error ? err.message : "Erro ao cadastrar.");
@@ -85,21 +120,21 @@ export default function CatalogoDeServicos() {
             urgência e o SLA são definidos aqui, não mais pelo condômino.
           </p>
 
-          <form className="risk-form" onSubmit={handleSubmit}>
+          <form className="risk-form" onSubmit={handleSubmit} ref={formRef} key={editando ? `editar-${editando.id}` : "novo"}>
             <fieldset className="form-section">
-              <legend>Cadastrar Serviço</legend>
+              <legend>{editando ? `Editar Serviço — ${editando.nome}` : "Cadastrar Serviço"}</legend>
               <div className="form-grid">
                 <div className="form-field">
                   <label htmlFor="nome">Nome (serviço)</label>
-                  <input id="nome" name="nome" type="text" required placeholder="Ex.: Vazamento hidráulico" />
+                  <input id="nome" name="nome" type="text" defaultValue={editando?.nome ?? ""} required placeholder="Ex.: Vazamento hidráulico" />
                 </div>
                 <div className="form-field">
                   <label htmlFor="categoria">Categoria</label>
-                  <input id="categoria" name="categoria" type="text" placeholder="Ex.: Hidráulica, Elétrica, Limpeza" />
+                  <input id="categoria" name="categoria" type="text" defaultValue={editando?.categoria ?? ""} placeholder="Ex.: Hidráulica, Elétrica, Limpeza" />
                 </div>
                 <div className="form-field">
                   <label htmlFor="urgencia">Urgência</label>
-                  <select id="urgencia" name="urgencia" defaultValue="" required>
+                  <select id="urgencia" name="urgencia" defaultValue={editando?.urgencia ?? ""} required>
                     <option value="" disabled>Selecione</option>
                     <option value="Baixa">Baixa</option>
                     <option value="Média">Média</option>
@@ -108,7 +143,7 @@ export default function CatalogoDeServicos() {
                 </div>
                 <div className="form-field">
                   <label htmlFor="tipo">Tipo</label>
-                  <select id="tipo" name="tipo" defaultValue="" required>
+                  <select id="tipo" name="tipo" defaultValue={editando?.tipo ?? ""} required>
                     <option value="" disabled>Selecione</option>
                     <option value="Problema">Problema</option>
                     <option value="Demanda">Demanda</option>
@@ -116,9 +151,12 @@ export default function CatalogoDeServicos() {
                 </div>
                 <div className="form-field">
                   <label htmlFor="slaHoras">SLA (horas)</label>
-                  <input id="slaHoras" name="slaHoras" type="number" min="1" step="1" required placeholder="Ex.: 48" />
+                  <input id="slaHoras" name="slaHoras" type="number" min="1" step="1" defaultValue={editando?.sla_horas ?? ""} required placeholder="Ex.: 48" />
                   <p className="field-helper">
                     Prazo de atendimento, contado a partir da abertura do chamado.
+                    Urgentes contam horas corridas; os demais, horas úteis
+                    ({EXPEDIENTE_DESCRICAO}).
+                    {editando && " Alterar a urgência ou o SLA vale só para chamados abertos daqui em diante."}
                   </p>
                 </div>
               </div>
@@ -126,15 +164,20 @@ export default function CatalogoDeServicos() {
 
             <div className="form-actions">
               <button type="submit" className="btn-primary" disabled={enviando}>
-                {enviando ? "Cadastrando..." : "Cadastrar"}
+                {enviando ? "Salvando..." : editando ? "Salvar alterações" : "Cadastrar"}
               </button>
+              {editando && (
+                <button type="button" className="btn-secondary" onClick={() => { setEditando(null); setErro(null); }}>
+                  Cancelar edição
+                </button>
+              )}
             </div>
 
             {erro && (
               <div className="error-banner">
                 <span className="success-icon error-icon">!</span>
                 <span className="success-text">
-                  <strong>Não foi possível cadastrar.</strong>
+                  <strong>{editando ? "Não foi possível salvar." : "Não foi possível cadastrar."}</strong>
                   <span>{erro}</span>
                 </span>
               </div>
@@ -143,19 +186,26 @@ export default function CatalogoDeServicos() {
 
           {carregando && <p className="text-muted" style={{ marginTop: "2rem" }}>Carregando...</p>}
 
-          {erroLista && (
+          {erroLista && servicos.length === 0 && (
             <div className="error-banner" style={{ marginTop: "2rem" }}>
               <span className="success-icon error-icon">!</span>
               <span className="success-text">{erroLista}</span>
             </div>
           )}
 
-          {!carregando && !erroLista && (
+          {!carregando && (servicos.length > 0 || !erroLista) && (
             <div className="dash-panel" style={{ marginTop: "2.5rem" }}>
               <div className="dash-panel-header">
-                {servicos.length} serviço{servicos.length !== 1 ? "s" : ""} cadastrado{servicos.length !== 1 ? "s" : ""}
+                {servicos.filter((x) => x.ativo).length} serviço{servicos.filter((x) => x.ativo).length !== 1 ? "s" : ""} ativo{servicos.filter((x) => x.ativo).length !== 1 ? "s" : ""}
+                {servicos.some((x) => !x.ativo) && ` · ${servicos.filter((x) => !x.ativo).length} inativo${servicos.filter((x) => !x.ativo).length !== 1 ? "s" : ""}`}
               </div>
               <div className="dash-panel-body">
+                {erroLista && (
+                  <div className="error-banner" style={{ marginTop: 0, marginBottom: "1rem" }}>
+                    <span className="success-icon error-icon">!</span>
+                    <span className="success-text">{erroLista}</span>
+                  </div>
+                )}
                 {servicos.length === 0 ? (
                   <p className="text-muted" style={{ margin: 0 }}>Nenhum serviço cadastrado ainda.</p>
                 ) : (
@@ -167,17 +217,34 @@ export default function CatalogoDeServicos() {
                           <th>Categoria</th>
                           <th>Tipo</th>
                           <th>Urgência</th>
-                          <th>SLA (horas)</th>
+                          <th>SLA</th>
+                          <th>Situação</th>
+                          <th aria-label="Ações" />
                         </tr>
                       </thead>
                       <tbody>
                         {servicos.map((s) => (
-                          <tr key={s.id}>
+                          <tr key={s.id} className={s.ativo ? undefined : cs.linhaInativa}>
                             <td>{s.nome}</td>
                             <td>{s.categoria || "—"}</td>
                             <td>{s.tipo || "—"}</td>
                             <td>{s.urgencia ? <span className={classeUrgencia(s.urgencia)}>{s.urgencia}</span> : "—"}</td>
-                            <td>{s.sla_horas}</td>
+                            <td>{rotuloSla(s.sla_horas, s.urgencia)}</td>
+                            <td>
+                              <span className={`${cs.situacao} ${s.ativo ? cs.situacaoAtivo : cs.situacaoInativo}`}>
+                                {s.ativo ? "Ativo" : "Inativo"}
+                              </span>
+                            </td>
+                            <td>
+                              <div className={cs.acoesLinha}>
+                                <button type="button" className={cs.acaoTabela} onClick={() => iniciarEdicao(s)}>
+                                  Editar
+                                </button>
+                                <button type="button" className={cs.acaoTabela} disabled={alterandoId === s.id} onClick={() => alternarAtivo(s)}>
+                                  {s.ativo ? "Desativar" : "Reativar"}
+                                </button>
+                              </div>
+                            </td>
                           </tr>
                         ))}
                       </tbody>

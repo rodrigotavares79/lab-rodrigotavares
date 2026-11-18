@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { getUsuarioCondominio, podeVisualizarAdmin } from "@/lib/condominioAuth";
 import { mascararAutorDoChamado } from "@/lib/condominioPrivacidade";
+import { calcularPrazoSla } from "@/lib/condominioSla";
 
 export const dynamic = "force-dynamic";
 
@@ -75,14 +76,18 @@ export async function POST(request: NextRequest) {
 
     // Urgência não é mais escolhida pelo condômino — vem fixa do serviço
     // selecionado no Catálogo de Serviços, junto com o SLA.
-    const servicoRows = await sql`SELECT sla_horas, urgencia FROM catalogo_servicos WHERE id = ${servicoId}`;
+    const servicoRows = await sql`SELECT sla_horas, urgencia, ativo FROM catalogo_servicos WHERE id = ${servicoId}`;
     if (servicoRows.length === 0) {
       return NextResponse.json({ error: "Serviço não encontrado." }, { status: 404 });
     }
-    const { sla_horas: slaHoras, urgencia } = servicoRows[0];
+    const { sla_horas: slaHoras, urgencia, ativo } = servicoRows[0];
+    if (ativo === false) {
+      return NextResponse.json({ error: "Este serviço foi desativado. Escolha outro serviço do catálogo." }, { status: 400 });
+    }
 
-    // Prazo SLA = agora + SLA (horas) do serviço escolhido — mesma regra
-    // automática que existia no app original.
+    // Prazo SLA: urgentes em horas corridas; demais em horas úteis
+    // (segunda a sexta, 8h–18h) — ver lib/condominioSla.ts.
+    const prazoSla = calcularPrazoSla(new Date(), Number(slaHoras), urgencia).toISOString();
     // Abertura e primeira linha do histórico numa única instrução SQL: ou
     // as duas gravações acontecem, ou nenhuma — o chamado nunca fica sem o
     // registro de abertura na linha do tempo.
@@ -93,7 +98,7 @@ export async function POST(request: NextRequest) {
           aberto_por_email, aberto_por_nome, aberto_por_unidade
         ) VALUES (
           ${titulo}, ${descricao || null}, ${servicoId}, ${urgencia || null}, 'Novo',
-          now() + make_interval(hours => ${slaHoras}),
+          ${prazoSla}::timestamptz,
           ${usuario.email}, ${usuario.nome}, ${usuario.unidade}
         )
         RETURNING id

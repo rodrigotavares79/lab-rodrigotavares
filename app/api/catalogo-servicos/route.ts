@@ -11,8 +11,8 @@ export async function GET() {
   try {
     const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
     const rows = await sql`
-      SELECT id, nome, categoria, urgencia, tipo, sla_horas
-      FROM catalogo_servicos ORDER BY nome ASC
+      SELECT id, nome, categoria, urgencia, tipo, sla_horas, ativo
+      FROM catalogo_servicos ORDER BY ativo DESC, nome ASC
     `;
     return NextResponse.json({ servicos: rows });
   } catch (err) {
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     const rows = await sql`
       INSERT INTO catalogo_servicos (nome, categoria, urgencia, tipo, sla_horas, criado_por)
       VALUES (${nome}, ${categoria || null}, ${urgencia}, ${tipo}, ${sla}, ${usuario.email})
-      RETURNING id, nome, categoria, urgencia, tipo, sla_horas
+      RETURNING id, nome, categoria, urgencia, tipo, sla_horas, ativo
     `;
     return NextResponse.json({ servico: rows[0] });
   } catch (err) {

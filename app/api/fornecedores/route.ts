@@ -15,8 +15,8 @@ export async function GET() {
 
     const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
     const rows = await sql`
-      SELECT id, nome_fantasia, cnpj, categoria_servico, nome_contato, email, telefone, criado_em
-      FROM fornecedores ORDER BY nome_fantasia ASC
+      SELECT id, nome_fantasia, cnpj, categoria_servico, nome_contato, email, telefone, ativo, criado_em
+      FROM fornecedores ORDER BY ativo DESC, nome_fantasia ASC
     `;
     return NextResponse.json({ fornecedores: rows });
   } catch (err) {
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     const rows = await sql`
       INSERT INTO fornecedores (nome_fantasia, cnpj, categoria_servico, nome_contato, email, telefone, cadastrado_por)
       VALUES (${nomeFantasia}, ${cnpj || null}, ${categoriaServico || null}, ${nomeContato || null}, ${email || null}, ${telefone || null}, ${usuario.email})
-      RETURNING id, nome_fantasia, cnpj, categoria_servico, nome_contato, email, telefone, criado_em
+      RETURNING id, nome_fantasia, cnpj, categoria_servico, nome_contato, email, telefone, ativo, criado_em
     `;
     return NextResponse.json({ fornecedor: rows[0] });
   } catch (err) {

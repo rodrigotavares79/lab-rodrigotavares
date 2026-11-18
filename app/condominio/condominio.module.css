@@ -185,3 +185,57 @@
   .menuGrupo { display: none; }
   .usuario { display: none; }
 }
+
+/* --- Cadastros (Fornecedores, Catálogo de Serviços): ações por linha --- */
+.acoesLinha {
+  display: flex;
+  gap: 0.4rem;
+  justify-content: flex-end;
+}
+
+.acaoTabela {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--accent);
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.25rem 0.6rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.acaoTabela:hover {
+  background: var(--bg);
+  border-color: var(--accent);
+}
+
+.acaoTabela:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.linhaInativa td {
+  color: var(--text-muted);
+}
+
+.situacao {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.situacaoAtivo {
+  background: var(--success-bg);
+  color: var(--success);
+}
+
+.situacaoInativo {
+  background: var(--bg);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}

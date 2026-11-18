@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Footer from "@/components/Footer";
 
-type Fornecedor = { id: number; nome_fantasia: string };
+type Fornecedor = { id: number; nome_fantasia: string; ativo?: boolean };
 
 type ChamadoDetalhe = {
   id: number;
@@ -49,6 +49,21 @@ type Anexo = {
   criado_em: string;
 };
 
+// O que quem abriu o chamado pode fazer com ele (mesma regra da API).
+const STATUS_ABERTOS = ["Novo", "Em andamento", "Aguardando fornecedor", "Paralisado", "Reaberto"];
+function acoesDoAutor(statusAtual: string): { status: string; rotulo: string; dica: string }[] {
+  if (STATUS_ABERTOS.includes(statusAtual)) {
+    return [
+      { status: "Resolvido", rotulo: "Marcar como resolvido", dica: "O problema foi solucionado." },
+      { status: "Cancelado", rotulo: "Cancelar chamado", dica: "O chamado não é mais necessário." },
+    ];
+  }
+  if (statusAtual === "Resolvido" || statusAtual === "Cancelado") {
+    return [{ status: "Reaberto", rotulo: "Reabrir chamado", dica: "O problema voltou ou não foi resolvido. O prazo recomeça a contar." }];
+  }
+  return [];
+}
+
 const STATUS_OPCOES = [
   "Novo",
   "Em andamento",
@@ -89,6 +104,12 @@ export default function DetalheDoChamado() {
   const params = useParams<{ id: string }>();
   const [chamado, setChamado] = useState<ChamadoDetalhe | null>(null);
   const [perfil, setPerfil] = useState<string | null>(null);
+  const [eAutor, setEAutor] = useState(false);
+  const [acaoAutor, setAcaoAutor] = useState("");
+  const [justificativaAutor, setJustificativaAutor] = useState("");
+  const [salvandoAutor, setSalvandoAutor] = useState(false);
+  const [erroAutor, setErroAutor] = useState<string | null>(null);
+  const [sucessoAutor, setSucessoAutor] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -126,6 +147,7 @@ export default function DetalheDoChamado() {
         if (d.error) throw new Error(d.error);
         setChamado(d.chamado);
         setPerfil(d.perfil);
+        setEAutor(Boolean(d.eAutor));
         setStatusForm(d.chamado.status);
         setFornecedorForm(d.chamado.fornecedor_id ? String(d.chamado.fornecedor_id) : "");
         setGlobalForm(d.chamado.global);
@@ -198,6 +220,38 @@ export default function DetalheDoChamado() {
   }, [params?.id]);
 
   const gerente = perfil === "sindico" || perfil === "conselheiro";
+
+  // Fornecedores desativados não aparecem para escolha — a não ser o que já
+  // está atribuído a este chamado, para não sumir do campo.
+  const fornecedoresSelecionaveis = fornecedores.filter(
+    (f) => f.ativo !== false || (chamado?.fornecedor_id != null && f.id === chamado.fornecedor_id)
+  );
+
+  async function handleAcaoAutor(e: React.FormEvent) {
+    e.preventDefault();
+    if (!chamado || !acaoAutor) return;
+    setSalvandoAutor(true);
+    setErroAutor(null);
+    setSucessoAutor(null);
+    try {
+      const res = await fetch(`/api/chamados/${chamado.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: acaoAutor, justificativa: justificativaAutor }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || "Falha ao atualizar o chamado.");
+      setSucessoAutor(`Chamado atualizado para "${acaoAutor}".`);
+      setAcaoAutor("");
+      setJustificativaAutor("");
+      carregarChamado();
+      carregarHistorico();
+    } catch (err) {
+      setErroAutor(err instanceof Error ? err.message : "Erro ao atualizar o chamado.");
+    } finally {
+      setSalvandoAutor(false);
+    }
+  }
 
   async function handleSalvar(e: React.FormEvent) {
     e.preventDefault();
@@ -410,8 +464,10 @@ export default function DetalheDoChamado() {
                         <label htmlFor="fornecedorForm">Fornecedor Responsável</label>
                         <select id="fornecedorForm" value={fornecedorForm} onChange={(e) => setFornecedorForm(e.target.value)}>
                           <option value="">Nenhum</option>
-                          {fornecedores.map((f) => (
-                            <option key={f.id} value={f.id}>{f.nome_fantasia}</option>
+                          {fornecedoresSelecionaveis.map((f) => (
+                            <option key={f.id} value={f.id}>
+                              {f.nome_fantasia}{f.ativo === false ? " (inativo)" : ""}
+                            </option>
                           ))}
                         </select>
                       </div>
@@ -445,6 +501,58 @@ export default function DetalheDoChamado() {
                         <div className="error-banner form-field-wide" style={{ marginTop: 0 }}>
                           <span className="success-icon error-icon">!</span>
                           <span className="success-text">{erroSalvar}</span>
+                        </div>
+                      )}
+                    </form>
+                  </div>
+                </div>
+              )}
+
+              {!gerente && eAutor && acoesDoAutor(chamado.status).length > 0 && (
+                <div className="dash-panel">
+                  <div className="dash-panel-header">Atualizar meu chamado</div>
+                  <div className="dash-panel-body">
+                    <form onSubmit={handleAcaoAutor} className="form-grid" style={{ maxWidth: "34rem" }}>
+                      <div className="form-field form-field-wide">
+                        <span style={{ fontSize: "0.85rem", fontWeight: 600 }}>O que você quer fazer?</span>
+                        {acoesDoAutor(chamado.status).map((a) => (
+                          <label key={a.status} style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem", fontWeight: 400, marginTop: "0.5rem" }}>
+                            <input
+                              type="radio"
+                              name="acaoAutor"
+                              value={a.status}
+                              checked={acaoAutor === a.status}
+                              onChange={() => setAcaoAutor(a.status)}
+                              style={{ marginTop: "0.2rem" }}
+                            />
+                            <span>
+                              <strong>{a.rotulo}</strong>
+                              <span className="text-muted" style={{ display: "block", fontSize: "0.8rem" }}>{a.dica}</span>
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                      <div className="form-field form-field-wide">
+                        <label htmlFor="justificativaAutor">Justificativa</label>
+                        <textarea
+                          id="justificativaAutor"
+                          rows={3}
+                          value={justificativaAutor}
+                          onChange={(e) => setJustificativaAutor(e.target.value)}
+                          placeholder="Explique o motivo (obrigatório)."
+                          required
+                        />
+                      </div>
+                      <div className="form-field-wide form-actions">
+                        <button type="submit" className="btn-primary" disabled={salvandoAutor || !acaoAutor}>
+                          {salvandoAutor ? "Salvando..." : "Confirmar"}
+                        </button>
+                        {sucessoAutor && <span className="text-muted" style={{ fontSize: "0.85rem" }}>{sucessoAutor}</span>}
+                      </div>
+                      {erroAutor && (
+                        <div className="error-banner form-field-wide" style={{ marginTop: 0 }}>
+                          <span className="success-icon error-icon">!</span>
+                          <span className="success-text">{erroAutor}</span>
                         </div>
                       )}
                     </form>

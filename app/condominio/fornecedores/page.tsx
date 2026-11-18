@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, FormEvent } from "react";
+import { useState, useEffect, useRef, FormEvent } from "react";
 import Footer from "@/components/Footer";
+import s from "../condominio.module.css";
 
 type Fornecedor = {
   id: number;
@@ -11,6 +12,7 @@ type Fornecedor = {
   nome_contato: string | null;
   email: string | null;
   telefone: string | null;
+  ativo: boolean;
 };
 
 export default function Fornecedores() {
@@ -19,6 +21,37 @@ export default function Fornecedores() {
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [erroLista, setErroLista] = useState<string | null>(null);
+  const [editando, setEditando] = useState<Fornecedor | null>(null);
+  const [alterandoId, setAlterandoId] = useState<number | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  function iniciarEdicao(f: Fornecedor) {
+    setErro(null);
+    setEditando(f);
+    formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  // Desativar não apaga: o fornecedor sai da escolha nos chamados, mas
+  // continua nos chamados antigos. Reativar desfaz.
+  async function alternarAtivo(f: Fornecedor) {
+    setAlterandoId(f.id);
+    setErroLista(null);
+    try {
+      const res = await fetch(`/api/fornecedores/${f.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ativo: !f.ativo }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || "Não foi possível alterar o fornecedor.");
+      if (editando?.id === f.id) setEditando(null);
+      carregarFornecedores();
+    } catch (err) {
+      setErroLista(err instanceof Error ? err.message : "Erro ao alterar o fornecedor.");
+    } finally {
+      setAlterandoId(null);
+    }
+  }
 
   function carregarFornecedores() {
     setCarregando(true);
@@ -54,14 +87,15 @@ export default function Fornecedores() {
 
     setEnviando(true);
     try {
-      const res = await fetch("/api/fornecedores", {
-        method: "POST",
+      const res = await fetch(editando ? `/api/fornecedores/${editando.id}` : "/api/fornecedores", {
+        method: editando ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
       const body = await res.json();
-      if (!res.ok) throw new Error(body.error || "Não foi possível cadastrar o fornecedor.");
+      if (!res.ok) throw new Error(body.error || "Não foi possível salvar o fornecedor.");
       form.reset();
+      setEditando(null);
       carregarFornecedores();
     } catch (err) {
       setErro(err instanceof Error ? err.message : "Erro ao cadastrar.");
@@ -80,48 +114,53 @@ export default function Fornecedores() {
             Empresas e contatos usados para atender os chamados do condomínio.
           </p>
 
-          <form className="risk-form" onSubmit={handleSubmit}>
+          <form className="risk-form" onSubmit={handleSubmit} ref={formRef} key={editando ? `editar-${editando.id}` : "novo"}>
             <fieldset className="form-section">
-              <legend>Cadastrar Fornecedor</legend>
+              <legend>{editando ? `Editar Fornecedor — ${editando.nome_fantasia}` : "Cadastrar Fornecedor"}</legend>
               <div className="form-grid">
                 <div className="form-field">
                   <label htmlFor="nomeFantasia">Nome Fantasia</label>
-                  <input id="nomeFantasia" name="nomeFantasia" type="text" required />
+                  <input id="nomeFantasia" name="nomeFantasia" defaultValue={editando?.nome_fantasia ?? ""} type="text" required />
                 </div>
                 <div className="form-field">
                   <label htmlFor="cnpj">CNPJ</label>
-                  <input id="cnpj" name="cnpj" type="text" />
+                  <input id="cnpj" name="cnpj" defaultValue={editando?.cnpj ?? ""} type="text" />
                 </div>
                 <div className="form-field">
                   <label htmlFor="categoriaServico">Categoria de Serviço</label>
-                  <input id="categoriaServico" name="categoriaServico" type="text" placeholder="Ex.: Elétrica, Hidráulica, Limpeza" />
+                  <input id="categoriaServico" name="categoriaServico" defaultValue={editando?.categoria_servico ?? ""} type="text" placeholder="Ex.: Elétrica, Hidráulica, Limpeza" />
                 </div>
                 <div className="form-field">
                   <label htmlFor="nomeContato">Nome do Contato</label>
-                  <input id="nomeContato" name="nomeContato" type="text" />
+                  <input id="nomeContato" name="nomeContato" defaultValue={editando?.nome_contato ?? ""} type="text" />
                 </div>
                 <div className="form-field">
                   <label htmlFor="email">E-mail</label>
-                  <input id="email" name="email" type="email" />
+                  <input id="email" name="email" defaultValue={editando?.email ?? ""} type="email" />
                 </div>
                 <div className="form-field">
                   <label htmlFor="telefone">Telefone</label>
-                  <input id="telefone" name="telefone" type="text" />
+                  <input id="telefone" name="telefone" defaultValue={editando?.telefone ?? ""} type="text" />
                 </div>
               </div>
             </fieldset>
 
             <div className="form-actions">
               <button type="submit" className="btn-primary" disabled={enviando}>
-                {enviando ? "Cadastrando..." : "Cadastrar"}
+                {enviando ? "Salvando..." : editando ? "Salvar alterações" : "Cadastrar"}
               </button>
+              {editando && (
+                <button type="button" className="btn-secondary" onClick={() => { setEditando(null); setErro(null); }}>
+                  Cancelar edição
+                </button>
+              )}
             </div>
 
             {erro && (
               <div className="error-banner">
                 <span className="success-icon error-icon">!</span>
                 <span className="success-text">
-                  <strong>Não foi possível cadastrar.</strong>
+                  <strong>{editando ? "Não foi possível salvar." : "Não foi possível cadastrar."}</strong>
                   <span>{erro}</span>
                 </span>
               </div>
@@ -130,19 +169,26 @@ export default function Fornecedores() {
 
           {carregando && <p className="text-muted" style={{ marginTop: "2rem" }}>Carregando...</p>}
 
-          {erroLista && (
+          {erroLista && fornecedores.length === 0 && (
             <div className="error-banner" style={{ marginTop: "2rem" }}>
               <span className="success-icon error-icon">!</span>
               <span className="success-text">{erroLista}</span>
             </div>
           )}
 
-          {!carregando && !erroLista && (
+          {!carregando && (fornecedores.length > 0 || !erroLista) && (
             <div className="dash-panel" style={{ marginTop: "2.5rem" }}>
               <div className="dash-panel-header">
-                {fornecedores.length} fornecedor{fornecedores.length !== 1 ? "es" : ""} cadastrado{fornecedores.length !== 1 ? "s" : ""}
+                {fornecedores.filter((f) => f.ativo).length} fornecedor{fornecedores.filter((f) => f.ativo).length !== 1 ? "es" : ""} ativo{fornecedores.filter((f) => f.ativo).length !== 1 ? "s" : ""}
+                {fornecedores.some((f) => !f.ativo) && ` · ${fornecedores.filter((f) => !f.ativo).length} inativo${fornecedores.filter((f) => !f.ativo).length !== 1 ? "s" : ""}`}
               </div>
               <div className="dash-panel-body">
+                {erroLista && (
+                  <div className="error-banner" style={{ marginTop: 0, marginBottom: "1rem" }}>
+                    <span className="success-icon error-icon">!</span>
+                    <span className="success-text">{erroLista}</span>
+                  </div>
+                )}
                 {fornecedores.length === 0 ? (
                   <p className="text-muted" style={{ margin: 0 }}>Nenhum fornecedor cadastrado ainda.</p>
                 ) : (
@@ -155,16 +201,33 @@ export default function Fornecedores() {
                           <th>Contato</th>
                           <th>E-mail</th>
                           <th>Telefone</th>
+                          <th>Situação</th>
+                          <th aria-label="Ações" />
                         </tr>
                       </thead>
                       <tbody>
                         {fornecedores.map((f) => (
-                          <tr key={f.id}>
+                          <tr key={f.id} className={f.ativo ? undefined : s.linhaInativa}>
                             <td>{f.nome_fantasia}</td>
                             <td>{f.categoria_servico || "—"}</td>
                             <td>{f.nome_contato || "—"}</td>
                             <td>{f.email || "—"}</td>
                             <td>{f.telefone || "—"}</td>
+                            <td>
+                              <span className={`${s.situacao} ${f.ativo ? s.situacaoAtivo : s.situacaoInativo}`}>
+                                {f.ativo ? "Ativo" : "Inativo"}
+                              </span>
+                            </td>
+                            <td>
+                              <div className={s.acoesLinha}>
+                                <button type="button" className={s.acaoTabela} onClick={() => iniciarEdicao(f)}>
+                                  Editar
+                                </button>
+                                <button type="button" className={s.acaoTabela} disabled={alterandoId === f.id} onClick={() => alternarAtivo(f)}>
+                                  {f.ativo ? "Desativar" : "Reativar"}
+                                </button>
+                              </div>
+                            </td>
                           </tr>
                         ))}
                       </tbody>
