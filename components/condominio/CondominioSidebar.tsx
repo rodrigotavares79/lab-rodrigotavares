@@ -27,7 +27,7 @@ export default function CondominioSidebar({ nome, unidade, gerente, chamadosAber
     { rotulo: "Início", href: "/condominio", badge: naoLidas },
     { rotulo: "Abrir chamado", href: "/condominio/novo-chamado" },
     { rotulo: "Lista de chamados", href: "/condominio/chamados", badge: chamadosAbertos },
-    { rotulo: "Relatórios", href: "/condominio/dashboard" },
+    { rotulo: "Relatórios", href: "/condominio/relatorios" },
   ];
   const admin: Item[] = [
     { rotulo: "Fornecedores", href: "/condominio/fornecedores" },

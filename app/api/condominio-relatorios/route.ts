@@ -192,6 +192,6 @@ export async function GET() {
     });
   } catch (err) {
     console.error(err);
-    return NextResponse.json({ error: "Erro ao buscar dados do dashboard." }, { status: 500 });
+    return NextResponse.json({ error: "Erro ao buscar dados dos relatórios." }, { status: 500 });
   }
 }

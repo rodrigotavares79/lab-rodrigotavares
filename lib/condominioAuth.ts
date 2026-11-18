@@ -133,7 +133,7 @@ export function podeGerirChamados(perfil: PerfilCondominio): boolean {
   return perfil === "sindico" || perfil === "conselheiro";
 }
 
-// Enxerga as telas administrativas (dashboard, todos os chamados, lista de
+// Enxerga as telas administrativas (relatórios, todos os chamados, lista de
 // condôminos) — síndico e conselheiro editam; conselheiro-admin só visualiza.
 export function podeVisualizarAdmin(perfil: PerfilCondominio): boolean {
   return perfil === "sindico" || perfil === "conselheiro" || perfil === "conselheiro_admin";

@@ -42,7 +42,7 @@ type AtividadeDia = { dia: string; abertos: number; encerrados: number };
 type TotalPorTipo = { tipo: string; total: number };
 type Recente = { id: number; titulo: string; status: string; urgencia: string | null; aberto_por_nome: string; criado_em: string };
 
-type DashboardData = {
+type RelatoriosData = {
   kpis: Kpis;
   servicoMaisSolicitado: ServicoMaisSolicitado;
   finalizados: Painel;
@@ -363,13 +363,13 @@ function PainelChamados({
   );
 }
 
-export default function CondominioDashboard() {
-  const [data, setData] = useState<DashboardData | null>(null);
+export default function CondominioRelatorios() {
+  const [data, setData] = useState<RelatoriosData | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/condominio-dashboard")
+    fetch("/api/condominio-relatorios")
       .then((r) => r.json())
       .then((d) => {
         if (d.error) throw new Error(d.error);
