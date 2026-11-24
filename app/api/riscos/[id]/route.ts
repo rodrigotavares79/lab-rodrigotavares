@@ -7,7 +7,8 @@ export const dynamic = "force-dynamic";
 
 const STATUS_VALIDOS = ["Identificado", "Em Tratamento", "Mitigado"];
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const { id } = params;
     if (!id || !/^\d+$/.test(id)) {
@@ -62,7 +63,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 // O Risco Atual e o Projetado nunca são digitados aqui — eles são sempre
 // recalculados a partir dos Fatores de Risco cadastrados (ver recomputeRisco).
 // Congelamento: uma vez Mitigado, nada mais pode ser alterado.
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const { id } = params;
     if (!id || !/^\d+$/.test(id)) {

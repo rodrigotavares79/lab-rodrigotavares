@@ -25,7 +25,8 @@ async function carregarFatorComRisco(sql: any, id: string) {
 
 // PATCH: atualiza qualquer campo do fator/controle. Bloqueado por completo se
 // o risco dono do fator já estiver Mitigado.
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const { id } = params;
     if (!id || !/^\d+$/.test(id)) {
@@ -99,7 +100,8 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
 // DELETE: remove um fator (ex.: cadastrado por engano). Bloqueado se o risco
 // já estiver Mitigado.
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const { id } = params;
     if (!id || !/^\d+$/.test(id)) {

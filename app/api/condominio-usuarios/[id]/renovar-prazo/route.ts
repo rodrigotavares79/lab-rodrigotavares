@@ -11,7 +11,8 @@ export const dynamic = "force-dynamic";
 
 // Renova os 30 dias úteis do conselheiro-admin. Quem pode: síndico/conselheiro
 // (renovando qualquer um), ou o próprio conselheiro-admin renovando a si mesmo.
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const usuario = await getUsuarioCondominio();
     if (!usuario) {

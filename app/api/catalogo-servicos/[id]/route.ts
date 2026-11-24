@@ -11,7 +11,8 @@ const TIPOS_VALIDOS = ["Problema", "Demanda"];
 // apagado: desativado, ele some do formulário de abertura de chamado, mas
 // continua nos chamados antigos. Mudar urgência ou SLA vale só para os
 // chamados abertos depois da alteração — o prazo dos já abertos não muda.
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const usuario = await getUsuarioCondominio();
     if (!usuario || !podeGerirChamados(usuario.perfil)) {

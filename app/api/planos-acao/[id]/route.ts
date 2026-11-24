@@ -9,7 +9,8 @@ const STATUS_VALIDOS = ["Aberto", "Concluído"];
 // - Bloqueado por completo se o risco já estiver Mitigado (tudo congela).
 // - Concluir o plano (status "Concluído") só é permitido se todas as ações
 //   dentro dele já estiverem "Concluído" (e houver pelo menos uma).
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const { id } = params;
     if (!id || !/^\d+$/.test(id)) {

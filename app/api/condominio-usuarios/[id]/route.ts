@@ -15,7 +15,8 @@ const PERFIS_VALIDOS: PerfilCondominio[] = ["sindico", "conselheiro", "conselhei
 // Edita perfil/unidade de um condômino já existente. Conselheiro-Admin não
 // edita ninguém (nem a si mesmo) por aqui — só visualiza; a única ação dele
 // é a rota dedicada de cadastrar síndico, e renovar seu próprio prazo.
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const usuario = await getUsuarioCondominio();
     if (!usuario || !podeGerirChamados(usuario.perfil)) {
