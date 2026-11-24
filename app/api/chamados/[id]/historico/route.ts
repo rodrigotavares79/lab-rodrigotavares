@@ -8,7 +8,8 @@ export const dynamic = "force-dynamic";
 // Linha do tempo completa do chamado — quem vê o chamado vê o histórico
 // inteiro dele (não tem distinção de nota interna aqui, diferente de
 // mensagens).
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const usuario = await getUsuarioCondominio();
     if (!usuario) {

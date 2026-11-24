@@ -9,7 +9,8 @@ export const dynamic = "force-dynamic";
 const TAMANHO_MAXIMO_BYTES = 8 * 1024 * 1024; // 8 MB
 const TIPOS_PERMITIDOS = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif", "application/pdf"];
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const usuario = await getUsuarioCondominio();
     if (!usuario) {
@@ -60,7 +61,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const usuario = await getUsuarioCondominio();
     if (!usuario) {

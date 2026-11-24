@@ -7,7 +7,8 @@ const STATUS_VALIDOS = ["Não iniciado", "Em andamento", "Concluído"];
 
 // PATCH: atualiza uma Ação (status, descrição, responsável, prazo).
 // Bloqueado por completo se o risco dono do plano já estiver "Mitigado".
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const { id } = params;
     if (!id || !/^\d+$/.test(id)) {

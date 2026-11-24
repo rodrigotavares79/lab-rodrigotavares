@@ -9,7 +9,11 @@ export const dynamic = "force-dynamic";
 // Entrega o arquivo de um anexo. É a única porta de acesso às fotos e PDFs:
 // confere login e permissão no chamado a cada pedido, e o endereço real do
 // arquivo no armazenamento nunca chega ao navegador.
-export async function GET(request: NextRequest, { params }: { params: { id: string; anexoId: string } }) {
+export async function GET(
+  request: NextRequest,
+  props: { params: Promise<{ id: string; anexoId: string }> }
+) {
+  const params = await props.params;
   try {
     const usuario = await getUsuarioCondominio();
     if (!usuario) {

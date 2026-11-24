@@ -12,7 +12,8 @@ function emailsValidos(emails: string): boolean {
     .every((e) => e.includes("@"));
 }
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const { id } = params;
     if (!id || !/^\d+$/.test(id)) {
@@ -46,7 +47,8 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const { id } = params;
     if (!id || !/^\d+$/.test(id)) {

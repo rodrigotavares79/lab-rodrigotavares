@@ -17,7 +17,8 @@ const STATUS_VALIDOS = [
   "Cancelado",
 ];
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const usuario = await getUsuarioCondominio();
     if (!usuario) {
@@ -79,7 +80,8 @@ const TRANSICOES_DO_AUTOR: Record<string, string[]> = {
 // Síndico/Conselheiro alteram status, fornecedor e visibilidade. Quem abriu
 // o chamado altera só o status, dentro de TRANSICOES_DO_AUTOR. Toda mudança
 // de status exige justificativa.
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const usuario = await getUsuarioCondominio();
     if (!usuario) {

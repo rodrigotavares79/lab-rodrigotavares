@@ -7,7 +7,8 @@ export const dynamic = "force-dynamic";
 // Edita os dados de um fornecedor e/ou o ativa/desativa. Fornecedor nunca é
 // apagado: desativado, ele some da escolha de fornecedor nos chamados, mas
 // continua nos chamados antigos e no histórico.
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const usuario = await getUsuarioCondominio();
     if (!usuario || !podeGerirChamados(usuario.perfil)) {
