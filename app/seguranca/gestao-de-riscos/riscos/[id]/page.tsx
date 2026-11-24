@@ -112,9 +112,9 @@ function formatDataHoraAud(d: string | null) {
 
 const BADGE_POR_NIVEL: Record<string, string> = {
   "Baixo": "badge-baixo",
-  "Moderado": "badge-medio",
-  "Significativo": "badge-alto",
-  "Alto": "badge-critico",
+  "Médio": "badge-medio",
+  "Alto": "badge-alto",
+  "Crítico": "badge-critico",
 };
 
 const OPCOES_NATUREZA_FATOR = ["Exposição", "Amplificação", "Misto"];

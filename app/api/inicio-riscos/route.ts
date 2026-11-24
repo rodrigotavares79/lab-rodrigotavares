@@ -13,8 +13,8 @@ export async function GET() {
       SELECT
         COUNT(*)::int AS total,
         COUNT(*) FILTER (WHERE status IS DISTINCT FROM 'Mitigado')::int AS ativos,
-        COUNT(*) FILTER (WHERE status IS DISTINCT FROM 'Mitigado' AND impacto_qualitativo = 'Alto')::int AS altos,
-        COUNT(*) FILTER (WHERE status IS DISTINCT FROM 'Mitigado' AND impacto_qualitativo = 'Significativo')::int AS significativos
+        COUNT(*) FILTER (WHERE status IS DISTINCT FROM 'Mitigado' AND impacto_qualitativo = 'Crítico')::int AS criticos,
+        COUNT(*) FILTER (WHERE status IS DISTINCT FROM 'Mitigado' AND impacto_qualitativo = 'Alto')::int AS altos
       FROM riscos
     `;
 
@@ -53,12 +53,12 @@ export async function GET() {
       LEFT JOIN planos_acao pa ON pa.risco_id = r.id
       LEFT JOIN acoes a ON a.plano_acao_id = pa.id
       WHERE r.status IS DISTINCT FROM 'Mitigado'
-        AND r.impacto_qualitativo IN ('Alto', 'Significativo')
+        AND r.impacto_qualitativo IN ('Crítico', 'Alto')
       GROUP BY r.id
       ORDER BY
         CASE r.impacto_qualitativo
-          WHEN 'Alto' THEN 4 WHEN 'Significativo' THEN 3
-          WHEN 'Moderado' THEN 2 WHEN 'Baixo' THEN 1 ELSE 0 END DESC,
+          WHEN 'Crítico' THEN 4 WHEN 'Alto' THEN 3
+          WHEN 'Médio' THEN 2 WHEN 'Baixo' THEN 1 ELSE 0 END DESC,
         r.matrix_score DESC NULLS LAST,
         r.id DESC
       LIMIT 5
@@ -83,7 +83,7 @@ export async function GET() {
     `;
 
     // Mitigação trimestral (gauge): por trimestre do ano corrente, quantos
-    // riscos Altos/Significativos em aberto no período foram mitigados nele.
+    // riscos Críticos/Altos em aberto no período foram mitigados nele.
     // Base = riscos desse nível criados até o fim do trimestre e ainda não
     // mitigados no início dele. Mitigados sem data (antes da coluna
     // mitigado_em existir) ficam fora da conta.
@@ -103,7 +103,7 @@ export async function GET() {
         )::int AS mitigados
       FROM q
       LEFT JOIN riscos r
-        ON (r.nivel_inicial IN ('Alto', 'Significativo') OR r.impacto_qualitativo IN ('Alto', 'Significativo'))
+        ON (r.nivel_inicial IN ('Crítico', 'Alto') OR r.impacto_qualitativo IN ('Crítico', 'Alto'))
        AND r.criado_em < q.ini + interval '3 months'
        AND (r.status IS DISTINCT FROM 'Mitigado' OR r.mitigado_em >= q.ini)
       GROUP BY q.ini
@@ -117,8 +117,8 @@ export async function GET() {
       kpis: {
         total: riscosKpi.total,
         ativos: riscosKpi.ativos,
+        criticos: riscosKpi.criticos,
         altos: riscosKpi.altos,
-        significativos: riscosKpi.significativos,
         planosAbertos: planosKpi.abertos,
         acoesTotal: acoesKpi.total,
         acoesConcluidas: acoesKpi.concluidas,

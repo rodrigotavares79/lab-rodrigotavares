@@ -20,9 +20,9 @@ type RiscoLinha = {
 
 const BADGE_POR_NIVEL: Record<string, string> = {
   "Baixo": "badge-baixo",
-  "Moderado": "badge-medio",
-  "Significativo": "badge-alto",
-  "Alto": "badge-critico",
+  "Médio": "badge-medio",
+  "Alto": "badge-alto",
+  "Crítico": "badge-critico",
 };
 
 function classeStatus(status: string | null): string {

@@ -4,6 +4,7 @@ import { useState, useEffect, FormEvent } from "react";
 import Footer from "@/components/Footer";
 import ImportarRiscosCSV from "@/components/ImportarRiscosCSV";
 import { type FaixaEstimativa } from "@/lib/riscoUtils";
+import { MATRIZ_5X5 } from "@/lib/metodologiaRisco";
 
 const NIVEIS = [
   { value: 1, label: "1 — Muito Baixo" },
@@ -21,19 +22,12 @@ type SistemaCritico = {
   custo_restauracao_hora_homem: string;
 };
 
-const MATRIZ_5X5: number[][] = [
-  [1, 1, 1, 2, 3],
-  [1, 1, 2, 3, 3],
-  [1, 2, 2, 3, 4],
-  [1, 2, 3, 4, 4],
-  [2, 3, 4, 4, 4],
-];
 
 const NIVEL_RISCO: Record<number, { label: string; className: string }> = {
   1: { label: "Baixo", className: "badge-baixo" },
-  2: { label: "Moderado", className: "badge-medio" },
-  3: { label: "Significativo", className: "badge-alto" },
-  4: { label: "Alto", className: "badge-critico" },
+  2: { label: "Médio", className: "badge-medio" },
+  3: { label: "Alto", className: "badge-alto" },
+  4: { label: "Crítico", className: "badge-critico" },
 };
 
 function classificarRisco(probabilidade: number, impacto: number) {

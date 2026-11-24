@@ -53,7 +53,7 @@ export default function GuiaDeUso() {
                 <strong>Análise do Risco</strong> — escolha Impacto e
                 Probabilidade, cada um numa escala de 1 (Muito Baixo) a 5
                 (Muito Alto). A Pontuação da Matriz e o selo de nível
-                qualitativo (Baixo, Moderado, Significativo ou Alto) são
+                qualitativo (Baixo, Médio, Alto ou Crítico) são
                 calculados automaticamente — veja a seção{" "}
                 <a href="#matriz">"Como funciona a classificação"</a> abaixo.
               </li>
@@ -104,18 +104,22 @@ export default function GuiaDeUso() {
             <h2 id="matriz">3. Como funciona a classificação (matriz 5×5)</h2>
             <p>
               Impacto e Probabilidade (1 a 5 cada) são cruzados numa matriz
-              5×5 que gera um nível qualitativo — Baixo, Moderado,
-              Significativo ou Alto. Encontre a linha da Probabilidade e a
-              coluna do Impacto: a célula onde elas se cruzam é o nível do
-              risco.
+              5×5. A pontuação é Probabilidade × Impacto (de 1 a 25) e define
+              o nível qualitativo, seguindo os critérios de avaliação de risco
+              da ISO/IEC 27005: <strong>Baixo</strong> (1 a 4),{" "}
+              <strong>Médio</strong> (5 a 9), <strong>Alto</strong> (10 a 16)
+              e <strong>Crítico</strong> (20 a 25). Encontre a linha da
+              Probabilidade e a coluna do Impacto: a célula onde elas se
+              cruzam é o nível do risco.
             </p>
             <MatrizRiscos />
             <p>
-              A matriz não é simétrica de propósito: um risco de impacto
-              Muito Alto já começa em Significativo mesmo com probabilidade
-              Muito Baixa, enquanto uma probabilidade Muito Alta com impacto
-              Muito Baixo fica em Moderado. Ou seja, o impacto pesa um pouco
-              mais que a probabilidade na classificação.
+              Como o nível sai da multiplicação, a matriz é simétrica:
+              Probabilidade e Impacto pesam igual. Um risco só chega a
+              Crítico quando os dois estão altos (por exemplo, 4 × 5 ou 5 × 5),
+              e um extremo isolado (5 × 1 ou 1 × 5) fica em Médio. A ISO/IEC
+              27005 deixa as faixas a critério da organização; estas são as
+              adotadas por este sistema.
             </p>
             <p>
               Esse nível calculado no momento do cadastro (com Impacto e
@@ -265,7 +269,7 @@ export default function GuiaDeUso() {
               Com um Projeto selecionado no filtro do Dashboard, o botão{" "}
               <strong>📄 Emitir Relatório Executivo</strong> abre uma versão
               formatada para impressão, com resumo executivo, riscos
-              Significativos/Altos em aberto e a situação dos planos de ação
+              Críticos/Altos em aberto e a situação dos planos de ação
               daquele projeto. Use{" "}
               <strong>🖶 Imprimir / Salvar como PDF</strong> dentro do
               relatório para gerar o arquivo.

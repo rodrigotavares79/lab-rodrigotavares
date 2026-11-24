@@ -29,9 +29,9 @@ type DashboardData = {
 
 const CORES_NIVEL: Record<string, string> = {
   "Baixo": "#9db4c4",
-  "Moderado": "var(--warning)",
-  "Significativo": "var(--accent)",
-  "Alto": "var(--danger)",
+  "Médio": "var(--warning)",
+  "Alto": "var(--accent)",
+  "Crítico": "var(--danger)",
 };
 
 export default function Dashboard() {
@@ -73,7 +73,7 @@ export default function Dashboard() {
   const consolidado = data?.consolidado || [];
   const mitigacao = data?.mitigacao;
 
-  const ORDEM_NIVEIS = ["Baixo", "Moderado", "Significativo", "Alto"];
+  const ORDEM_NIVEIS = ["Baixo", "Médio", "Alto", "Crítico"];
   const totalPorNivelAtual = new Map((data?.niveis || []).map((n) => [n.nivel, n.total]));
   const totalPorNivelInicial = new Map((data?.niveisIniciais || []).map((n) => [n.nivel, n.total]));
   const comparativoNiveis = ORDEM_NIVEIS.map((nivel) => ({
@@ -173,7 +173,7 @@ export default function Dashboard() {
                   <div className="kpi-card-value">{kpis.total}</div>
                 </div>
                 <div className="kpi-card">
-                  <div className="kpi-card-header">Riscos Altos Abertos</div>
+                  <div className="kpi-card-header">Riscos Críticos Abertos</div>
                   <div className="kpi-card-value">{kpis.criticos_abertos}</div>
                 </div>
                 <div className="kpi-card">
