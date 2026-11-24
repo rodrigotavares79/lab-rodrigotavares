@@ -74,11 +74,22 @@ export default function ListaDeRiscos() {
       <section className="content-block">
         <div className="container">
           <span className="eyebrow">Gestão de Riscos</span>
-          <h1>Lista de Riscos</h1>
-          <p className="lede">
-            Todos os riscos cadastrados individualmente. Clique em um risco para ver o
-            detalhe completo, o nível atual e o plano de ação.
-          </p>
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", justifyContent: "space-between", gap: "1rem" }}>
+            <div>
+              <h1>Riscos</h1>
+              <p className="lede">
+                Todos os riscos cadastrados. Clique em um risco para ver o detalhe
+                completo, o nível atual e o plano de ação.
+              </p>
+            </div>
+            <a
+              href="/seguranca/gestao-de-riscos/cadastro-de-riscos"
+              className="btn-primary"
+              style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "0.4rem", minHeight: "2.75rem" }}
+            >
+              + Novo risco ou importar CSV
+            </a>
+          </div>
 
           <div className="form-field" style={{ maxWidth: "20rem", marginTop: "1.5rem" }}>
             <label htmlFor="filtroProjetoLista">Projeto</label>
