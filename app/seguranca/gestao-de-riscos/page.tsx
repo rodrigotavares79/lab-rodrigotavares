@@ -27,7 +27,7 @@ type Resumo = {
   matriz: { prob: number; imp: number; total: number }[];
   categorias: { categoria: string; total: number }[];
   niveis: { nivel: string; total: number }[];
-  cobertura: { total: number; com_plano: number };
+  trimestres: { trimestre: number; total: number; mitigados: number }[];
   atencao: {
     id: number;
     gatilho: string | null;
@@ -155,7 +155,7 @@ export default function GestaoDeRiscos() {
           <GraficosInicio
             categorias={dados?.categorias || []}
             niveis={dados?.niveis || []}
-            cobertura={dados?.cobertura}
+            trimestres={dados?.trimestres}
             totalAtivos={k?.ativos || 0}
           />
 

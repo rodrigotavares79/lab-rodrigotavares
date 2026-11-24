@@ -127,7 +127,8 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
           probabilidade = ${novaProbabilidade},
           matrix_score = ${novoMatrixScore},
           nivel_inicial = ${novoNivelInerente},
-          status = ${novoStatus}
+          status = ${novoStatus},
+          mitigado_em = ${novoStatus === "Mitigado" ? new Date().toISOString() : null}
       WHERE id = ${id}
     `;
 

@@ -6,11 +6,11 @@ import s from "./GraficosInicio.module.css";
 
 // Três gráficos pequenos da página inicial do Gestão de Riscos:
 // top 3 categorias (barras horizontais), riscos por criticidade (pizza, rótulo
-// só no hover) e cobertura de tratamento (gauge).
+// só no hover) e mitigação trimestral de riscos altos e significativos (gauge).
 
 type Categoria = { categoria: string; total: number };
 type Nivel = { nivel: string; total: number };
-type Cobertura = { total: number; com_plano: number };
+type Trimestre = { trimestre: number; total: number; mitigados: number };
 
 // Paleta categórica validada (contraste e daltonismo) para as 3 barras.
 const CORES_CATEGORIA = ["#2f6bab", "#d97a2b", "#7b5ea7"];
@@ -23,11 +23,11 @@ const NIVEIS = [
   { nivel: "Alto", cor: "#c0392b" },
 ];
 
-type Dica = { texto: string; x: number; y: number } | null;
+type Dica = { texto: React.ReactNode; x: number; y: number } | null;
 
 function useDica() {
   const [dica, setDica] = useState<Dica>(null);
-  function mostrar(texto: string, e: React.MouseEvent | React.FocusEvent) {
+  function mostrar(texto: React.ReactNode, e: React.MouseEvent | React.FocusEvent) {
     const card = (e.currentTarget as Element).closest(`.${s.card}`) as HTMLElement | null;
     if (!card) return;
     const caixa = card.getBoundingClientRect();
@@ -157,39 +157,105 @@ function PizzaCriticidade({ dados }: { dados: Nivel[] }) {
   );
 }
 
-function GaugeCobertura({ dados }: { dados: Cobertura | undefined }) {
-  const total = dados?.total || 0;
-  const comPlano = dados?.com_plano || 0;
-  const pct = total ? Math.round((comPlano / total) * 100) : 0;
-  // Semicírculo de 180°: comprimento do arco = π·r.
-  const r = 70;
-  const arco = Math.PI * r;
+// Faixas do gauge: até 50% vermelho, de 50,1% a 69,9% amarelo, 70% (meta) ou
+// mais verde.
+const META = 70;
+const COR_VERMELHO = "#c0392b";
+const COR_AMARELO = "#e3b53b";
+const COR_VERDE = "#3f7d58";
+const COR_SEM_DADOS = "#b8b6af";
+
+function corFaixa(pct: number) {
+  if (pct >= META) return COR_VERDE;
+  if (pct > 50) return COR_AMARELO;
+  return COR_VERMELHO;
+}
+
+function pctTrimestre(t: Trimestre) {
+  return t.total ? Math.round((t.mitigados / t.total) * 1000) / 10 : null;
+}
+
+function formatPct(n: number) {
+  return n.toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + "%";
+}
+
+// Ponto no semicírculo (centro 90,90) para uma fração de 0 (esquerda) a 1 (direita).
+function ponto(f: number, r: number) {
+  const ang = Math.PI * (1 - f);
+  return { x: 90 + r * Math.cos(ang), y: 90 - r * Math.sin(ang) };
+}
+
+function arco(f0: number, f1: number, r: number) {
+  const a = ponto(f0, r);
+  const b = ponto(f1, r);
+  return `M ${a.x.toFixed(2)} ${a.y.toFixed(2)} A ${r} ${r} 0 0 1 ${b.x.toFixed(2)} ${b.y.toFixed(2)}`;
+}
+
+function GaugeMitigacao({ trimestres }: { trimestres: Trimestre[] | undefined }) {
+  const { dica, mostrar, esconder } = useDica();
+  const atual = trimestres && trimestres.length ? trimestres[trimestres.length - 1] : undefined;
+  const pct = atual ? pctTrimestre(atual) : null;
+  const cor = pct === null ? COR_SEM_DADOS : corFaixa(pct);
+  const metaIn = ponto(META / 100, 52);
+  const metaOut = ponto(META / 100, 82);
+
+  const rotulo = (
+    <span className={s.dicaLista}>
+      {(trimestres || []).map((t) => {
+        const p = pctTrimestre(t);
+        return (
+          <span key={t.trimestre} className={s.dicaItem}>
+            <span className={s.bullet} style={{ background: p === null ? COR_SEM_DADOS : corFaixa(p) }} aria-hidden="true" />
+            Trimestre {t.trimestre}: {p === null ? "sem riscos no período" : `${formatPct(p)} (${t.mitigados} de ${t.total})`}
+          </span>
+        );
+      })}
+    </span>
+  );
+
   return (
     <div className={s.card}>
-      <h2 className={s.titulo}>Cobertura de tratamento</h2>
-      <div className={s.centro}>
-        <svg viewBox="0 0 180 104" className={s.gauge} role="img" aria-label={`${pct}% dos riscos altos e significativos têm plano de ação`}>
-          <path d="M 20 90 A 70 70 0 0 1 160 90" fill="none" stroke="#ecebe7" strokeWidth={16} strokeLinecap="round" />
-          {pct > 0 && (
-            <path
-              d="M 20 90 A 70 70 0 0 1 160 90"
-              fill="none"
-              stroke="#2f6bab"
-              strokeWidth={16}
-              strokeLinecap="round"
-              strokeDasharray={`${(pct / 100) * arco} ${arco}`}
-            />
+      <h2 className={s.titulo}>Mitigação no trimestre</h2>
+      <div
+        className={s.centro}
+        tabIndex={0}
+        style={{ outline: "none", cursor: "default" }}
+        onMouseMove={(e) => trimestres && mostrar(rotulo, e)}
+        onMouseLeave={esconder}
+        onFocus={(e) => trimestres && mostrar(rotulo, e)}
+        onBlur={esconder}
+      >
+        <svg
+          viewBox="0 0 180 104"
+          className={s.gauge}
+          role="img"
+          aria-label={
+            pct === null
+              ? "Sem riscos altos ou significativos no trimestre atual"
+              : `${formatPct(pct)} dos riscos altos e significativos mitigados no trimestre ${atual?.trimestre}; meta de ${META}%`
+          }
+        >
+          <path d={arco(0, 1, 70)} fill="none" stroke="#ecebe7" strokeWidth={16} strokeLinecap="round" />
+          {pct !== null && pct > 0 && (
+            <path d={arco(0, Math.min(pct, 100) / 100, 70)} fill="none" stroke={cor} strokeWidth={16} strokeLinecap="round" />
           )}
+          <path d={arco(0, 0.5, 56)} fill="none" stroke={COR_VERMELHO} strokeWidth={3} opacity={0.55} />
+          <path d={arco(0.5, META / 100, 56)} fill="none" stroke={COR_AMARELO} strokeWidth={3} opacity={0.7} />
+          <path d={arco(META / 100, 1, 56)} fill="none" stroke={COR_VERDE} strokeWidth={3} opacity={0.55} />
+          <line x1={metaIn.x} y1={metaIn.y} x2={metaOut.x} y2={metaOut.y} stroke="#1b2130" strokeWidth={2} strokeLinecap="round" />
           <text x="90" y="82" textAnchor="middle" className={s.gaugeValor}>
-            {dados ? `${pct}%` : "—"}
+            {pct === null ? "—" : formatPct(pct)}
           </text>
         </svg>
         <p className={s.gaugeNota}>
-          {dados
-            ? `${comPlano} de ${total} riscos altos e significativos com plano de ação`
+          {atual
+            ? pct === null
+              ? `Trimestre ${atual.trimestre} · sem riscos altos ou significativos no período`
+              : `Trimestre ${atual.trimestre} · ${atual.mitigados} de ${atual.total} altos e significativos mitigados · meta ${META}%`
             : " "}
         </p>
       </div>
+      <Tooltip dica={dica} />
     </div>
   );
 }
@@ -197,19 +263,19 @@ function GaugeCobertura({ dados }: { dados: Cobertura | undefined }) {
 export default function GraficosInicio({
   categorias,
   niveis,
-  cobertura,
+  trimestres,
   totalAtivos,
 }: {
   categorias: Categoria[];
   niveis: Nivel[];
-  cobertura: Cobertura | undefined;
+  trimestres: Trimestre[] | undefined;
   totalAtivos: number;
 }) {
   return (
     <section aria-label="Gráficos" className={s.linha}>
       <BarrasCategorias dados={categorias} totalAtivos={totalAtivos} />
       <PizzaCriticidade dados={niveis} />
-      <GaugeCobertura dados={cobertura} />
+      <GaugeMitigacao trimestres={trimestres} />
     </section>
   );
 }
