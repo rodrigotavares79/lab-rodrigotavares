@@ -712,3 +712,36 @@
     background: #fff;
   }
 }
+
+/* ---------- Cards de atalho da página inicial do módulo ---------- */
+
+.conteudo :global(.riscos-frentes) {
+  margin-top: 1.75rem;
+  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.conteudo :global(.riscos-frentes .section-card) {
+  padding: 1.5rem 1.6rem;
+}
+
+.conteudo :global(.riscos-frentes .section-card h3) {
+  font-size: 1.05rem;
+}
+
+/* ---------- Tabelas de referência do Guia de Uso ---------- */
+
+.conteudo :global(.tabela-guia) {
+  margin: 0.75rem 0 1rem;
+  font-size: 0.88rem;
+}
+
+.conteudo :global(.tabela-guia td) {
+  white-space: normal;
+  vertical-align: top;
+}
+
+.conteudo :global(.tabela-guia td:first-child) {
+  white-space: nowrap;
+}

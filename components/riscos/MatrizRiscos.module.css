@@ -1,0 +1,163 @@
+/* Matriz de riscos 5×5 do Guia de Uso. */
+
+.figura {
+  margin: 1.5rem 0 2rem;
+  max-width: 44rem;
+}
+
+.grade {
+  display: grid;
+  grid-template-columns: 1.75rem 6.5rem repeat(5, minmax(0, 1fr));
+  grid-template-rows: repeat(5, 4.25rem) auto auto;
+  gap: 4px;
+}
+
+.linha {
+  display: contents;
+}
+
+.eixoY {
+  grid-column: 1;
+  grid-row: 1 / span 5;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.eixoX {
+  grid-column: 3 / span 5;
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding-top: 0.25rem;
+}
+
+.rotuloLinha,
+.rotuloColuna {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  line-height: 1.25;
+}
+
+.rotuloLinha {
+  grid-column: 2;
+  align-items: flex-end;
+  padding-right: 0.5rem;
+  text-align: right;
+}
+
+.rotuloColuna {
+  align-items: center;
+  text-align: center;
+  padding-top: 0.35rem;
+}
+
+.rotuloLinha strong,
+.rotuloColuna strong {
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.canto {
+  grid-column: 2;
+}
+
+.celula {
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0.25rem;
+  min-width: 0;
+}
+
+.celulaNivel {
+  font-size: 0.78rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.celulaCoord {
+  font-size: 0.68rem;
+  opacity: 0.8;
+  margin-top: 0.15rem;
+}
+
+.nivel1 {
+  background: #d7ebdd;
+  color: #24593a;
+}
+
+.nivel2 {
+  background: #f6e7b0;
+  color: #6b5000;
+}
+
+.nivel3 {
+  background: #f3c79a;
+  color: #7a3a07;
+}
+
+.nivel4 {
+  background: #e7a3a3;
+  color: #6e1423;
+}
+
+.legenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  margin-top: 1rem;
+  padding-left: 8.25rem;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.legendaItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.legendaCor {
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+@media (max-width: 40rem) {
+  .grade {
+    grid-template-columns: 1.25rem 3rem repeat(5, minmax(0, 1fr));
+    grid-template-rows: repeat(5, 3.25rem) auto auto;
+  }
+
+  .rotuloLinha span,
+  .rotuloColuna span,
+  .celulaCoord {
+    display: none;
+  }
+
+  .celulaNivel {
+    font-size: 0.65rem;
+  }
+
+  .legenda {
+    padding-left: 0;
+  }
+}
