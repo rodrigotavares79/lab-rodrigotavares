@@ -147,3 +147,12 @@ não pode usar).
 
 Exemplo: `{"perfilRiscos": "administrador"}`. Valores antigos ainda aceitos:
 `"gestor"` = gerente, `"analista_senior"` = analista GRC.
+
+## Gestão de Riscos — Conformidade
+
+Tela `/seguranca/gestao-de-riscos/conformidade`, visível para todos os perfis e
+sem edição. Cada risco é comparado automaticamente com CIS Controls v8.1, NIST
+CSF 2.0 e ISO/IEC 27001:2022 (Anexo A), a partir do texto do risco (gatilho,
+resultado potencial, categoria e fatores). O catálogo de temas, palavras-chave
+e controles fica em `lib/conformidadeFrameworks.ts` — para ajustar o
+mapeamento, edite esse arquivo.
