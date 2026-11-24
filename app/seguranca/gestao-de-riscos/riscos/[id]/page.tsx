@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import s from "@/components/riscos/riscos.module.css";
+import EvidenciasPlano, { type Evidencia } from "@/components/riscos/EvidenciasPlano";
 
 type FatorRisco = {
   id: number;
@@ -89,8 +90,25 @@ type PlanoAcao = {
   titulo: string;
   status: string;
   criado_em: string;
+  concluido_em: string | null;
+  auditoria_status: "Pendente" | "Conforme" | "Não conforme" | null;
+  auditado_em: string | null;
+  auditado_por_nome: string | null;
+  auditoria_comentario: string | null;
   acoes: Acao[];
+  evidencias: Evidencia[];
 };
+
+const ROTULO_AUDITORIA: Record<string, { texto: string; fundo: string }> = {
+  Pendente: { texto: "Aguardando auditoria", fundo: "rgba(255,255,255,0.15)" },
+  Conforme: { texto: "Auditoria: Conforme", fundo: "rgba(63,125,88,0.85)" },
+  "Não conforme": { texto: "Auditoria: Não conforme", fundo: "rgba(163,36,47,0.85)" },
+};
+
+function formatDataHoraAud(d: string | null) {
+  if (!d) return "—";
+  return new Date(d).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+}
 
 const BADGE_POR_NIVEL: Record<string, string> = {
   "Baixo": "badge-baixo",
@@ -578,11 +596,38 @@ function PlanoAcaoCard({
   const [erroAcao, setErroAcao] = useState<string | null>(null);
   const [concluindo, setConcluindo] = useState(false);
   const [erroConcluir, setErroConcluir] = useState<string | null>(null);
+  const [reabrindo, setReabrindo] = useState(false);
 
   const planoAberto = plano.status !== "Concluído";
   const podeAdicionarAcao = planoAberto && !riscoMitigado;
   const todasConcluidas = plano.acoes.length > 0 && plano.acoes.every((a) => a.status === "Concluído");
-  const podeConcluirPlano = planoAberto && !riscoMitigado && todasConcluidas;
+  const temEvidencia = plano.evidencias.length > 0;
+  const podeConcluirPlano = planoAberto && !riscoMitigado && todasConcluidas && temEvidencia;
+  const motivoNaoConcluir = !todasConcluidas
+    ? "Todas as ações precisam estar concluídas"
+    : !temEvidencia
+      ? "Anexe pelo menos uma evidência"
+      : "";
+  const rotuloAud = plano.auditoria_status ? ROTULO_AUDITORIA[plano.auditoria_status] : null;
+
+  async function handleReabrirPlano() {
+    setReabrindo(true);
+    setErroConcluir(null);
+    try {
+      const res = await fetch(`/api/planos-acao/${plano.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "Aberto" }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || "Falha ao reabrir o plano de ação.");
+      onAtualizado();
+    } catch (err) {
+      setErroConcluir(err instanceof Error ? err.message : "Erro ao reabrir o plano de ação.");
+    } finally {
+      setReabrindo(false);
+    }
+  }
 
   async function handleAdicionarAcao(e: React.FormEvent) {
     e.preventDefault();
@@ -653,14 +698,43 @@ function PlanoAcaoCard({
         style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.75rem" }}
       >
         <span>{plano.titulo}</span>
-        <span
-          className={classeStatusPlano(plano.status)}
-          style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.04em", background: "rgba(255,255,255,0.15)", padding: "0.15rem 0.5rem", borderRadius: "3px", color: "#fff" }}
-        >
-          {plano.status}
+        <span style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", justifyContent: "flex-end" }}>
+          {rotuloAud && (
+            <span
+              style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.04em", background: rotuloAud.fundo, padding: "0.15rem 0.5rem", borderRadius: "3px", color: "#fff" }}
+            >
+              {rotuloAud.texto}
+            </span>
+          )}
+          <span
+            className={classeStatusPlano(plano.status)}
+            style={{ fontSize: "0.7rem", textTransform: "uppercase", letterSpacing: "0.04em", background: "rgba(255,255,255,0.15)", padding: "0.15rem 0.5rem", borderRadius: "3px", color: "#fff" }}
+          >
+            {plano.status}
+          </span>
         </span>
       </div>
       <div className="dash-panel-body">
+        {plano.auditoria_status === "Não conforme" && planoAberto && (
+          <div className="error-banner" style={{ marginTop: 0, marginBottom: "1rem" }}>
+            <span className="success-icon error-icon">!</span>
+            <span className="success-text">
+              <strong>
+                Não conforme na auditoria de {formatDataHoraAud(plano.auditado_em)}
+                {plano.auditado_por_nome ? ` (${plano.auditado_por_nome})` : ""}.
+              </strong>
+              <span>{plano.auditoria_comentario}</span>
+              <span>Corrija o que foi apontado, atualize as evidências e conclua o plano de novo.</span>
+            </span>
+          </div>
+        )}
+        {plano.auditoria_status === "Conforme" && (
+          <p className="field-helper" style={{ marginTop: 0, marginBottom: "1rem" }}>
+            Auditado como <strong>Conforme</strong> em {formatDataHoraAud(plano.auditado_em)}
+            {plano.auditado_por_nome ? ` por ${plano.auditado_por_nome}` : ""}
+            {plano.auditoria_comentario ? ` — “${plano.auditoria_comentario}”` : ""}.
+          </p>
+        )}
         {plano.acoes.length === 0 ? (
           <p className="text-muted" style={{ fontSize: "0.85rem", marginTop: 0 }}>
             Nenhuma ação cadastrada neste plano ainda.
@@ -692,7 +766,7 @@ function PlanoAcaoCard({
                     <td>
                       <select
                         value={a.status}
-                        disabled={riscoMitigado}
+                        disabled={riscoMitigado || !planoAberto}
                         onChange={(e) => handleAtualizarStatusAcao(a.id, e.target.value)}
                         className={classeStatusAcao(a.status)}
                         style={{ fontSize: "0.8rem", border: "1px solid var(--border)", borderRadius: "3px", padding: "0.3rem 0.4rem", background: "var(--bg)" }}
@@ -715,10 +789,38 @@ function PlanoAcaoCard({
           </p>
         )}
 
+        <EvidenciasPlano
+          planoId={plano.id}
+          evidencias={plano.evidencias}
+          editavel={planoAberto && !riscoMitigado}
+          onAtualizado={onAtualizado}
+        />
+
         {!riscoMitigado && !planoAberto && (
-          <p className="field-helper" style={{ margin: 0 }}>
-            Plano concluído — não é possível cadastrar novas ações nele.
-          </p>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+            <p className="field-helper" style={{ margin: 0 }}>
+              {plano.auditoria_status === "Pendente"
+                ? "Plano concluído e aguardando a Auditoria — ações e evidências ficam congeladas."
+                : "Plano concluído — não é possível cadastrar novas ações nele."}
+            </p>
+            {plano.auditoria_status === "Pendente" && (
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={handleReabrirPlano}
+                disabled={reabrindo}
+                style={{ fontSize: "0.8rem" }}
+              >
+                {reabrindo ? "Reabrindo..." : "Reabrir plano"}
+              </button>
+            )}
+            {erroConcluir && (
+              <div className="error-banner" style={{ marginTop: 0, width: "100%" }}>
+                <span className="success-icon error-icon">!</span>
+                <span className="success-text">{erroConcluir}</span>
+              </div>
+            )}
+          </div>
         )}
 
         {podeAdicionarAcao && (
@@ -758,12 +860,18 @@ function PlanoAcaoCard({
                   className="btn-primary"
                   onClick={handleConcluirPlano}
                   disabled={!podeConcluirPlano || concluindo}
-                  title={!todasConcluidas ? "Todas as ações precisam estar concluídas" : ""}
+                  title={motivoNaoConcluir}
                   style={{ background: "var(--text-muted)" }}
                 >
                   {concluindo ? "Concluindo..." : "Concluir plano de ação"}
                 </button>
               </div>
+              {motivoNaoConcluir && (
+                <p className="field-helper form-field-wide" style={{ margin: 0 }}>
+                  Para concluir o plano: {motivoNaoConcluir.charAt(0).toLowerCase() + motivoNaoConcluir.slice(1)}. Depois de
+                  concluído, ele segue para a Auditoria.
+                </p>
+              )}
               {erroAcao && (
                 <div className="error-banner form-field-wide" style={{ marginTop: 0 }}>
                   <span className="success-icon error-icon">!</span>

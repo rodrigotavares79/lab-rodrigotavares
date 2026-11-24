@@ -13,7 +13,8 @@ export async function GET(request: NextRequest) {
     const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
 
     const planos = await sql`
-      SELECT id, risco_id, titulo, status, criado_em
+      SELECT id, risco_id, titulo, status, criado_em, concluido_em,
+             auditoria_status, auditado_em, auditado_por_nome, auditoria_comentario
       FROM planos_acao
       WHERE risco_id = ${riscoId}
       ORDER BY criado_em DESC
@@ -31,6 +32,19 @@ export async function GET(request: NextRequest) {
       ORDER BY criado_em ASC
     `;
 
+    const evidencias = await sql`
+      SELECT id, plano_acao_id, descricao, nome_arquivo, tipo_arquivo, tamanho_bytes, enviado_por_nome, criado_em
+      FROM planos_acao_evidencias
+      WHERE plano_acao_id = ANY(${planoIds})
+      ORDER BY criado_em ASC
+    `;
+    const evidenciasPorPlano = new Map<number, any[]>();
+    for (const e of evidencias) {
+      const lista = evidenciasPorPlano.get(e.plano_acao_id) || [];
+      lista.push({ ...e, url: `/api/planos-acao/${e.plano_acao_id}/evidencias/${e.id}` });
+      evidenciasPorPlano.set(e.plano_acao_id, lista);
+    }
+
     const acoesPorPlano = new Map<number, any[]>();
     for (const a of acoes) {
       const lista = acoesPorPlano.get(a.plano_acao_id) || [];
@@ -41,6 +55,7 @@ export async function GET(request: NextRequest) {
     const planosComAcoes = planos.map((p: any) => ({
       ...p,
       acoes: acoesPorPlano.get(p.id) || [],
+      evidencias: evidenciasPorPlano.get(p.id) || [],
     }));
 
     return NextResponse.json({ planos: planosComAcoes });

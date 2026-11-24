@@ -28,7 +28,7 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
     const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
 
     const atualRows = await sql`
-      SELECT a.descricao, a.responsavel, a.prazo, a.status, r.status AS risco_status
+      SELECT a.descricao, a.responsavel, a.prazo, a.status, pa.status AS plano_status, r.status AS risco_status
       FROM acoes a
       JOIN planos_acao pa ON pa.id = a.plano_acao_id
       JOIN riscos r ON r.id = pa.risco_id
@@ -42,6 +42,15 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
     if (atual.risco_status === "Mitigado") {
       return NextResponse.json(
         { error: "O risco desta ação já foi mitigado. Nada pode mais ser alterado." },
+        { status: 409 }
+      );
+    }
+
+    // Plano concluído (aguardando ou já com auditoria): as ações ficam
+    // congeladas para que a Auditoria avalie exatamente o que foi entregue.
+    if (atual.plano_status === "Concluído") {
+      return NextResponse.json(
+        { error: "O plano desta ação já foi concluído. Reabra o plano para alterar as ações." },
         { status: 409 }
       );
     }
