@@ -115,6 +115,31 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
       );
     }
 
+    // Mitigado exige auditoria: todos os planos de ação do risco (pelo menos
+    // um) precisam estar classificados como "Conforme".
+    if (status === "Mitigado") {
+      const [planos] = await sql`
+        SELECT
+          COUNT(*)::int AS total,
+          COUNT(*) FILTER (WHERE auditoria_status = 'Conforme')::int AS conformes
+        FROM planos_acao WHERE risco_id = ${id}
+      `;
+      if (planos.total === 0) {
+        return NextResponse.json(
+          { error: "Para marcar como Mitigado, o risco precisa de pelo menos um plano de ação auditado como Conforme." },
+          { status: 409 }
+        );
+      }
+      if (planos.conformes < planos.total) {
+        return NextResponse.json(
+          {
+            error: `Para marcar como Mitigado, todos os planos de ação precisam estar auditados como Conforme (${planos.conformes} de ${planos.total}).`,
+          },
+          { status: 409 }
+        );
+      }
+    }
+
     const novoImpacto = impactoNum ?? atual.impacto;
     const novaProbabilidade = probabilidadeNum ?? atual.probabilidade;
     const novoStatus = status ?? atual.status;

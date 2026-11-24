@@ -118,3 +118,19 @@ os arquivos ficam armazenados (ex.: Vercel Blob) antes de ligar essa tela.
 Mesmo fluxo dos outros projetos: repositório próprio no GitHub, importado
 como projeto separado na Vercel, domínio lab.rodrigotavares.com.br
 apontado via Cloudflare (CNAME).
+
+## Gestão de Riscos — Auditoria de Planos
+
+Planos de ação só podem ser concluídos com pelo menos uma evidência anexada.
+Ao concluir, o plano entra na fila da **Auditoria de Planos**
+(`/seguranca/gestao-de-riscos/auditoria`), onde é classificado como
+**Conforme** (comentário opcional) ou **Não conforme** (comentário
+obrigatório; o plano volta a ficar Aberto). Um risco só pode ser marcado como
+Mitigado quando todos os seus planos estiverem Conforme.
+
+- Schema: `db/migrations/0014_auditoria_planos_acao.sql` (rode no Neon antes de usar).
+- Quem audita: usuários com `perfilRiscos` no publicMetadata do Clerk
+  (Users > usuário > Metadata > Public), com um destes valores:
+  `"gestor"`, `"coordenador"` ou `"analista_senior"`. Ex.: `{"perfilRiscos": "gestor"}`.
+- Evidências: Blob store privado. Usa `RISCOS_BLOB_*` se existir; senão, o
+  store privado do Condomínio (`CONDOMINIO_BLOB_*`), na pasta `riscos/evidencias/`.

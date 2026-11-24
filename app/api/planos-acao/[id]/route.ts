@@ -8,7 +8,11 @@ const STATUS_VALIDOS = ["Aberto", "Concluído"];
 // PATCH: atualiza título e/ou status do Plano de Ação.
 // - Bloqueado por completo se o risco já estiver Mitigado (tudo congela).
 // - Concluir o plano (status "Concluído") só é permitido se todas as ações
-//   dentro dele já estiverem "Concluído" (e houver pelo menos uma).
+//   dentro dele já estiverem "Concluído" (e houver pelo menos uma) e se houver
+//   pelo menos uma evidência anexada. O plano concluído entra na fila da
+//   Auditoria ("Pendente").
+// - Plano auditado como "Conforme" não pode mais ser alterado. Reabrir um
+//   plano Pendente o tira da fila da Auditoria.
 export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   try {
@@ -30,7 +34,7 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
     const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
 
     const atualRows = await sql`
-      SELECT pa.titulo, pa.status, r.status AS risco_status
+      SELECT pa.titulo, pa.status, pa.auditoria_status, r.status AS risco_status
       FROM planos_acao pa
       JOIN riscos r ON r.id = pa.risco_id
       WHERE pa.id = ${id}
@@ -47,7 +51,29 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
       );
     }
 
-    if (status === "Concluído" && atual.status !== "Concluído") {
+    if (atual.auditoria_status === "Conforme") {
+      return NextResponse.json(
+        { error: "Este plano já foi auditado como Conforme e não pode mais ser alterado." },
+        { status: 409 }
+      );
+    }
+
+    const concluindo = status === "Concluído" && atual.status !== "Concluído";
+    const reabrindo = status === "Aberto" && atual.status === "Concluído";
+
+    if (concluindo) {
+      const evidRows = await sql`
+        SELECT COUNT(*)::int AS total FROM planos_acao_evidencias WHERE plano_acao_id = ${id}
+      `;
+      if (evidRows[0].total === 0) {
+        return NextResponse.json(
+          { error: "Anexe pelo menos uma evidência antes de concluir o plano — ela será validada pela Auditoria." },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (concluindo) {
       const pendentesRows = await sql`
         SELECT COUNT(*)::int AS total FROM acoes
         WHERE plano_acao_id = ${id} AND status != 'Concluído'
@@ -70,9 +96,17 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
     const rows = await sql`
       UPDATE planos_acao
       SET titulo = ${titulo ?? atual.titulo},
-          status = ${status ?? atual.status}
+          status = ${status ?? atual.status},
+          concluido_em = CASE
+            WHEN ${concluindo}::boolean THEN now()
+            WHEN ${reabrindo}::boolean THEN NULL
+            ELSE concluido_em END,
+          auditoria_status = CASE
+            WHEN ${concluindo}::boolean THEN 'Pendente'
+            WHEN ${reabrindo}::boolean THEN NULL
+            ELSE auditoria_status END
       WHERE id = ${id}
-      RETURNING id, risco_id, titulo, status, criado_em
+      RETURNING id, risco_id, titulo, status, criado_em, concluido_em, auditoria_status
     `;
 
     return NextResponse.json({ plano: rows[0] });
