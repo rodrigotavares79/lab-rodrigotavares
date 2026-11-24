@@ -1,0 +1,658 @@
+/* Visual do módulo Gestão de Riscos. Tudo aqui fica restrito à moldura
+   .shell: as classes globais usadas pelas telas (dash-panel, kpi-card,
+   badge, btn-primary...) só ganham o estilo novo dentro dela, sem afetar
+   Condomínio, Governança de IA ou a home do lab. */
+
+.shell {
+  --rs-bg: #f4f5f7;
+  --rs-surface: #ffffff;
+  --rs-border: #e5e7eb;
+  --rs-border-strong: #d4d7dd;
+  --rs-text: #1b2130;
+  --rs-muted: #667085;
+  --rs-topo: #1f2b40;
+  --rs-primaria: #2f4b7c;
+  --rs-primaria-tint: #e9eef7;
+  --rs-ok: #2f7a54;
+  --rs-ok-tint: #e7f3ec;
+  --rs-alerta: #946200;
+  --rs-alerta-tint: #fbf1dc;
+  --rs-perigo: #b42330;
+  --rs-perigo-tint: #fbe9ea;
+  --rs-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+
+  min-height: 100vh;
+  background: var(--rs-bg);
+  color: var(--rs-text);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- Barra superior ---------- */
+
+.topo {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  height: 3.5rem;
+  background: var(--rs-topo);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.25rem;
+  gap: 1rem;
+}
+
+.topoEsquerda,
+.topoDireita {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.marca {
+  color: #fff;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+  white-space: nowrap;
+}
+
+.marca span {
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 400;
+}
+
+.seloModulo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-family: var(--rs-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.02em;
+  color: #e8ecf4;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 4px;
+  padding: 0.25rem 0.55rem;
+  white-space: nowrap;
+}
+
+.seloPonto {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 50%;
+  background: #7fd1a3;
+}
+
+.linkTopo {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.82rem;
+  text-decoration: none;
+}
+
+.linkTopo:hover {
+  color: #fff;
+}
+
+.botaoMenu {
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  width: 2rem;
+  height: 2rem;
+  padding: 0 0.4rem;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.botaoMenu span {
+  display: block;
+  height: 2px;
+  background: #fff;
+  border-radius: 1px;
+}
+
+/* ---------- Corpo: menu lateral + conteúdo ---------- */
+
+.corpo {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.lateral {
+  width: 15rem;
+  flex-shrink: 0;
+  background: var(--rs-surface);
+  border-right: 1px solid var(--rs-border);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 1.25rem 0.75rem 1rem;
+  position: sticky;
+  top: 3.5rem;
+  height: calc(100vh - 3.5rem);
+  overflow-y: auto;
+}
+
+.lateral ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.grupo + .grupo {
+  margin-top: 1.25rem;
+}
+
+.grupoTitulo {
+  font-family: var(--rs-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--rs-muted);
+  padding: 0 0.75rem 0.4rem;
+  border-left: 2px solid var(--rs-border-strong);
+  margin-left: 0.25rem;
+}
+
+.itemMenu {
+  display: block;
+  font-size: 0.86rem;
+  color: var(--rs-text);
+  text-decoration: none;
+  padding: 0.45rem 0.75rem;
+  border-radius: 6px;
+  margin-top: 0.1rem;
+}
+
+.itemMenu:hover {
+  background: var(--rs-bg);
+}
+
+.itemAtivo {
+  background: var(--rs-primaria-tint);
+  color: var(--rs-primaria);
+  font-weight: 600;
+}
+
+.itemAtivo:hover {
+  background: var(--rs-primaria-tint);
+}
+
+.lateralRodape {
+  border-top: 1px solid var(--rs-border);
+  padding-top: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.copyright {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--rs-muted);
+  padding: 0.6rem 0.75rem 0;
+}
+
+.veu {
+  display: none;
+}
+
+.conteudo {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 60rem) {
+  .botaoMenu {
+    display: inline-flex;
+  }
+
+  .linkTopo,
+  .seloModulo {
+    display: none;
+  }
+
+  .lateral {
+    position: fixed;
+    top: 3.5rem;
+    left: 0;
+    z-index: 25;
+    height: calc(100vh - 3.5rem);
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+    box-shadow: 0 8px 24px rgba(16, 24, 40, 0.12);
+  }
+
+  .lateralAberta {
+    transform: translateX(0);
+  }
+
+  .veu {
+    display: block;
+    position: fixed;
+    inset: 3.5rem 0 0 0;
+    z-index: 20;
+    background: rgba(16, 24, 40, 0.3);
+  }
+}
+
+/* ---------- Estilo novo das classes globais, só dentro da moldura ---------- */
+
+.conteudo :global(.content-block) {
+  padding: 1.75rem 0 3rem;
+}
+
+.conteudo :global(.container) {
+  max-width: 84rem;
+  padding: 0 2rem;
+}
+
+@media (max-width: 40rem) {
+  .conteudo :global(.container) {
+    padding: 0 1rem;
+  }
+}
+
+.conteudo :global(.eyebrow) {
+  font-family: var(--rs-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  color: var(--rs-muted);
+}
+
+.conteudo :global(.content-block h1) {
+  font-size: 1.65rem;
+  max-width: none;
+  margin-top: 0.35rem;
+}
+
+.conteudo :global(.content-block .lede) {
+  max-width: 48rem;
+  font-size: 0.95rem;
+}
+
+.conteudo :global(.dash-panel),
+.conteudo :global(.kpi-card) {
+  border: 1px solid var(--rs-border);
+  border-radius: 10px;
+  background: var(--rs-surface);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+
+.conteudo :global(.dash-panel-header) {
+  background: transparent;
+  color: var(--rs-text);
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 1.1rem 1.25rem 0.2rem;
+  letter-spacing: 0;
+}
+
+.conteudo :global(.dash-panel-body) {
+  padding: 0.85rem 1.25rem 1.25rem;
+}
+
+.conteudo :global(.kpi-card-header) {
+  background: transparent;
+  color: var(--rs-muted);
+  font-family: var(--rs-mono);
+  font-size: 0.66rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  justify-content: flex-start;
+  text-align: left;
+  min-height: 0;
+  padding: 1rem 1.1rem 0;
+}
+
+.conteudo :global(.kpi-card-value) {
+  text-align: left;
+  font-size: 1.9rem;
+  padding: 0.35rem 1.1rem 1rem;
+}
+
+.conteudo :global(.dash-table th) {
+  font-family: var(--rs-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--rs-muted);
+  font-weight: 500;
+}
+
+.conteudo :global(.btn-primary) {
+  background: var(--rs-primaria);
+  border-radius: 6px;
+  font-size: 0.86rem;
+  padding: 0.6rem 1.2rem;
+}
+
+.conteudo :global(.btn-secondary) {
+  border-radius: 6px;
+}
+
+.conteudo :global(.badge) {
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.22rem 0.65rem;
+  border: 1px solid transparent;
+}
+
+.conteudo :global(.badge-baixo) {
+  background: var(--rs-ok-tint);
+  color: var(--rs-ok);
+  border-color: #c4e2d1;
+}
+
+.conteudo :global(.badge-medio) {
+  background: var(--rs-alerta-tint);
+  color: var(--rs-alerta);
+  border-color: #efd9a6;
+}
+
+.conteudo :global(.badge-alto) {
+  background: #fdeee4;
+  color: #b4501f;
+  border-color: #f3cdb6;
+}
+
+.conteudo :global(.badge-critico) {
+  background: var(--rs-perigo-tint);
+  color: var(--rs-perigo);
+  border-color: #f1c2c6;
+}
+
+.conteudo :global(.status-tag) {
+  border-radius: 6px;
+  font-family: var(--rs-mono);
+  text-decoration: none;
+  background: var(--rs-surface);
+}
+
+.conteudo :global(.mode-tab) {
+  border-radius: 6px 6px 0 0;
+}
+
+.conteudo :global(.form-field input),
+.conteudo :global(.form-field select),
+.conteudo :global(.form-field textarea) {
+  border-radius: 6px;
+}
+
+/* ---------- Detalhe do risco ---------- */
+
+.migalhas {
+  font-family: var(--rs-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  color: var(--rs-muted);
+}
+
+.migalhas a {
+  color: var(--rs-muted);
+  text-decoration: none;
+}
+
+.migalhas a:hover {
+  color: var(--rs-primaria);
+}
+
+.cabecalho {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 0.5rem;
+}
+
+.titulo {
+  font-size: 1.55rem;
+  margin: 0;
+}
+
+.subtitulo {
+  margin: 0.35rem 0 0;
+  color: var(--rs-muted);
+  font-size: 0.95rem;
+  max-width: 52rem;
+}
+
+.chips {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.85rem;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  color: var(--rs-text);
+  background: var(--rs-surface);
+  border: 1px solid var(--rs-border);
+  border-radius: 999px;
+  padding: 0.22rem 0.65rem;
+}
+
+.chipRotulo {
+  font-family: var(--rs-mono);
+  font-size: 0.64rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--rs-muted);
+}
+
+.grade {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(19rem, 1fr);
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+  align-items: start;
+}
+
+.coluna {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+@media (max-width: 70rem) {
+  .grade {
+    grid-template-columns: 1fr;
+  }
+}
+
+.rotuloMono {
+  font-family: var(--rs-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--rs-muted);
+}
+
+.niveis {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6rem;
+  margin-bottom: 1.1rem;
+}
+
+.nivelCaixa {
+  border: 1px solid var(--rs-border);
+  border-radius: 8px;
+  padding: 0.7rem 0.75rem;
+  background: var(--rs-bg);
+}
+
+.nivelCaixa .rotuloMono {
+  display: block;
+  margin-bottom: 0.45rem;
+}
+
+.nivelIm {
+  display: block;
+  font-size: 0.68rem;
+  color: var(--rs-muted);
+  margin-top: 0.4rem;
+}
+
+.valorGrande {
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0.25rem 0 0.15rem;
+}
+
+.valorMedio {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin: 0.2rem 0 0;
+}
+
+.nota {
+  font-size: 0.74rem;
+  color: var(--rs-muted);
+  margin: 0.35rem 0 0;
+}
+
+.separador {
+  border: none;
+  border-top: 1px solid var(--rs-border);
+  margin: 1rem 0;
+}
+
+.campos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem 1.5rem;
+  margin: 0;
+}
+
+.campos div {
+  min-width: 0;
+}
+
+.campos dt {
+  font-family: var(--rs-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--rs-muted);
+}
+
+.campos dd {
+  margin: 0.25rem 0 0;
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+.campoLargo {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 40rem) {
+  .campos {
+    grid-template-columns: 1fr;
+  }
+
+  .niveis {
+    grid-template-columns: 1fr;
+  }
+}
+
+.linhaTempo {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+
+.linhaTempo li {
+  position: relative;
+  padding: 0 0 0.95rem 1.6rem;
+}
+
+.linhaTempo li::before {
+  content: "";
+  position: absolute;
+  left: 0.42rem;
+  top: 1.1rem;
+  bottom: 0;
+  width: 1px;
+  background: var(--rs-border);
+}
+
+.linhaTempo li:last-child::before {
+  display: none;
+}
+
+.marcador {
+  position: absolute;
+  left: 0;
+  top: 0.15rem;
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 50%;
+  border: 2px solid var(--rs-primaria);
+  background: var(--rs-surface);
+}
+
+.marcadorFator {
+  border-color: #b4501f;
+}
+
+.marcadorPlano {
+  border-color: var(--rs-ok);
+}
+
+.marcadorAcao {
+  border-color: var(--rs-alerta);
+}
+
+.eventoTitulo {
+  font-size: 0.84rem;
+  font-weight: 500;
+  margin: 0;
+}
+
+.eventoMeta {
+  font-size: 0.72rem;
+  color: var(--rs-muted);
+  margin: 0.15rem 0 0;
+}
+
+.voltar {
+  display: inline-block;
+  margin-top: 2rem;
+  font-size: 0.82rem;
+  color: var(--rs-primaria);
+  text-decoration: none;
+}
+
+.voltar:hover {
+  text-decoration: underline;
+}
+
+@media print {
+  .topo,
+  .lateral,
+  .veu {
+    display: none !important;
+  }
+
+  .shell {
+    background: #fff;
+  }
+}

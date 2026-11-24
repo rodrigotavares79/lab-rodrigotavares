@@ -1820,6 +1820,12 @@ body:has(.condominio-shell) .site-footer {
   display: none;
 }
 
+/* Gestão de Riscos tem moldura própria (components/riscos/RiscosShell.tsx). */
+body:has(.riscos-shell) .site-header,
+body:has(.riscos-shell) .site-footer {
+  display: none;
+}
+
 /* Busca por palavra-chave na barra de uma lista (ex.: Lista de Chamados). */
 .list-toolbar-busca {
   flex: 1 1 18rem;

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-import Footer from "@/components/Footer";
+import s from "@/components/riscos/riscos.module.css";
 
 type FatorRisco = {
   id: number;
@@ -61,6 +61,14 @@ type RiscoDetalhe = {
   restauracao_horas: number | null;
   restauracao_horas_min: number | null;
   restauracao_horas_max: number | null;
+  // Resultado da simulação financeira gravado no cadastro (P50 = *_total).
+  // O driver do Neon devolve colunas numeric como string.
+  impacto_critico_total: number | string | null;
+  impacto_critico_p10: number | string | null;
+  impacto_critico_p90: number | string | null;
+  impacto_alto_total: number | string | null;
+  impacto_alto_p10: number | string | null;
+  impacto_alto_p90: number | string | null;
   criado_em: string;
   fatores: FatorRisco[];
 };
@@ -162,6 +170,151 @@ function LinhaCampo({ label, value }: { label: string; value: React.ReactNode })
       <td style={{ color: "var(--text-muted)", width: "40%", whiteSpace: "normal" }}>{label}</td>
       <td style={{ fontWeight: 500, whiteSpace: "normal" }}>{value}</td>
     </tr>
+  );
+}
+
+function Campo({ label, value, largo }: { label: string; value: React.ReactNode; largo?: boolean }) {
+  return (
+    <div className={largo ? s.campoLargo : undefined}>
+      <dt>{label}</dt>
+      <dd>{value}</dd>
+    </div>
+  );
+}
+
+function numero(v: number | string | null | undefined): number | null {
+  if (v === null || v === undefined || v === "") return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+const MOEDA_COMPACTA = new Intl.NumberFormat("pt-BR", {
+  style: "currency",
+  currency: "BRL",
+  notation: "compact",
+  maximumFractionDigits: 1,
+});
+
+function moeda(v: number | null): string {
+  return v === null ? "—" : MOEDA_COMPACTA.format(v);
+}
+
+/* ---------- Impacto e decisão (simulação financeira já gravada) ---------- */
+
+function ImpactoDecisao({ risco, totalPlanos }: { risco: RiscoDetalhe; totalPlanos: number }) {
+  const critP10 = numero(risco.impacto_critico_p10);
+  const critP50 = numero(risco.impacto_critico_total);
+  const critP90 = numero(risco.impacto_critico_p90);
+  const altoP10 = numero(risco.impacto_alto_p10);
+  const altoP50 = numero(risco.impacto_alto_total);
+  const altoP90 = numero(risco.impacto_alto_p90);
+  const temFaixa = critP10 !== null && critP90 !== null && critP90 > critP10;
+
+  return (
+    <div className="dash-panel">
+      <div className="dash-panel-header">Impacto e decisão</div>
+      <div className="dash-panel-body">
+        {critP50 === null ? (
+          <p className={s.nota} style={{ marginTop: 0 }}>
+            Sem estimativa financeira para este risco. A simulação é feita no cadastro
+            individual, quando o risco é vinculado a um Sistema Crítico.
+          </p>
+        ) : (
+          <>
+            <span className={s.rotuloMono}>Exposição estimada · indisponibilidade total</span>
+            <p className={s.valorGrande}>
+              {temFaixa ? `${moeda(critP10)} – ${moeda(critP90)}` : moeda(critP50)}
+            </p>
+            <p className={s.nota}>
+              {temFaixa
+                ? `Faixa P10–P90 · mediana ${moeda(critP50)} · simulação de Monte Carlo`
+                : "Valor pontual (cadastrado sem faixa de incerteza)"}
+            </p>
+            {altoP50 !== null && (
+              <>
+                <hr className={s.separador} />
+                <span className={s.rotuloMono}>Cenário de degradação</span>
+                <p className={s.valorMedio}>
+                  {altoP10 !== null && altoP90 !== null && altoP90 > altoP10
+                    ? `${moeda(altoP10)} – ${moeda(altoP90)}`
+                    : moeda(altoP50)}
+                </p>
+              </>
+            )}
+          </>
+        )}
+        <hr className={s.separador} />
+        <span className={s.rotuloMono}>Tratamento</span>
+        <p className={s.valorMedio} style={{ fontSize: "0.92rem" }}>
+          {risco.status || "Identificado"}
+          {totalPlanos > 0 ? ` · ${totalPlanos} plano${totalPlanos > 1 ? "s" : ""} de ação` : " · sem plano de ação"}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Linha do tempo (montada a partir das datas já gravadas) ---------- */
+
+type Evento = { data: string; titulo: string; meta: string; tipo: "risco" | "fator" | "plano" | "acao" };
+
+function LinhaDoTempo({ risco, planos }: { risco: RiscoDetalhe; planos: PlanoAcao[] }) {
+  const eventos: Evento[] = [
+    {
+      data: risco.criado_em,
+      titulo: "Risco cadastrado",
+      meta: `${formatData(risco.criado_em)} · por ${risco.levantado_por}`,
+      tipo: "risco" as const,
+    },
+    ...risco.fatores.map((f) => ({
+      data: f.criado_em,
+      titulo: `Fator ${f.codigo} adicionado`,
+      meta: `${formatData(f.criado_em)} · ${f.status_implementacao}`,
+      tipo: "fator" as const,
+    })),
+    ...planos.map((p) => ({
+      data: p.criado_em,
+      titulo: `Plano de ação criado: ${p.titulo}`,
+      meta: `${formatData(p.criado_em)} · ${p.status}`,
+      tipo: "plano" as const,
+    })),
+    ...planos.flatMap((p) =>
+      (p.acoes || []).map((a) => ({
+        data: a.criado_em,
+        titulo: `Ação registrada: ${a.descricao}`,
+        meta: `${formatData(a.criado_em)}${a.responsavel ? ` · ${a.responsavel}` : ""} · ${a.status}`,
+        tipo: "acao" as const,
+      }))
+    ),
+  ]
+    .filter((e) => e.data)
+    .sort((a, b) => String(b.data).localeCompare(String(a.data)));
+
+  const classeMarcador = {
+    risco: s.marcador,
+    fator: `${s.marcador} ${s.marcadorFator}`,
+    plano: `${s.marcador} ${s.marcadorPlano}`,
+    acao: `${s.marcador} ${s.marcadorAcao}`,
+  };
+
+  return (
+    <div className="dash-panel">
+      <div className="dash-panel-header">Linha do tempo</div>
+      <div className="dash-panel-body">
+        <ol className={s.linhaTempo}>
+          {eventos.map((e, i) => (
+            <li key={`${e.tipo}-${i}`}>
+              <span className={classeMarcador[e.tipo]} aria-hidden="true" />
+              <p className={s.eventoTitulo}>{e.titulo}</p>
+              <p className={s.eventoMeta}>{e.meta}</p>
+            </li>
+          ))}
+        </ol>
+        <p className={s.nota}>
+          Mostra quando cada registro foi criado. Alterações posteriores ainda não ficam registradas.
+        </p>
+      </div>
+    </div>
   );
 }
 
@@ -737,267 +890,273 @@ export default function DetalheDoRisco() {
 
   const riscoMitigado = risco?.status === "Mitigado";
 
-  return (
+  const reavaliacao = riscoMitigado ? (
+    <div className="field-helper" style={{ margin: 0 }}>
+      Este risco foi mitigado e não pode mais ser alterado.
+    </div>
+  ) : (
     <>
-      <section className="content-block">
-        <div className="container">
-          <span className="eyebrow">Gestão de Riscos</span>
-          <div className="page-header-row">
-            <h1>Detalhe do Risco {risco ? `#${risco.id}` : ""}</h1>
+      <p className="field-helper" style={{ marginTop: 0, marginBottom: "1rem" }}>
+        Impacto e Probabilidade abaixo são os valores <strong>inerentes</strong> (antes de
+        qualquer controle). O nível Atual e o Projetado são sempre calculados a partir dos
+        Fatores de Risco — não são digitados aqui. Ao marcar o status como{" "}
+        <strong>Mitigado</strong>, o risco é congelado por completo.
+      </p>
+
+      <form onSubmit={handleReavaliar} className="form-grid">
+        <div className="form-field">
+          <label htmlFor="impactoForm">Impacto Inerente (1–5)</label>
+          <select id="impactoForm" value={impactoForm} onChange={(e) => setImpactoForm(e.target.value)}>
+            <option value="">—</option>
+            {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}
+          </select>
+        </div>
+        <div className="form-field">
+          <label htmlFor="probabilidadeForm">Probabilidade Inerente (1–5)</label>
+          <select id="probabilidadeForm" value={probabilidadeForm} onChange={(e) => setProbabilidadeForm(e.target.value)}>
+            <option value="">—</option>
+            {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}
+          </select>
+        </div>
+        <div className="form-field form-field-wide">
+          <label htmlFor="statusForm">Status</label>
+          <select id="statusForm" value={statusForm} onChange={(e) => setStatusForm(e.target.value)}>
+            {STATUS_OPCOES.map((st) => <option key={st} value={st}>{st}</option>)}
+          </select>
+        </div>
+        <div className="form-field-wide form-actions">
+          <button type="submit" className="btn-primary" disabled={salvando}>
+            {salvando ? "Salvando..." : "Salvar reavaliação"}
+          </button>
+          {sucessoSalvar && <span className="text-muted" style={{ fontSize: "0.85rem" }}>Salvo.</span>}
+        </div>
+        {erroSalvar && (
+          <div className="error-banner form-field-wide" style={{ marginTop: 0 }}>
+            <span className="success-icon error-icon">!</span>
+            <span className="success-text">{erroSalvar}</span>
           </div>
+        )}
+      </form>
+    </>
+  );
 
-          {carregando && <p className="text-muted" style={{ marginTop: "1.5rem" }}>Carregando...</p>}
+  return (
+    <section className="content-block">
+      <div className="container">
+        <nav className={s.migalhas} aria-label="Navegação">
+          <a href="/seguranca/gestao-de-riscos">Gestão de Riscos</a> /{" "}
+          <a href="/seguranca/gestao-de-riscos/riscos">Lista de Riscos</a> /{" "}
+          <span>Risco {risco ? `#${risco.id}` : ""}</span>
+        </nav>
 
-          {erro && (
-            <div className="error-banner" style={{ marginTop: "1.5rem" }}>
-              <span className="success-icon error-icon">!</span>
-              <span className="success-text">
-                <strong>Não foi possível carregar este risco.</strong>
-                <span>{erro}</span>
-              </span>
-            </div>
-          )}
+        {carregando && <p className="text-muted" style={{ marginTop: "1.5rem" }}>Carregando...</p>}
 
-          {!carregando && !erro && risco && (
-            <div className="dashboard" style={{ marginTop: "1.5rem" }}>
-              <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap" }}>
-                {risco.impacto_qualitativo && (
-                  <span className={`badge ${BADGE_POR_NIVEL[risco.impacto_qualitativo] || ""}`}>
-                    Nível atual: {risco.impacto_qualitativo}
+        {erro && (
+          <div className="error-banner" style={{ marginTop: "1.5rem" }}>
+            <span className="success-icon error-icon">!</span>
+            <span className="success-text">
+              <strong>Não foi possível carregar este risco.</strong>
+              <span>{erro}</span>
+            </span>
+          </div>
+        )}
+
+        {!carregando && !erro && risco && (
+          <>
+            <div className={s.cabecalho}>
+              <div>
+                <h1 className={s.titulo}>Risco #{risco.id}</h1>
+                {risco.gatilho && <p className={s.subtitulo}>{risco.gatilho}</p>}
+                <div className={s.chips}>
+                  {risco.impacto_qualitativo && (
+                    <span className={`badge ${BADGE_POR_NIVEL[risco.impacto_qualitativo] || ""}`}>
+                      Nível atual: {risco.impacto_qualitativo}
+                    </span>
+                  )}
+                  <span className={s.chip}>
+                    <span className={s.chipRotulo}>Status</span>
+                    <span className={classeStatus(risco.status)}>{risco.status || "Identificado"}</span>
                   </span>
-                )}
-                <span className={classeStatus(risco.status)} style={{ fontSize: "0.85rem" }}>
-                  Status: {risco.status || "Identificado"}
-                </span>
-              </div>
-
-              <div className="dash-panel">
-                <div className="dash-panel-header">Identificação</div>
-                <div className="dash-panel-body">
-                  <table className="dash-table">
-                    <tbody>
-                      <LinhaCampo label="Projeto" value={risco.projeto} />
-                      <LinhaCampo label="Categoria do Risco" value={risco.categoria || "—"} />
-                      <LinhaCampo label="Ponto de Gatilho" value={risco.gatilho || "—"} />
-                      <LinhaCampo label="Resultado Potencial" value={risco.resultado_potencial || "—"} />
-                      <LinhaCampo label="Levantado Por" value={risco.levantado_por} />
-                      <LinhaCampo label="Data de Levantamento" value={formatData(risco.data_levantamento)} />
-                      <LinhaCampo label="Fonte" value={risco.fonte || "—"} />
-                    </tbody>
-                  </table>
+                  <span className={s.chip}>
+                    <span className={s.chipRotulo}>Projeto</span>
+                    {risco.projeto}
+                  </span>
+                  {risco.categoria && (
+                    <span className={s.chip}>
+                      <span className={s.chipRotulo}>Categoria</span>
+                      {risco.categoria}
+                    </span>
+                  )}
                 </div>
               </div>
+            </div>
 
-              {risco.sistema_critico && (
+            <div className={s.grade}>
+              <div className={s.coluna}>
                 <div className="dash-panel">
-                  <div className="dash-panel-header">Sistema Crítico Vinculado</div>
+                  <div className="dash-panel-header">Identificação</div>
                   <div className="dash-panel-body">
-                    <table className="dash-table">
-                      <tbody>
-                        <LinhaCampo label="Sistema Crítico" value={risco.sistema_critico} />
-                        <LinhaCampo label="Duração (horas)" value={valorComFaixa(risco.duracao_horas, risco.duracao_horas_min, risco.duracao_horas_max)} />
-                        <LinhaCampo label="% Degradação" value={valorComFaixa(risco.percentual_degradacao, risco.percentual_degradacao_min, risco.percentual_degradacao_max)} />
-                        <LinhaCampo label="Pessoas na Restauração" value={valorComFaixa(risco.restauracao_pessoas, risco.restauracao_pessoas_min, risco.restauracao_pessoas_max)} />
-                        <LinhaCampo label="Horas de Restauração" value={valorComFaixa(risco.restauracao_horas, risco.restauracao_horas_min, risco.restauracao_horas_max)} />
-                      </tbody>
-                    </table>
+                    <dl className={s.campos}>
+                      <Campo label="Ponto de gatilho" value={risco.gatilho || "—"} largo />
+                      <Campo label="Resultado potencial" value={risco.resultado_potencial || "—"} largo />
+                      <Campo label="Levantado por" value={risco.levantado_por} />
+                      <Campo label="Data de levantamento" value={formatData(risco.data_levantamento)} />
+                      <Campo label="Fonte" value={risco.fonte || "—"} />
+                      <Campo label="Cadastrado em" value={formatData(risco.criado_em)} />
+                    </dl>
                   </div>
                 </div>
-              )}
 
-              <div className="dash-panel">
-                <div className="dash-panel-header">Nível do Risco — Inerente / Atual / Projetado</div>
-                <div className="dash-panel-body">
-                  <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap", marginBottom: "1.25rem" }}>
-                    <div>
-                      <div className="text-muted" style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.04em" }}>
-                        Inerente (sem controles)
-                      </div>
-                      <div style={{ marginTop: "0.4rem" }}>
+                <div className="dash-panel">
+                  <div className="dash-panel-header">Fatores de risco e controles · {risco.fatores.length}</div>
+                  <div className="dash-panel-body">
+                    <p className="text-muted" style={{ fontSize: "0.82rem", marginTop: 0, marginBottom: "1rem" }}>
+                      Cada fator empurra a Probabilidade e/ou o Impacto deste risco. O Índice de
+                      Mitigação e os níveis Atual e Projetado são recalculados a cada fator
+                      adicionado, editado ou removido.
+                    </p>
+
+                    {risco.fatores.length === 0 && (
+                      <p className="text-muted" style={{ fontSize: "0.85rem" }}>
+                        Nenhum fator de risco cadastrado ainda — o nível Atual permanece igual ao Inerente.
+                      </p>
+                    )}
+
+                    {risco.fatores.map((f) => (
+                      <FatorRiscoCard key={f.id} fator={f} riscoMitigado={riscoMitigado} onAtualizado={carregarRisco} />
+                    ))}
+
+                    {riscoMitigado ? (
+                      <p className="field-helper" style={{ margin: "1rem 0 0" }}>
+                        Este risco foi mitigado — não é possível cadastrar novos fatores de risco.
+                      </p>
+                    ) : (
+                      <>
+                        <p style={{ fontSize: "0.8rem", fontWeight: 600, marginTop: "1rem", marginBottom: "0.75rem" }}>
+                          Novo fator de risco
+                        </p>
+                        <NovoFatorForm riscoId={risco.id} onCriado={carregarRisco} />
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                <div className="dash-panel">
+                  <div className="dash-panel-header">Planos de ação · {planos.length}</div>
+                  <div className="dash-panel-body">
+                    {carregandoPlanos && <p className="text-muted" style={{ fontSize: "0.85rem" }}>Carregando planos...</p>}
+
+                    {!carregandoPlanos && planos.length === 0 && (
+                      <p className="text-muted" style={{ fontSize: "0.85rem", marginTop: 0 }}>
+                        Nenhum plano de ação cadastrado para este risco ainda.
+                      </p>
+                    )}
+
+                    {!carregandoPlanos && planos.map((p) => (
+                      <PlanoAcaoCard key={p.id} plano={p} riscoMitigado={riscoMitigado} onAtualizado={carregarPlanos} />
+                    ))}
+
+                    {riscoMitigado ? (
+                      <p className="field-helper" style={{ margin: "1rem 0 0" }}>
+                        Este risco foi mitigado — não é possível cadastrar novos planos de ação.
+                      </p>
+                    ) : (
+                      <>
+                        <p style={{ fontSize: "0.8rem", fontWeight: 600, marginTop: "1rem", marginBottom: "0.75rem" }}>
+                          Novo plano de ação
+                        </p>
+                        <form onSubmit={handleCadastrarPlano} className="form-grid" style={{ maxWidth: "30rem" }}>
+                          <div className="form-field form-field-wide">
+                            <label htmlFor="tituloPlano">Título</label>
+                            <input
+                              id="tituloPlano"
+                              type="text"
+                              value={tituloPlano}
+                              onChange={(e) => setTituloPlano(e.target.value)}
+                              placeholder="Ex.: Redundância de link de internet"
+                              required
+                            />
+                          </div>
+                          <div className="form-field-wide form-actions">
+                            <button type="submit" className="btn-primary" disabled={salvandoPlano}>
+                              {salvandoPlano ? "Salvando..." : "Criar plano de ação"}
+                            </button>
+                          </div>
+                          {erroPlano && (
+                            <div className="error-banner form-field-wide" style={{ marginTop: 0 }}>
+                              <span className="success-icon error-icon">!</span>
+                              <span className="success-text">{erroPlano}</span>
+                            </div>
+                          )}
+                        </form>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className={s.coluna}>
+                <div className="dash-panel">
+                  <div className="dash-panel-header">Nível do risco</div>
+                  <div className="dash-panel-body">
+                    <div className={s.niveis}>
+                      <div className={s.nivelCaixa}>
+                        <span className={s.rotuloMono}>Inerente</span>
                         {risco.nivel_inicial ? (
                           <span className={`badge ${BADGE_POR_NIVEL[risco.nivel_inicial] || ""}`}>{risco.nivel_inicial}</span>
                         ) : "—"}
+                        <span className={s.nivelIm}>Sem controles</span>
                       </div>
-                    </div>
-                    <div>
-                      <div className="text-muted" style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.04em" }}>
-                        Atual (controles hoje)
-                      </div>
-                      <div style={{ marginTop: "0.4rem" }}>
+                      <div className={s.nivelCaixa}>
+                        <span className={s.rotuloMono}>Atual</span>
                         {risco.impacto_qualitativo ? (
                           <span className={`badge ${BADGE_POR_NIVEL[risco.impacto_qualitativo] || ""}`}>{risco.impacto_qualitativo}</span>
                         ) : "—"}
+                        <span className={s.nivelIm}>
+                          IM P {formatPct(risco.im_prob_atual)} · I {formatPct(risco.im_imp_atual)}
+                        </span>
                       </div>
-                      <div className="text-muted" style={{ fontSize: "0.72rem", marginTop: "0.3rem" }}>
-                        IM Prob. {formatPct(risco.im_prob_atual)} · IM Imp. {formatPct(risco.im_imp_atual)}
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-muted" style={{ fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.04em" }}>
-                        Projetado (planos concluídos)
-                      </div>
-                      <div style={{ marginTop: "0.4rem" }}>
+                      <div className={s.nivelCaixa}>
+                        <span className={s.rotuloMono}>Projetado</span>
                         {risco.nivel_projetado ? (
                           <span className={`badge ${BADGE_POR_NIVEL[risco.nivel_projetado] || ""}`}>{risco.nivel_projetado}</span>
                         ) : "—"}
+                        <span className={s.nivelIm}>
+                          IM P {formatPct(risco.im_prob_projetado)} · I {formatPct(risco.im_imp_projetado)}
+                        </span>
                       </div>
-                      <div className="text-muted" style={{ fontSize: "0.72rem", marginTop: "0.3rem" }}>
-                        IM Prob. {formatPct(risco.im_prob_projetado)} · IM Imp. {formatPct(risco.im_imp_projetado)}
-                      </div>
+                    </div>
+                    {reavaliacao}
+                  </div>
+                </div>
+
+                <ImpactoDecisao risco={risco} totalPlanos={planos.length} />
+
+                {risco.sistema_critico && (
+                  <div className="dash-panel">
+                    <div className="dash-panel-header">Sistema crítico vinculado</div>
+                    <div className="dash-panel-body">
+                      <dl className={s.campos}>
+                        <Campo label="Sistema" value={risco.sistema_critico} largo />
+                        <Campo label="Duração (h)" value={valorComFaixa(risco.duracao_horas, risco.duracao_horas_min, risco.duracao_horas_max)} />
+                        <Campo label="Degradação (%)" value={valorComFaixa(risco.percentual_degradacao, risco.percentual_degradacao_min, risco.percentual_degradacao_max)} />
+                        <Campo label="Pessoas na restauração" value={valorComFaixa(risco.restauracao_pessoas, risco.restauracao_pessoas_min, risco.restauracao_pessoas_max)} />
+                        <Campo label="Horas de restauração" value={valorComFaixa(risco.restauracao_horas, risco.restauracao_horas_min, risco.restauracao_horas_max)} />
+                      </dl>
                     </div>
                   </div>
+                )}
 
-                  {riscoMitigado ? (
-                    <div className="field-helper" style={{ margin: 0 }}>
-                      Este risco foi mitigado e não pode mais ser alterado.
-                    </div>
-                  ) : (
-                    <>
-                      <p className="field-helper" style={{ marginTop: 0, marginBottom: "1rem" }}>
-                        Impacto e Probabilidade abaixo são os valores <strong>inerentes</strong> (antes de
-                        qualquer controle). O nível Atual e o Projetado são sempre calculados a partir dos
-                        Fatores de Risco cadastrados mais abaixo — não são digitados aqui. Ao marcar o
-                        status como <strong>Mitigado</strong>, o risco é congelado por completo.
-                      </p>
-
-                      <form onSubmit={handleReavaliar} className="form-grid" style={{ maxWidth: "30rem" }}>
-                        <div className="form-field">
-                          <label htmlFor="impactoForm">Impacto Inerente (1–5)</label>
-                          <select id="impactoForm" value={impactoForm} onChange={(e) => setImpactoForm(e.target.value)}>
-                            <option value="">—</option>
-                            {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}
-                          </select>
-                        </div>
-                        <div className="form-field">
-                          <label htmlFor="probabilidadeForm">Probabilidade Inerente (1–5)</label>
-                          <select id="probabilidadeForm" value={probabilidadeForm} onChange={(e) => setProbabilidadeForm(e.target.value)}>
-                            <option value="">—</option>
-                            {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}
-                          </select>
-                        </div>
-                        <div className="form-field form-field-wide">
-                          <label htmlFor="statusForm">Status</label>
-                          <select id="statusForm" value={statusForm} onChange={(e) => setStatusForm(e.target.value)}>
-                            {STATUS_OPCOES.map((s) => <option key={s} value={s}>{s}</option>)}
-                          </select>
-                        </div>
-                        <div className="form-field-wide form-actions">
-                          <button type="submit" className="btn-primary" disabled={salvando}>
-                            {salvando ? "Salvando..." : "Salvar"}
-                          </button>
-                          {sucessoSalvar && <span className="text-muted" style={{ fontSize: "0.85rem" }}>Salvo.</span>}
-                        </div>
-                        {erroSalvar && (
-                          <div className="error-banner form-field-wide" style={{ marginTop: 0 }}>
-                            <span className="success-icon error-icon">!</span>
-                            <span className="success-text">{erroSalvar}</span>
-                          </div>
-                        )}
-                      </form>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              <div className="dash-panel">
-                <div className="dash-panel-header">Fatores de Risco e Controles</div>
-                <div className="dash-panel-body">
-                  <p className="text-muted" style={{ fontSize: "0.82rem", marginTop: 0, marginBottom: "1rem" }}>
-                    Cada fator abaixo empurra a Probabilidade e/ou o Impacto deste risco. O Índice de
-                    Mitigação (e, por consequência, o nível Atual/Projetado no painel acima) é recalculado
-                    automaticamente a cada fator adicionado, editado ou removido.
-                  </p>
-
-                  {risco.fatores.length === 0 && (
-                    <p className="text-muted" style={{ fontSize: "0.85rem" }}>
-                      Nenhum fator de risco cadastrado ainda — o nível Atual permanece igual ao Inerente.
-                    </p>
-                  )}
-
-                  {risco.fatores.map((f) => (
-                    <FatorRiscoCard key={f.id} fator={f} riscoMitigado={riscoMitigado} onAtualizado={carregarRisco} />
-                  ))}
-
-                  {riscoMitigado ? (
-                    <p className="field-helper" style={{ margin: "1rem 0 0" }}>
-                      Este risco foi mitigado — não é possível cadastrar novos fatores de risco.
-                    </p>
-                  ) : (
-                    <>
-                      <p style={{ fontSize: "0.8rem", fontWeight: 600, marginTop: "1rem", marginBottom: "0.75rem" }}>
-                        Novo fator de risco
-                      </p>
-                      <NovoFatorForm riscoId={risco.id} onCriado={carregarRisco} />
-                    </>
-                  )}
-                </div>
-              </div>
-
-              <div className="dash-panel">
-                <div className="dash-panel-header">Planos de Ação</div>
-                <div className="dash-panel-body">
-                  {carregandoPlanos && <p className="text-muted" style={{ fontSize: "0.85rem" }}>Carregando planos...</p>}
-
-                  {!carregandoPlanos && planos.length === 0 && (
-                    <p className="text-muted" style={{ fontSize: "0.85rem", marginTop: 0 }}>
-                      Nenhum plano de ação cadastrado para este risco ainda.
-                    </p>
-                  )}
-
-                  {!carregandoPlanos && planos.map((p) => (
-                    <PlanoAcaoCard key={p.id} plano={p} riscoMitigado={riscoMitigado} onAtualizado={carregarPlanos} />
-                  ))}
-
-                  {riscoMitigado ? (
-                    <p className="field-helper" style={{ margin: "1rem 0 0" }}>
-                      Este risco foi mitigado — não é possível cadastrar novos planos de ação.
-                    </p>
-                  ) : (
-                    <>
-                      <p style={{ fontSize: "0.8rem", fontWeight: 600, marginTop: "1rem", marginBottom: "0.75rem" }}>
-                        Novo plano de ação
-                      </p>
-                      <form onSubmit={handleCadastrarPlano} className="form-grid" style={{ maxWidth: "30rem" }}>
-                        <div className="form-field form-field-wide">
-                          <label htmlFor="tituloPlano">Título</label>
-                          <input
-                            id="tituloPlano"
-                            type="text"
-                            value={tituloPlano}
-                            onChange={(e) => setTituloPlano(e.target.value)}
-                            placeholder="Ex.: Redundância de link de internet"
-                            required
-                          />
-                        </div>
-                        <div className="form-field-wide form-actions">
-                          <button type="submit" className="btn-primary" disabled={salvandoPlano}>
-                            {salvandoPlano ? "Salvando..." : "Criar plano de ação"}
-                          </button>
-                        </div>
-                        {erroPlano && (
-                          <div className="error-banner form-field-wide" style={{ marginTop: 0 }}>
-                            <span className="success-icon error-icon">!</span>
-                            <span className="success-text">{erroPlano}</span>
-                          </div>
-                        )}
-                      </form>
-                    </>
-                  )}
-                </div>
+                <LinhaDoTempo risco={risco} planos={planos} />
               </div>
             </div>
-          )}
+          </>
+        )}
 
-            <a
-            href="/seguranca/gestao-de-riscos/riscos"
-            className="status-tag"
-            style={{ marginTop: "2.5rem", display: "inline-block" }}
-          >
-            ← Voltar para Lista de Riscos
-          </a>
-        </div>
-      </section>
-      <Footer />
-    </>
+        <a href="/seguranca/gestao-de-riscos/riscos" className={s.voltar}>
+          ← Voltar para a Lista de Riscos
+        </a>
+      </div>
+    </section>
   );
 }

@@ -31,6 +31,8 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
         r.percentual_degradacao, r.percentual_degradacao_min, r.percentual_degradacao_max,
         r.restauracao_pessoas, r.restauracao_pessoas_min, r.restauracao_pessoas_max,
         r.restauracao_horas, r.restauracao_horas_min, r.restauracao_horas_max,
+        r.impacto_critico_total, r.impacto_critico_p10, r.impacto_critico_p90,
+        r.impacto_alto_total, r.impacto_alto_p10, r.impacto_alto_p90,
         r.criado_em
       FROM riscos r
       JOIN projetos p ON p.id = r.projeto_id
