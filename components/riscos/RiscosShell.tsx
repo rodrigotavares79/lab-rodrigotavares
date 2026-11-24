@@ -57,6 +57,10 @@ const GRUPOS: GrupoMenu[] = [
     ],
   },
   {
+    titulo: "Conformidade",
+    itens: [{ href: `${BASE}/conformidade`, label: "Frameworks (CIS, NIST, ISO)" }],
+  },
+  {
     titulo: "Relatórios",
     itens: [
       { href: `${BASE}/relatorio-executivo`, label: "Relatório Executivo" },
