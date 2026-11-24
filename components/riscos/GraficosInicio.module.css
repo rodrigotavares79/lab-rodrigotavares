@@ -108,14 +108,29 @@
 
 /* Gauge */
 .gauge {
-  width: 11rem;
+  width: 100%;
+  max-width: 16rem;
   height: auto;
+  overflow: visible;
+}
+
+.gaugeMarca {
+  font-size: 10px;
+  fill: #6b6b66;
+}
+
+.gaugeMeta {
+  font-size: 10px;
+  font-weight: 600;
+  fill: #a3242f;
 }
 
 .gaugeValor {
-  font-size: 26px;
+  margin-top: -0.35rem;
+  font-size: 1.5rem;
   font-weight: 700;
-  fill: var(--text);
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
 }
 
 .gaugeNota {
