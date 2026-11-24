@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
+import { getUsuarioRiscos } from "@/lib/riscosAuth";
 
 export const dynamic = "force-dynamic";
 
@@ -17,8 +18,10 @@ export async function GET() {
           AND NULLIF(prazo::text, '')::date < CURRENT_DATE
       `,
     ]);
+    const usuario = await getUsuarioRiscos();
     return NextResponse.json({
-      auditoriaPendentes: auditoria.pendentes,
+      // Usuário comum não vê nada de auditoria, nem a contagem.
+      auditoriaPendentes: usuario?.permissoes.verAuditoria ? auditoria.pendentes : 0,
       acoesAtrasadas: acoes.atrasadas,
     });
   } catch (err) {

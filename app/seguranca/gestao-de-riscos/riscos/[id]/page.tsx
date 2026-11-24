@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import s from "@/components/riscos/riscos.module.css";
 import EvidenciasPlano, { type Evidencia } from "@/components/riscos/EvidenciasPlano";
+import { usePerfilRiscos } from "@/components/riscos/PermissoesRiscos";
 
 type FatorRisco = {
   id: number;
@@ -583,10 +584,13 @@ function NovoFatorForm({ riscoId, onCriado }: { riscoId: number; onCriado: () =>
 function PlanoAcaoCard({
   plano,
   riscoMitigado,
+  somenteLeitura,
   onAtualizado,
 }: {
   plano: PlanoAcao;
   riscoMitigado: boolean;
+  // Perfil sem permissão para editar planos de ação.
+  somenteLeitura: boolean;
   onAtualizado: () => void;
 }) {
   const [descricaoAcao, setDescricaoAcao] = useState("");
@@ -599,7 +603,7 @@ function PlanoAcaoCard({
   const [reabrindo, setReabrindo] = useState(false);
 
   const planoAberto = plano.status !== "Concluído";
-  const podeAdicionarAcao = planoAberto && !riscoMitigado;
+  const podeAdicionarAcao = planoAberto && !riscoMitigado && !somenteLeitura;
   const todasConcluidas = plano.acoes.length > 0 && plano.acoes.every((a) => a.status === "Concluído");
   const temEvidencia = plano.evidencias.length > 0;
   const podeConcluirPlano = planoAberto && !riscoMitigado && todasConcluidas && temEvidencia;
@@ -766,7 +770,7 @@ function PlanoAcaoCard({
                     <td>
                       <select
                         value={a.status}
-                        disabled={riscoMitigado || !planoAberto}
+                        disabled={riscoMitigado || !planoAberto || somenteLeitura}
                         onChange={(e) => handleAtualizarStatusAcao(a.id, e.target.value)}
                         className={classeStatusAcao(a.status)}
                         style={{ fontSize: "0.8rem", border: "1px solid var(--border)", borderRadius: "3px", padding: "0.3rem 0.4rem", background: "var(--bg)" }}
@@ -792,7 +796,7 @@ function PlanoAcaoCard({
         <EvidenciasPlano
           planoId={plano.id}
           evidencias={plano.evidencias}
-          editavel={planoAberto && !riscoMitigado}
+          editavel={planoAberto && !riscoMitigado && !somenteLeitura}
           onAtualizado={onAtualizado}
         />
 
@@ -803,7 +807,7 @@ function PlanoAcaoCard({
                 ? "Plano concluído e aguardando a Auditoria — ações e evidências ficam congeladas."
                 : "Plano concluído — não é possível cadastrar novas ações nele."}
             </p>
-            {plano.auditoria_status === "Pendente" && (
+            {plano.auditoria_status === "Pendente" && !somenteLeitura && (
               <button
                 type="button"
                 className="btn-secondary"
@@ -1006,12 +1010,19 @@ export default function DetalheDoRisco() {
   }
 
   const riscoMitigado = risco?.status === "Mitigado";
+  const perfil = usePerfilRiscos();
+  const podeEditarRisco = perfil.permissoes.editarRiscos;
+  const podeEditarPlanos = perfil.permissoes.editarPlanos;
   const [novoFatorAberto, setNovoFatorAberto] = useState(false);
   const [novoPlanoAberto, setNovoPlanoAberto] = useState(false);
 
   const reavaliacao = riscoMitigado ? (
     <div className="field-helper" style={{ margin: 0 }}>
       Este risco foi mitigado e não pode mais ser alterado.
+    </div>
+  ) : !podeEditarRisco ? (
+    <div className="field-helper" style={{ margin: 0 }}>
+      {perfil.carregado ? "Seu perfil permite apenas consultar este risco." : "Carregando..."}
     </div>
   ) : (
     <>
@@ -1142,14 +1153,14 @@ export default function DetalheDoRisco() {
                     )}
 
                     {risco.fatores.map((f) => (
-                      <FatorRiscoCard key={f.id} fator={f} riscoMitigado={riscoMitigado} onAtualizado={carregarRisco} />
+                      <FatorRiscoCard key={f.id} fator={f} riscoMitigado={riscoMitigado || !podeEditarRisco} onAtualizado={carregarRisco} />
                     ))}
 
                     {riscoMitigado ? (
                       <p className="field-helper" style={{ margin: "1rem 0 0" }}>
                         Este risco foi mitigado — não é possível cadastrar novos fatores de risco.
                       </p>
-                    ) : (
+                    ) : !podeEditarRisco ? null : (
                       novoFatorAberto ? (
                         <div className={s.formularioNovo}>
                           <div className={s.formularioNovoTopo}>
@@ -1187,14 +1198,20 @@ export default function DetalheDoRisco() {
                     )}
 
                     {!carregandoPlanos && planos.map((p) => (
-                      <PlanoAcaoCard key={p.id} plano={p} riscoMitigado={riscoMitigado} onAtualizado={carregarPlanos} />
+                      <PlanoAcaoCard
+                        key={p.id}
+                        plano={p}
+                        riscoMitigado={riscoMitigado}
+                        somenteLeitura={!podeEditarPlanos}
+                        onAtualizado={carregarPlanos}
+                      />
                     ))}
 
                     {riscoMitigado ? (
                       <p className="field-helper" style={{ margin: "1rem 0 0" }}>
                         Este risco foi mitigado — não é possível cadastrar novos planos de ação.
                       </p>
-                    ) : (
+                    ) : !podeEditarPlanos ? null : (
                       novoPlanoAberto ? (
                       <div className={s.formularioNovo}>
                         <div className={s.formularioNovoTopo}>

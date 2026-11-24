@@ -6,6 +6,7 @@ import Footer from "@/components/Footer";
 import { MATRIZ_5X5 } from "@/lib/metodologiaRisco";
 import GraficosInicio from "@/components/riscos/GraficosInicio";
 import s from "./inicio.module.css";
+import { usePerfilRiscos } from "@/components/riscos/PermissoesRiscos";
 
 // Página inicial do módulo: poucos KPIs, três gráficos pequenos, a matriz 5×5 com a contagem de
 // riscos ativos e os riscos críticos e altos.
@@ -63,6 +64,7 @@ function Valor({ v }: { v: number | undefined }) {
 }
 
 export default function GestaoDeRiscos() {
+  const perfil = usePerfilRiscos();
   const [dados, setDados] = useState<Resumo | null>(null);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -97,6 +99,7 @@ export default function GestaoDeRiscos() {
                 Identificar, avaliar e tratar riscos aos ativos de TI antes que virem incidentes.
               </p>
             </div>
+            {perfil.permissoes.editarRiscos && (
             <div className={s.acoes}>
               <Link href={`${BASE}/cadastro-de-riscos`} className={s.botaoPri}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true">
@@ -105,6 +108,7 @@ export default function GestaoDeRiscos() {
                 Novo risco
               </Link>
             </div>
+            )}
           </header>
 
           {erro && (

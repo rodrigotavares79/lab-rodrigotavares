@@ -10,6 +10,7 @@ import {
   OPCOES_VETOR,
 } from "@/lib/metodologiaRisco";
 import { recomputeRisco } from "@/lib/recomputeRisco";
+import { exigirPermissao } from "@/lib/riscosAuth";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +30,8 @@ function validar(body: any): string | null {
 }
 
 export async function POST(request: NextRequest) {
+  const guarda = await exigirPermissao("editarRiscos");
+  if (guarda.resposta) return guarda.resposta;
   try {
     const body = await request.json();
     const erro = validar(body);

@@ -129,8 +129,21 @@ obrigatório; o plano volta a ficar Aberto). Um risco só pode ser marcado como
 Mitigado quando todos os seus planos estiverem Conforme.
 
 - Schema: `db/migrations/0014_auditoria_planos_acao.sql` (rode no Neon antes de usar).
-- Quem audita: usuários com `perfilRiscos` no publicMetadata do Clerk
-  (Users > usuário > Metadata > Public), com um destes valores:
-  `"gestor"`, `"coordenador"` ou `"analista_senior"`. Ex.: `{"perfilRiscos": "gestor"}`.
 - Evidências: Blob store privado. Usa `RISCOS_BLOB_*` se existir; senão, o
   store privado do Condomínio (`CONDOMINIO_BLOB_*`), na pasta `riscos/evidencias/`.
+
+## Gestão de Riscos — Perfis de acesso
+
+Definidos no Clerk, em Users > usuário > Metadata > Public, chave `perfilRiscos`.
+As regras valem nas rotas de API (o menu e as telas só escondem o que o perfil
+não pode usar).
+
+| `perfilRiscos` | Perfil | Pode |
+|---|---|---|
+| *(sem a chave)* ou `"usuario"` | Usuário comum | Ler e emitir relatórios. Não cadastra nada e não vê auditoria. |
+| `"analista_grc"` | Analista GRC | Ler tudo, cadastrar/editar riscos e planos de ação, ver a auditoria. |
+| `"coordenador"` / `"gerente"` | Coordenador / Gerente | Ler tudo, cadastrar/editar riscos e aplicar validações de conformidade. Não edita planos de ação (segregação de funções). |
+| `"administrador"` | Administrador | Tudo. |
+
+Exemplo: `{"perfilRiscos": "administrador"}`. Valores antigos ainda aceitos:
+`"gestor"` = gerente, `"analista_senior"` = analista GRC.

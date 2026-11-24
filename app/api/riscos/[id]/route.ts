@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { nivelRisco } from "@/lib/metodologiaRisco";
 import { recomputeRisco } from "@/lib/recomputeRisco";
+import { exigirPermissao } from "@/lib/riscosAuth";
 
 export const dynamic = "force-dynamic";
 
@@ -66,6 +67,8 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
 // recalculados a partir dos Fatores de Risco cadastrados (ver recomputeRisco).
 // Congelamento: uma vez Mitigado, nada mais pode ser alterado.
 export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const guarda = await exigirPermissao("editarRiscos");
+  if (guarda.resposta) return guarda.resposta;
   const params = await props.params;
   try {
     const { id } = params;

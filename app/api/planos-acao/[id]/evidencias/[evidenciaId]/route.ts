@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
-import { getUsuarioRiscos } from "@/lib/riscosAuth";
+import { exigirPermissao, getUsuarioRiscos } from "@/lib/riscosAuth";
 import { apagarEvidencia, armazenamentoEvidenciasConfigurado, lerEvidencia } from "@/lib/riscosEvidencias";
 
 export const dynamic = "force-dynamic";
@@ -59,8 +59,8 @@ export async function DELETE(
 ) {
   const { id, evidenciaId } = await props.params;
   try {
-    const usuario = await getUsuarioRiscos();
-    if (!usuario) return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+    const guarda = await exigirPermissao("editarPlanos");
+    if (guarda.resposta) return guarda.resposta;
     if (!idsValidos(id, evidenciaId)) return NextResponse.json({ error: "Evidência inválida." }, { status: 400 });
 
     const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });

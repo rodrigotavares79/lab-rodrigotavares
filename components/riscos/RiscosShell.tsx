@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
 import s from "./riscos.module.css";
+import { ProvedorPermissoesRiscos, usePerfilRiscos, type PermissoesRiscos } from "./PermissoesRiscos";
 
 // Moldura própria do módulo Gestão de Riscos: barra superior + menu lateral
 // agrupado. Vale só para as rotas em /seguranca/gestao-de-riscos — o
@@ -23,6 +24,8 @@ type ItemMenu = {
   contador?: Contador;
   // Contador em vermelho (atraso) ou neutro (fila de trabalho).
   alerta?: boolean;
+  // Só aparece para quem tem esta permissão.
+  exige?: keyof PermissoesRiscos;
 };
 type GrupoMenu = { titulo: string; itens: ItemMenu[] };
 
@@ -44,14 +47,20 @@ const GRUPOS: GrupoMenu[] = [
   {
     titulo: "Auditoria",
     itens: [
-      { href: `${BASE}/auditoria`, label: "Auditoria de Planos", exato: true, contador: "auditoriaPendentes" },
+      {
+        href: `${BASE}/auditoria`,
+        label: "Auditoria de Planos",
+        exato: true,
+        contador: "auditoriaPendentes",
+        exige: "verAuditoria",
+      },
     ],
   },
   {
     titulo: "Relatórios",
     itens: [
       { href: `${BASE}/relatorio-executivo`, label: "Relatório Executivo" },
-      { href: `${BASE}/auditoria/relatorio`, label: "Relatório de Auditoria" },
+      { href: `${BASE}/auditoria/relatorio`, label: "Relatório de Auditoria", exige: "verAuditoria" },
     ],
   },
 ];
@@ -74,6 +83,19 @@ function ativo(pathname: string, item: ItemMenu): boolean {
 
 export default function RiscosShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || "";
+  // O Relatório Executivo é uma página de impressão: abre sem a moldura.
+  if (pathname.startsWith(`${BASE}/relatorio`)) {
+    return <div className="riscos-shell">{children}</div>;
+  }
+  return (
+    <ProvedorPermissoesRiscos>
+      <Moldura pathname={pathname}>{children}</Moldura>
+    </ProvedorPermissoesRiscos>
+  );
+}
+
+function Moldura({ pathname, children }: { pathname: string; children: React.ReactNode }) {
+  const perfil = usePerfilRiscos();
   const [menuAberto, setMenuAberto] = useState(false);
   const [contadores, setContadores] = useState<Partial<Record<Contador, number>>>({});
 
@@ -117,10 +139,11 @@ export default function RiscosShell({ children }: { children: React.ReactNode })
     );
   }
 
-  // O Relatório Executivo é uma página de impressão: abre sem a moldura.
-  if (pathname.startsWith(`${BASE}/relatorio`)) {
-    return <div className="riscos-shell">{children}</div>;
-  }
+  // Itens que o perfil não pode ver somem; grupos que ficam vazios também.
+  const grupos = GRUPOS.map((g) => ({
+    ...g,
+    itens: g.itens.filter((i) => !i.exige || perfil.permissoes[i.exige]),
+  })).filter((g) => g.itens.length > 0);
 
   return (
     <div className={`riscos-shell ${s.shell}`}>
@@ -146,6 +169,11 @@ export default function RiscosShell({ children }: { children: React.ReactNode })
           </span>
         </div>
         <div className={s.topoDireita}>
+          {perfil.carregado && perfil.rotulo && (
+            <span className={s.perfilTopo} title="Seu perfil no Gestão de Riscos">
+              {perfil.rotulo}
+            </span>
+          )}
           <a href="/" className={s.linkTopo}>
             Voltar ao Lab
           </a>
@@ -156,7 +184,7 @@ export default function RiscosShell({ children }: { children: React.ReactNode })
       <div className={s.corpo}>
         <aside className={`${s.lateral} ${menuAberto ? s.lateralAberta : ""}`}>
           <nav aria-label="Gestão de Riscos">
-            {GRUPOS.map((g) => (
+            {grupos.map((g) => (
               <div key={g.titulo} className={s.grupo}>
                 <div className={s.grupoTitulo}>{g.titulo}</div>
                 <ul>{g.itens.map(renderItem)}</ul>

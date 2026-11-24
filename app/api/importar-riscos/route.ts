@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { nivelRisco } from "@/lib/metodologiaRisco";
 import { calcularImpactoFinanceiro } from "@/lib/riscoUtils";
+import { exigirPermissao } from "@/lib/riscosAuth";
 
 export const dynamic = "force-dynamic";
 
@@ -57,6 +58,8 @@ function parseData(valor: string | undefined): string | null {
 }
 
 export async function POST(request: NextRequest) {
+  const guarda = await exigirPermissao("editarRiscos");
+  if (guarda.resposta) return guarda.resposta;
   try {
     const body = await request.json();
     const linhas: LinhaCsv[] = Array.isArray(body?.linhas) ? body.linhas : [];

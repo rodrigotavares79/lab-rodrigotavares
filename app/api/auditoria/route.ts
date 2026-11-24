@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
-import { getUsuarioRiscos, ROTULO_PERFIL_RISCOS } from "@/lib/riscosAuth";
+import { exigirPermissao, ROTULO_PERFIL_RISCOS } from "@/lib/riscosAuth";
 import { urlDaEvidencia } from "@/lib/riscosEvidencias";
 
 export const dynamic = "force-dynamic";
@@ -13,8 +13,9 @@ const FILTROS = ["Pendente", "Conforme", "Não conforme"];
 // usuário logado pode auditar.
 export async function GET(request: NextRequest) {
   try {
-    const usuario = await getUsuarioRiscos();
-    if (!usuario) return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+    const guarda = await exigirPermissao("verAuditoria");
+    if (guarda.resposta) return guarda.resposta;
+    const usuario = guarda.usuario;
 
     const filtro = request.nextUrl.searchParams.get("status") || "Pendente";
     if (!FILTROS.includes(filtro)) {
@@ -77,7 +78,7 @@ export async function GET(request: NextRequest) {
       usuario: {
         nome: usuario.nome,
         podeAuditar: usuario.podeAuditar,
-        perfil: usuario.perfil ? ROTULO_PERFIL_RISCOS[usuario.perfil] : null,
+        perfil: ROTULO_PERFIL_RISCOS[usuario.perfil],
       },
       contagem,
       planos: planos.map((p: any) => ({

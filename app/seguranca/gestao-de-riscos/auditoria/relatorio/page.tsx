@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Footer from "@/components/Footer";
 import s from "./relatorio.module.css";
+import { usePerfilRiscos, SemPermissao } from "@/components/riscos/PermissoesRiscos";
 
 // Relatório de Auditoria: o solicitante escolhe o projeto e o período, e a
 // tela lista cada plano de ação com responsável, prazo, status e
@@ -53,6 +54,7 @@ function rotuloConformidade(l: Linha) {
 }
 
 export default function RelatorioAuditoria() {
+  const perfil = usePerfilRiscos();
   const [projetos, setProjetos] = useState<Projeto[]>([]);
   const [projetoId, setProjetoId] = useState("");
   const [inicio, setInicio] = useState(`${new Date().getFullYear()}-01-01`);
@@ -90,6 +92,15 @@ export default function RelatorioAuditoria() {
     } finally {
       setCarregando(false);
     }
+  }
+
+  if (perfil.carregado && !perfil.permissoes.verAuditoria) {
+    return (
+      <>
+        <SemPermissao mensagem="Seu perfil não tem acesso às informações de auditoria." />
+        <Footer />
+      </>
+    );
   }
 
   return (

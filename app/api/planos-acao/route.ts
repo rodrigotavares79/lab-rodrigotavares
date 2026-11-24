@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
+import { exigirPermissao, getUsuarioRiscos } from "@/lib/riscosAuth";
 
 // GET: lista os Planos de Ação (container) de um risco, cada um já com a
 // lista de Ações que tem dentro dele.
@@ -52,8 +53,15 @@ export async function GET(request: NextRequest) {
       acoesPorPlano.set(a.plano_acao_id, lista);
     }
 
+    // Usuário comum não vê nenhuma informação de auditoria.
+    const usuario = await getUsuarioRiscos();
+    const verAuditoria = !!usuario?.permissoes.verAuditoria;
+
     const planosComAcoes = planos.map((p: any) => ({
       ...p,
+      ...(verAuditoria
+        ? {}
+        : { auditoria_status: null, auditado_em: null, auditado_por_nome: null, auditoria_comentario: null }),
       acoes: acoesPorPlano.get(p.id) || [],
       evidencias: evidenciasPorPlano.get(p.id) || [],
     }));
@@ -68,6 +76,8 @@ export async function GET(request: NextRequest) {
 // POST: cria um novo Plano de Ação (container) para um risco. Bloqueado se o
 // risco já estiver Mitigado — nesse estado, nada mais pode ser cadastrado.
 export async function POST(request: NextRequest) {
+  const guarda = await exigirPermissao("editarPlanos");
+  if (guarda.resposta) return guarda.resposta;
   try {
     const body = await request.json();
     const { riscoId, titulo } = body ?? {};

@@ -1,26 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
-import { getUsuarioRiscos } from "@/lib/riscosAuth";
+import { exigirPermissao } from "@/lib/riscosAuth";
 
 export const dynamic = "force-dynamic";
 
 // POST { resultado: "Conforme" | "Não conforme", comentario?: string }
-// Classifica o encerramento de um plano de ação. Só gestor, coordenador ou
-// analista sênior de SI (perfilRiscos no Clerk).
+// Classifica o encerramento de um plano de ação. Só coordenador, gerente ou
+// administrador (perfilRiscos no Clerk).
 // - Conforme: evidência validada; comentário opcional.
 // - Não conforme: comentário obrigatório; o plano volta a ficar Aberto para
 //   correção e entra de novo na fila quando for concluído outra vez.
 export async function POST(request: NextRequest, props: { params: Promise<{ planoId: string }> }) {
   const { planoId } = await props.params;
   try {
-    const usuario = await getUsuarioRiscos();
-    if (!usuario) return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
-    if (!usuario.podeAuditar) {
-      return NextResponse.json(
-        { error: "Somente gestor da área, coordenador ou analista sênior de SI podem auditar planos de ação." },
-        { status: 403 }
-      );
-    }
+    const guarda = await exigirPermissao("auditar");
+    if (guarda.resposta) return guarda.resposta;
+    const usuario = guarda.usuario;
     if (!/^\d+$/.test(planoId ?? "")) {
       return NextResponse.json({ error: "ID de plano de ação inválido." }, { status: 400 });
     }

@@ -10,6 +10,7 @@ import {
   OPCOES_VETOR,
 } from "@/lib/metodologiaRisco";
 import { recomputeRisco } from "@/lib/recomputeRisco";
+import { exigirPermissao } from "@/lib/riscosAuth";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,8 @@ async function carregarFatorComRisco(sql: any, id: string) {
 // PATCH: atualiza qualquer campo do fator/controle. Bloqueado por completo se
 // o risco dono do fator já estiver Mitigado.
 export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const guarda = await exigirPermissao("editarRiscos");
+  if (guarda.resposta) return guarda.resposta;
   const params = await props.params;
   try {
     const { id } = params;
@@ -101,6 +104,8 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
 // DELETE: remove um fator (ex.: cadastrado por engano). Bloqueado se o risco
 // já estiver Mitigado.
 export async function DELETE(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const guarda = await exigirPermissao("editarRiscos");
+  if (guarda.resposta) return guarda.resposta;
   const params = await props.params;
   try {
     const { id } = params;
