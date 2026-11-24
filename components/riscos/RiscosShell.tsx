@@ -32,7 +32,10 @@ const GRUPOS: GrupoMenu[] = [
   },
   {
     titulo: "Auditoria",
-    itens: [{ href: `${BASE}/auditoria`, label: "Auditoria de Planos" }],
+    itens: [
+      { href: `${BASE}/auditoria`, label: "Auditoria de Planos", exato: true },
+      { href: `${BASE}/auditoria/relatorio`, label: "Relatório de Auditoria" },
+    ],
   },
   {
     titulo: "Governança",
