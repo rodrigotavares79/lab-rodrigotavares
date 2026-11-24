@@ -1,4 +1,5 @@
 import Footer from "@/components/Footer";
+import MatrizRiscos from "@/components/riscos/MatrizRiscos";
 
 export default function GuiaDeUso() {
   return (
@@ -103,14 +104,19 @@ export default function GuiaDeUso() {
             <h2 id="matriz">3. Como funciona a classificação (matriz 5×5)</h2>
             <p>
               Impacto e Probabilidade (1 a 5 cada) são cruzados numa matriz
-              5×5 que gera um nível qualitativo:
+              5×5 que gera um nível qualitativo — Baixo, Moderado,
+              Significativo ou Alto. Encontre a linha da Probabilidade e a
+              coluna do Impacto: a célula onde elas se cruzam é o nível do
+              risco.
             </p>
-            <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", margin: "1rem 0 1.25rem" }}>
-              <span className="badge badge-baixo">Baixo</span>
-              <span className="badge badge-medio">Moderado</span>
-              <span className="badge badge-alto">Significativo</span>
-              <span className="badge badge-critico">Alto</span>
-            </div>
+            <MatrizRiscos />
+            <p>
+              A matriz não é simétrica de propósito: um risco de impacto
+              Muito Alto já começa em Significativo mesmo com probabilidade
+              Muito Baixa, enquanto uma probabilidade Muito Alta com impacto
+              Muito Baixo fica em Moderado. Ou seja, o impacto pesa um pouco
+              mais que a probabilidade na classificação.
+            </p>
             <p>
               Esse nível calculado no momento do cadastro (com Impacto e
               Probabilidade informados ali, sem considerar nenhum controle)
@@ -264,6 +270,280 @@ export default function GuiaDeUso() {
               <strong>🖶 Imprimir / Salvar como PDF</strong> dentro do
               relatório para gerar o arquivo.
             </p>
+
+            <h2 id="tecnologia">9. Tecnologia empregada</h2>
+            <p>
+              O sistema é uma aplicação web única, escrita em TypeScript,
+              em que as telas e a API rodam no mesmo projeto. As versões
+              abaixo são as que estão travadas no{" "}
+              <code>package-lock.json</code> do repositório.
+            </p>
+
+            <h3>Pilha de tecnologia</h3>
+            <table className="dash-table tabela-guia">
+              <thead>
+                <tr>
+                  <th>Camada</th>
+                  <th>Tecnologia</th>
+                  <th>Versão</th>
+                  <th>Uso no sistema</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Linguagem</td>
+                  <td>TypeScript (modo <em>strict</em>)</td>
+                  <td>5.9.3</td>
+                  <td>Todo o código de telas, API e motor de cálculo.</td>
+                </tr>
+                <tr>
+                  <td>Framework web</td>
+                  <td>Next.js (App Router)</td>
+                  <td>16.4.6</td>
+                  <td>
+                    Roteamento das páginas, renderização no servidor e as
+                    rotas de API (<em>Route Handlers</em>) em{" "}
+                    <code>app/api/*</code>.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Interface</td>
+                  <td>React / React DOM</td>
+                  <td>19.2.9</td>
+                  <td>Componentes das telas, formulários e dashboard.</td>
+                </tr>
+                <tr>
+                  <td>Banco de dados</td>
+                  <td>PostgreSQL gerenciado na Neon (serverless)</td>
+                  <td>—</td>
+                  <td>
+                    Armazena projetos, riscos, fatores, planos de ação e
+                    sistemas críticos.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Driver do banco</td>
+                  <td>@neondatabase/serverless</td>
+                  <td>0.10.4</td>
+                  <td>
+                    Conexão via HTTP a partir das rotas de API, com consultas
+                    parametrizadas.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Autenticação</td>
+                  <td>Clerk (@clerk/nextjs)</td>
+                  <td>6.39.9</td>
+                  <td>
+                    Login obrigatório em todo o site, com acesso somente por
+                    convite.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Tradução do login</td>
+                  <td>@clerk/localizations (pt-BR)</td>
+                  <td>3.37.11</td>
+                  <td>Telas de login e conta em português.</td>
+                </tr>
+                <tr>
+                  <td>E-mail</td>
+                  <td>Resend (API REST)</td>
+                  <td>—</td>
+                  <td>
+                    E-mail de confirmação do cadastro individual, enviado
+                    por <code>riscos@rodrigotavares.com.br</code>.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Importação CSV</td>
+                  <td>PapaParse</td>
+                  <td>5.7.0</td>
+                  <td>Leitura e prévia do arquivo da importação em lote.</td>
+                </tr>
+                <tr>
+                  <td>Gráficos</td>
+                  <td>SVG próprio (<code>lib/chartHelpers.ts</code>)</td>
+                  <td>—</td>
+                  <td>
+                    Linhas, áreas e donuts do Dashboard, sem biblioteca de
+                    gráficos externa.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Estilo</td>
+                  <td>CSS global + CSS Modules, fonte Inter (next/font)</td>
+                  <td>—</td>
+                  <td>Visual do módulo, sem framework de UI.</td>
+                </tr>
+                <tr>
+                  <td>Relatório PDF</td>
+                  <td>Impressão do navegador</td>
+                  <td>—</td>
+                  <td>
+                    O Relatório Executivo é uma página formatada para
+                    impressão; o PDF é gerado pelo &quot;Salvar como PDF&quot;
+                    do navegador.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Hospedagem</td>
+                  <td>Vercel</td>
+                  <td>—</td>
+                  <td>
+                    Publicação em <code>lab.rodrigotavares.com.br</code>,
+                    com ambientes separados por branch.
+                  </td>
+                </tr>
+                <tr>
+                  <td>Código-fonte</td>
+                  <td>GitHub</td>
+                  <td>—</td>
+                  <td>Versionamento e revisão das alterações por pull request.</td>
+                </tr>
+              </tbody>
+            </table>
+            <p className="field-helper">
+              &quot;—&quot; indica serviço gerenciado, sem versão fixada no
+              código.
+            </p>
+
+            <h3>Arquitetura</h3>
+            <ul>
+              <li>
+                <strong>Navegador → Next.js</strong> — as telas chamam a API
+                do próprio projeto (<code>/api/...</code>); nenhuma tela
+                acessa o banco diretamente.
+              </li>
+              <li>
+                <strong>API → banco</strong> — cada rota abre a conexão com o
+                PostgreSQL pela variável <code>DATABASE_URL</code>, com cache
+                desativado para sempre ler dados atuais.
+              </li>
+              <li>
+                <strong>Motor de cálculo</strong> — a matriz 5×5, os pesos,
+                o Índice de Mitigação e os níveis Atual e Projetado ficam em{" "}
+                <code>lib/metodologiaRisco.ts</code>, um módulo sem acesso a
+                banco, com parâmetros baseados na ISO/IEC 27005, ISO 31000,
+                NIST SP 800-30 e NIST CSF 2.0. O recálculo é gravado no banco
+                por <code>lib/recomputeRisco.ts</code> a cada mudança nos
+                fatores ou na avaliação inerente.
+              </li>
+              <li>
+                <strong>Proteção de acesso</strong> — o middleware do Clerk (
+                <code>proxy.ts</code>) exige sessão em todas as páginas e
+                rotas de API do módulo.
+              </li>
+            </ul>
+
+            <h3>Banco de dados — tabelas do módulo</h3>
+            <table className="dash-table tabela-guia">
+              <thead>
+                <tr>
+                  <th>Tabela</th>
+                  <th>Conteúdo</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>projetos</code></td>
+                  <td>Lista fixa de projetos/escopos usada no cadastro e nos filtros.</td>
+                </tr>
+                <tr>
+                  <td><code>riscos</code></td>
+                  <td>
+                    Cada risco, com avaliação inerente, níveis Atual e
+                    Projetado, Índices de Mitigação e status.
+                  </td>
+                </tr>
+                <tr>
+                  <td><code>fatores_risco</code></td>
+                  <td>Fatores de risco e controles vinculados a um risco.</td>
+                </tr>
+                <tr>
+                  <td><code>planos_acao</code></td>
+                  <td>Planos de ação de cada risco.</td>
+                </tr>
+                <tr>
+                  <td><code>acoes</code></td>
+                  <td>Ações de cada plano (descrição, responsável, prazo, status).</td>
+                </tr>
+                <tr>
+                  <td><code>sistemas_criticos</code></td>
+                  <td>
+                    Sistemas críticos que podem ser vinculados a um risco, com
+                    custos de referência.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <p>
+              As alterações de esquema ficam versionadas como scripts SQL em{" "}
+              <code>db/migrations</code> e são aplicadas com{" "}
+              <code>psql</code>. Além da recuperação pontual oferecida pela
+              Neon, há um script de backup manual (
+              <code>scripts/backup-db.sh</code>, com <code>pg_dump</code>)
+              que mantém as 10 cópias mais recentes fora do repositório.
+            </p>
+
+            <h3>Rotas de API do módulo</h3>
+            <table className="dash-table tabela-guia">
+              <thead>
+                <tr>
+                  <th>Rota</th>
+                  <th>Função</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>/api/cadastro-risco</code></td>
+                  <td>Cadastro individual e envio do e-mail de confirmação.</td>
+                </tr>
+                <tr>
+                  <td><code>/api/importar-riscos</code></td>
+                  <td>Importação em lote (CSV), com checagem de duplicidade.</td>
+                </tr>
+                <tr>
+                  <td><code>/api/riscos</code> e <code>/api/riscos/[id]</code></td>
+                  <td>Lista, detalhe, reavaliação e mudança de status.</td>
+                </tr>
+                <tr>
+                  <td><code>/api/fatores-risco</code></td>
+                  <td>Fatores de risco e controles (dispara o recálculo).</td>
+                </tr>
+                <tr>
+                  <td><code>/api/planos-acao</code> e <code>/api/acoes</code></td>
+                  <td>Planos de ação e suas ações.</td>
+                </tr>
+                <tr>
+                  <td><code>/api/projetos</code> e <code>/api/sistemas-criticos</code></td>
+                  <td>Listas de apoio dos formulários.</td>
+                </tr>
+                <tr>
+                  <td><code>/api/dashboard</code> e <code>/api/relatorio</code></td>
+                  <td>Indicadores do Dashboard e dados do Relatório Executivo.</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <h3>Configuração (variáveis de ambiente)</h3>
+            <p>
+              Os segredos ficam nas variáveis de ambiente da Vercel, nunca no
+              código:
+            </p>
+            <ul>
+              <li><code>DATABASE_URL</code> — conexão com o PostgreSQL (Neon).</li>
+              <li>
+                <code>NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY</code>,{" "}
+                <code>CLERK_SECRET_KEY</code> e{" "}
+                <code>NEXT_PUBLIC_CLERK_SIGN_IN_URL</code> — autenticação.
+              </li>
+              <li><code>RESEND_API_KEY</code> — envio de e-mail.</li>
+              <li>
+                <code>NEXT_PUBLIC_ENV_NAME</code> — mostra a faixa de aviso
+                nos ambientes de desenvolvimento e homologação (vazia em
+                produção).
+              </li>
+            </ul>
 
             <h2>Perguntas frequentes</h2>
             <ul>
