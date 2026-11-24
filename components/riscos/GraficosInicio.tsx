@@ -179,25 +179,64 @@ function formatPct(n: number) {
   return n.toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + "%";
 }
 
-// Ponto no semicírculo (centro 90,90) para uma fração de 0 (esquerda) a 1 (direita).
+// Geometria do gauge: semicírculo com centro (CX, CY), anel entre R_IN e R_OUT.
+const CX = 130;
+const CY = 124;
+const R_OUT = 92;
+const R_IN = 50;
+
+// Cores das zonas (mais claras que as dos bullets, como num velocímetro).
+const ZONAS = [
+  { de: 0, ate: 50, cor: "#f07a74" },
+  { de: 50, ate: META, cor: "#fbd55b" },
+  { de: META, ate: 100, cor: "#a6d873" },
+];
+
+// Ponto no semicírculo para uma fração de 0 (esquerda) a 1 (direita).
 function ponto(f: number, r: number) {
   const ang = Math.PI * (1 - f);
-  return { x: 90 + r * Math.cos(ang), y: 90 - r * Math.sin(ang) };
+  return { x: CX + r * Math.cos(ang), y: CY - r * Math.sin(ang) };
 }
 
-function arco(f0: number, f1: number, r: number) {
-  const a = ponto(f0, r);
-  const b = ponto(f1, r);
-  return `M ${a.x.toFixed(2)} ${a.y.toFixed(2)} A ${r} ${r} 0 0 1 ${b.x.toFixed(2)} ${b.y.toFixed(2)}`;
+function fmt(n: number) {
+  return n.toFixed(2);
+}
+
+// Setor do anel entre as frações f0 e f1.
+function setor(f0: number, f1: number) {
+  const a = ponto(f0, R_OUT);
+  const b = ponto(f1, R_OUT);
+  const c = ponto(f1, R_IN);
+  const d = ponto(f0, R_IN);
+  return `M ${fmt(a.x)} ${fmt(a.y)} A ${R_OUT} ${R_OUT} 0 0 1 ${fmt(b.x)} ${fmt(b.y)} L ${fmt(c.x)} ${fmt(c.y)} A ${R_IN} ${R_IN} 0 0 0 ${fmt(d.x)} ${fmt(d.y)} Z`;
+}
+
+// Ponteiro: triângulo fino do pivô até perto da borda externa.
+function ponteiro(f: number) {
+  const ang = Math.PI * (1 - f);
+  const ponta = ponto(f, R_OUT - 14);
+  const perp = ang + Math.PI / 2;
+  const base = 5;
+  const b1 = { x: CX + base * Math.cos(perp), y: CY - base * Math.sin(perp) };
+  const b2 = { x: CX - base * Math.cos(perp), y: CY + base * Math.sin(perp) };
+  return `M ${fmt(b1.x)} ${fmt(b1.y)} L ${fmt(ponta.x)} ${fmt(ponta.y)} L ${fmt(b2.x)} ${fmt(b2.y)} Z`;
 }
 
 function GaugeMitigacao({ trimestres }: { trimestres: Trimestre[] | undefined }) {
   const { dica, mostrar, esconder } = useDica();
   const atual = trimestres && trimestres.length ? trimestres[trimestres.length - 1] : undefined;
   const pct = atual ? pctTrimestre(atual) : null;
-  const cor = pct === null ? COR_SEM_DADOS : corFaixa(pct);
-  const metaIn = ponto(META / 100, 52);
-  const metaOut = ponto(META / 100, 82);
+  const fMeta = META / 100;
+  const metaIn = ponto(fMeta, R_IN);
+  const metaOut = ponto(fMeta, R_OUT + 8);
+  // Triângulo da meta apontando para fora, na ponta da linha.
+  const angMeta = Math.PI * (1 - fMeta);
+  const metaPonta = ponto(fMeta, R_OUT + 16);
+  const perpMeta = angMeta + Math.PI / 2;
+  const metaT1 = { x: metaOut.x + 5 * Math.cos(perpMeta), y: metaOut.y - 5 * Math.sin(perpMeta) };
+  const metaT2 = { x: metaOut.x - 5 * Math.cos(perpMeta), y: metaOut.y + 5 * Math.sin(perpMeta) };
+  const metaRotulo = ponto(fMeta, R_OUT + 18);
+  const marcas = [0, 25, 50, 75, 100];
 
   const rotulo = (
     <span className={s.dicaLista}>
@@ -226,7 +265,7 @@ function GaugeMitigacao({ trimestres }: { trimestres: Trimestre[] | undefined })
         onBlur={esconder}
       >
         <svg
-          viewBox="0 0 180 104"
+          viewBox="0 0 270 140"
           className={s.gauge}
           role="img"
           aria-label={
@@ -235,18 +274,44 @@ function GaugeMitigacao({ trimestres }: { trimestres: Trimestre[] | undefined })
               : `${formatPct(pct)} dos riscos altos e significativos mitigados no trimestre ${atual?.trimestre}; meta de ${META}%`
           }
         >
-          <path d={arco(0, 1, 70)} fill="none" stroke="#ecebe7" strokeWidth={16} strokeLinecap="round" />
-          {pct !== null && pct > 0 && (
-            <path d={arco(0, Math.min(pct, 100) / 100, 70)} fill="none" stroke={cor} strokeWidth={16} strokeLinecap="round" />
-          )}
-          <path d={arco(0, 0.5, 56)} fill="none" stroke={COR_VERMELHO} strokeWidth={3} opacity={0.55} />
-          <path d={arco(0.5, META / 100, 56)} fill="none" stroke={COR_AMARELO} strokeWidth={3} opacity={0.7} />
-          <path d={arco(META / 100, 1, 56)} fill="none" stroke={COR_VERDE} strokeWidth={3} opacity={0.55} />
-          <line x1={metaIn.x} y1={metaIn.y} x2={metaOut.x} y2={metaOut.y} stroke="#1b2130" strokeWidth={2} strokeLinecap="round" />
-          <text x="90" y="82" textAnchor="middle" className={s.gaugeValor}>
-            {pct === null ? "—" : formatPct(pct)}
+          {ZONAS.map((z) => (
+            <path key={z.de} d={setor(z.de / 100, z.ate / 100)} fill={z.cor} />
+          ))}
+          {marcas.map((m) => {
+            const f = m / 100;
+            const i = ponto(f, R_OUT - 6);
+            const o = ponto(f, R_OUT + 4);
+            const l = ponto(f, R_OUT + 16);
+            const ancora = m === 0 ? "end" : m === 100 ? "start" : "middle";
+            const dx = m === 0 ? 4 : m === 100 ? -4 : 0;
+            return (
+              <g key={m}>
+                <line x1={i.x} y1={i.y} x2={o.x} y2={o.y} stroke="#1b2130" strokeWidth={2} strokeLinecap="round" />
+                <text
+                  x={l.x + dx}
+                  y={m === 0 || m === 100 ? CY + 4 : l.y + 3}
+                  textAnchor={ancora}
+                  className={s.gaugeMarca}
+                >
+                  {m}%
+                </text>
+              </g>
+            );
+          })}
+          <line x1={metaIn.x} y1={metaIn.y} x2={metaOut.x} y2={metaOut.y} stroke="#c0392b" strokeWidth={2} />
+          <path
+            d={`M ${fmt(metaT1.x)} ${fmt(metaT1.y)} L ${fmt(metaPonta.x)} ${fmt(metaPonta.y)} L ${fmt(metaT2.x)} ${fmt(metaT2.y)} Z`}
+            fill="#c0392b"
+          />
+          <text x={metaRotulo.x + 8} y={metaRotulo.y - 3} className={s.gaugeMeta}>
+            Meta
           </text>
+          {pct !== null && (
+            <path d={ponteiro(Math.min(Math.max(pct, 0), 100) / 100)} fill="#1b2130" />
+          )}
+          <circle cx={CX} cy={CY} r={7} fill="#1b2130" />
         </svg>
+        <span className={s.gaugeValor}>{pct === null ? "—" : formatPct(pct)}</span>
         <p className={s.gaugeNota}>
           {atual
             ? pct === null
