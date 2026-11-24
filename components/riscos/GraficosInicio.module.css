@@ -141,3 +141,23 @@
   z-index: 5;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
+
+.dicaLista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.dicaItem {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.bullet {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex: none;
+  box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.85);
+}

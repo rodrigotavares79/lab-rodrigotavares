@@ -82,21 +82,38 @@ export async function GET() {
       GROUP BY impacto_qualitativo
     `;
 
-    // Cobertura de tratamento: riscos ativos Altos e Significativos que já
-    // têm pelo menos um plano de ação.
-    const [cobertura] = await sql`
+    // Mitigação trimestral (gauge): por trimestre do ano corrente, quantos
+    // riscos Altos/Significativos em aberto no período foram mitigados nele.
+    // Base = riscos desse nível criados até o fim do trimestre e ainda não
+    // mitigados no início dele. Mitigados sem data (antes da coluna
+    // mitigado_em existir) ficam fora da conta.
+    const trimestres = await sql`
+      WITH q AS (
+        SELECT generate_series(
+          date_trunc('year', now()),
+          date_trunc('quarter', now()),
+          interval '3 months'
+        ) AS ini
+      )
       SELECT
-        COUNT(*)::int AS total,
-        COUNT(*) FILTER (WHERE EXISTS (SELECT 1 FROM planos_acao pa WHERE pa.risco_id = r.id))::int AS com_plano
-      FROM riscos r
-      WHERE r.status IS DISTINCT FROM 'Mitigado'
-        AND r.impacto_qualitativo IN ('Alto', 'Significativo')
+        EXTRACT(quarter FROM q.ini)::int AS trimestre,
+        COUNT(r.id)::int AS total,
+        COUNT(r.id) FILTER (
+          WHERE r.mitigado_em >= q.ini AND r.mitigado_em < q.ini + interval '3 months'
+        )::int AS mitigados
+      FROM q
+      LEFT JOIN riscos r
+        ON (r.nivel_inicial IN ('Alto', 'Significativo') OR r.impacto_qualitativo IN ('Alto', 'Significativo'))
+       AND r.criado_em < q.ini + interval '3 months'
+       AND (r.status IS DISTINCT FROM 'Mitigado' OR r.mitigado_em >= q.ini)
+      GROUP BY q.ini
+      ORDER BY q.ini
     `;
 
     return NextResponse.json({
       categorias,
       niveis,
-      cobertura,
+      trimestres,
       kpis: {
         total: riscosKpi.total,
         ativos: riscosKpi.ativos,
