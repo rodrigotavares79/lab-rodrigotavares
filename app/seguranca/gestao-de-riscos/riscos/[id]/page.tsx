@@ -880,6 +880,7 @@ export default function DetalheDoRisco() {
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || "Falha ao cadastrar o plano de ação.");
       setTituloPlano("");
+      setNovoPlanoAberto(false);
       carregarPlanos();
     } catch (err) {
       setErroPlano(err instanceof Error ? err.message : "Erro ao cadastrar o plano de ação.");
@@ -889,6 +890,8 @@ export default function DetalheDoRisco() {
   }
 
   const riscoMitigado = risco?.status === "Mitigado";
+  const [novoFatorAberto, setNovoFatorAberto] = useState(false);
+  const [novoPlanoAberto, setNovoPlanoAberto] = useState(false);
 
   const reavaliacao = riscoMitigado ? (
     <div className="field-helper" style={{ margin: 0 }}>
@@ -1031,12 +1034,27 @@ export default function DetalheDoRisco() {
                         Este risco foi mitigado — não é possível cadastrar novos fatores de risco.
                       </p>
                     ) : (
-                      <>
-                        <p style={{ fontSize: "0.8rem", fontWeight: 600, marginTop: "1rem", marginBottom: "0.75rem" }}>
-                          Novo fator de risco
-                        </p>
-                        <NovoFatorForm riscoId={risco.id} onCriado={carregarRisco} />
-                      </>
+                      novoFatorAberto ? (
+                        <div className={s.formularioNovo}>
+                          <div className={s.formularioNovoTopo}>
+                            <strong>Novo fator de risco</strong>
+                            <button type="button" className={s.botaoFechar} onClick={() => setNovoFatorAberto(false)}>
+                              Cancelar
+                            </button>
+                          </div>
+                          <NovoFatorForm
+                            riscoId={risco.id}
+                            onCriado={() => {
+                              setNovoFatorAberto(false);
+                              carregarRisco();
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <button type="button" className={s.botaoAdicionar} onClick={() => setNovoFatorAberto(true)}>
+                          + Adicionar fator de risco
+                        </button>
+                      )
                     )}
                   </div>
                 </div>
@@ -1061,10 +1079,14 @@ export default function DetalheDoRisco() {
                         Este risco foi mitigado — não é possível cadastrar novos planos de ação.
                       </p>
                     ) : (
-                      <>
-                        <p style={{ fontSize: "0.8rem", fontWeight: 600, marginTop: "1rem", marginBottom: "0.75rem" }}>
-                          Novo plano de ação
-                        </p>
+                      novoPlanoAberto ? (
+                      <div className={s.formularioNovo}>
+                        <div className={s.formularioNovoTopo}>
+                          <strong>Novo plano de ação</strong>
+                          <button type="button" className={s.botaoFechar} onClick={() => setNovoPlanoAberto(false)}>
+                            Cancelar
+                          </button>
+                        </div>
                         <form onSubmit={handleCadastrarPlano} className="form-grid" style={{ maxWidth: "30rem" }}>
                           <div className="form-field form-field-wide">
                             <label htmlFor="tituloPlano">Título</label>
@@ -1089,13 +1111,18 @@ export default function DetalheDoRisco() {
                             </div>
                           )}
                         </form>
-                      </>
+                      </div>
+                      ) : (
+                        <button type="button" className={s.botaoAdicionar} onClick={() => setNovoPlanoAberto(true)}>
+                          + Criar plano de ação
+                        </button>
+                      )
                     )}
                   </div>
                 </div>
               </div>
 
-              <div className={s.coluna}>
+              <div className={`${s.coluna} ${s.colunaResumo}`}>
                 <div className="dash-panel">
                   <div className="dash-panel-header">Nível do risco</div>
                   <div className="dash-panel-body">

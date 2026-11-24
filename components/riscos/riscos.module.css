@@ -206,6 +206,8 @@
 .conteudo {
   flex: 1;
   min-width: 0;
+  container-type: inline-size;
+  container-name: conteudo-riscos;
 }
 
 @media (max-width: 60rem) {
@@ -468,10 +470,64 @@
   min-width: 0;
 }
 
-@media (max-width: 70rem) {
+/* A grade reage à largura do conteúdo (descontado o menu lateral),
+   não à da janela. Em uma coluna, o resumo (nível, impacto) vem antes. */
+@container conteudo-riscos (max-width: 52rem) {
   .grade {
     grid-template-columns: 1fr;
   }
+
+  .colunaResumo {
+    order: -1;
+  }
+}
+
+.botaoAdicionar {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.75rem;
+  font-family: inherit;
+  font-size: 0.84rem;
+  font-weight: 500;
+  color: var(--rs-primaria);
+  background: var(--rs-primaria-tint);
+  border: 1px dashed #b9c6de;
+  border-radius: 6px;
+  padding: 0.5rem 0.9rem;
+  cursor: pointer;
+}
+
+.botaoAdicionar:hover {
+  border-style: solid;
+}
+
+.formularioNovo {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--rs-border);
+  border-radius: 8px;
+  background: var(--rs-bg);
+}
+
+.formularioNovoTopo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.formularioNovoTopo strong {
+  font-size: 0.85rem;
+}
+
+.botaoFechar {
+  font-family: inherit;
+  font-size: 0.8rem;
+  color: var(--rs-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
 }
 
 .rotuloMono {
@@ -562,7 +618,7 @@
   grid-column: 1 / -1;
 }
 
-@media (max-width: 40rem) {
+@container conteudo-riscos (max-width: 36rem) {
   .campos {
     grid-template-columns: 1fr;
   }
