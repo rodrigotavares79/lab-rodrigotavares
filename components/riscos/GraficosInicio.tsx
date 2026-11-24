@@ -303,7 +303,7 @@ function GaugeMitigacao({ trimestres }: { trimestres: Trimestre[] | undefined })
             d={`M ${fmt(metaT1.x)} ${fmt(metaT1.y)} L ${fmt(metaPonta.x)} ${fmt(metaPonta.y)} L ${fmt(metaT2.x)} ${fmt(metaT2.y)} Z`}
             fill="#c0392b"
           />
-          <text x={metaRotulo.x + 6} y={metaRotulo.y + 2} className={s.gaugeMeta}>
+          <text x={metaRotulo.x + 8} y={metaRotulo.y - 3} className={s.gaugeMeta}>
             Meta
           </text>
           {pct !== null && (
