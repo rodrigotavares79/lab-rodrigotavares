@@ -7,7 +7,7 @@ import { MATRIZ_5X5 } from "@/lib/metodologiaRisco";
 import s from "./inicio.module.css";
 
 // Página inicial do módulo: poucos KPIs, a matriz 5×5 com a contagem de
-// riscos ativos, os riscos críticos e altos e a lista de acesso rápido.
+// riscos ativos e os riscos críticos e altos.
 // A navegação completa continua no menu lateral (RiscosShell).
 
 const BASE = "/seguranca/gestao-de-riscos";
@@ -41,15 +41,6 @@ const BADGE_POR_NIVEL: Record<string, string> = {
   Significativo: "badge-alto",
   Alto: "badge-critico",
 };
-
-const ATALHOS = [
-  { titulo: "Política", sub: "Diretrizes, papéis e periodicidade de revisão", href: `${BASE}/politica`, icone: "M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z" },
-  { titulo: "Processo", sub: "Passo a passo para identificar, priorizar e tratar", href: `${BASE}/processo`, icone: "M5 6h14M5 12h10M5 18h6" },
-  { titulo: "Cadastro", sub: "Registro individual ou em lote (CSV)", href: `${BASE}/cadastro-de-riscos`, icone: "M12 5v14M5 12h14" },
-  { titulo: "Lista de riscos", sub: "Todos os riscos, com detalhe e plano de ação", href: `${BASE}/riscos`, icone: "M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01" },
-  { titulo: "Dashboard", sub: "Visão executiva com indicadores e gráficos", href: `${BASE}/dashboard`, icone: "M4 20V10M10 20V4M16 20v-7M22 20H2" },
-  { titulo: "Guia de uso", sub: "Como usar as telas e a matriz 5×5", href: `${BASE}/guia-de-uso`, icone: "M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2zM4 19V5" },
-];
 
 function formatPrazo(prazo: string | null): { texto: string; atrasado: boolean } {
   if (!prazo) return { texto: "sem prazo", atrasado: false };
@@ -231,27 +222,6 @@ export default function GestaoDeRiscos() {
             </div>
           </section>
 
-          <section className={s.atalhosBloco}>
-            <h2 className={s.tituloSecao}>Acesso Rápido</h2>
-            <ul className={s.atalhos}>
-              {ATALHOS.map((a) => (
-                <li key={a.href}>
-                  <Link href={a.href} className={s.atalho}>
-                    <span className={s.atalhoIcone}>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d={a.icone} />
-                      </svg>
-                    </span>
-                    <span className={s.atalhoTitulo}>{a.titulo}</span>
-                    <span className={s.atalhoSub}>{a.sub}</span>
-                    <svg className={s.atalhoSeta} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M9 6l6 6-6 6" />
-                    </svg>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </section>
         </div>
       </section>
       <Footer />
