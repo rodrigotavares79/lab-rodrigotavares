@@ -4,9 +4,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Footer from "@/components/Footer";
 import { MATRIZ_5X5 } from "@/lib/metodologiaRisco";
+import GraficosInicio from "@/components/riscos/GraficosInicio";
 import s from "./inicio.module.css";
 
-// Página inicial do módulo: poucos KPIs, a matriz 5×5 com a contagem de
+// Página inicial do módulo: poucos KPIs, três gráficos pequenos, a matriz 5×5 com a contagem de
 // riscos ativos e os riscos críticos e altos.
 // A navegação completa continua no menu lateral (RiscosShell).
 
@@ -24,6 +25,9 @@ type Resumo = {
     acoesAtrasadas: number;
   };
   matriz: { prob: number; imp: number; total: number }[];
+  categorias: { categoria: string; total: number }[];
+  niveis: { nivel: string; total: number }[];
+  cobertura: { total: number; com_plano: number };
   atencao: {
     id: number;
     gatilho: string | null;
@@ -147,6 +151,13 @@ export default function GestaoDeRiscos() {
               </span>
             </Link>
           </section>
+
+          <GraficosInicio
+            categorias={dados?.categorias || []}
+            niveis={dados?.niveis || []}
+            cobertura={dados?.cobertura}
+            totalAtivos={k?.ativos || 0}
+          />
 
           <section className={s.meio}>
             <div className={`${s.painel} ${s.painelMatriz}`}>

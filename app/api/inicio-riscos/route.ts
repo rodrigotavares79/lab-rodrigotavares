@@ -64,7 +64,39 @@ export async function GET() {
       LIMIT 5
     `;
 
+    // Top 3 categorias entre os riscos ativos.
+    const categorias = await sql`
+      SELECT categoria, COUNT(*)::int AS total
+      FROM riscos
+      WHERE status IS DISTINCT FROM 'Mitigado' AND categoria IS NOT NULL
+      GROUP BY categoria
+      ORDER BY total DESC, categoria
+      LIMIT 3
+    `;
+
+    // Riscos ativos por nível atual (criticidade).
+    const niveis = await sql`
+      SELECT impacto_qualitativo AS nivel, COUNT(*)::int AS total
+      FROM riscos
+      WHERE status IS DISTINCT FROM 'Mitigado' AND impacto_qualitativo IS NOT NULL
+      GROUP BY impacto_qualitativo
+    `;
+
+    // Cobertura de tratamento: riscos ativos Altos e Significativos que já
+    // têm pelo menos um plano de ação.
+    const [cobertura] = await sql`
+      SELECT
+        COUNT(*)::int AS total,
+        COUNT(*) FILTER (WHERE EXISTS (SELECT 1 FROM planos_acao pa WHERE pa.risco_id = r.id))::int AS com_plano
+      FROM riscos r
+      WHERE r.status IS DISTINCT FROM 'Mitigado'
+        AND r.impacto_qualitativo IN ('Alto', 'Significativo')
+    `;
+
     return NextResponse.json({
+      categorias,
+      niveis,
+      cobertura,
       kpis: {
         total: riscosKpi.total,
         ativos: riscosKpi.ativos,
