@@ -5,6 +5,7 @@ import Link from "next/link";
 import Footer from "@/components/Footer";
 import { ListaEvidencias, type Evidencia } from "@/components/riscos/EvidenciasPlano";
 import s from "./auditoria.module.css";
+import { usePerfilRiscos, SemPermissao } from "@/components/riscos/PermissoesRiscos";
 
 // Auditoria dos encerramentos de Planos de Ação. Planos concluídos chegam
 // "Pendentes"; gestor, coordenador ou analista sênior de SI classificam como
@@ -205,6 +206,7 @@ function CardPlano({ plano, podeAuditar, onDecidido }: { plano: PlanoAuditoria; 
 }
 
 export default function AuditoriaDePlanos() {
+  const perfil = usePerfilRiscos();
   const [aba, setAba] = useState<Situacao>("Pendente");
   const [dados, setDados] = useState<Resposta | null>(null);
   const [carregando, setCarregando] = useState(true);
@@ -229,6 +231,15 @@ export default function AuditoriaDePlanos() {
 
   const podeAuditar = !!dados?.usuario.podeAuditar;
 
+  if (perfil.carregado && !perfil.permissoes.verAuditoria) {
+    return (
+      <>
+        <SemPermissao mensagem="Seu perfil não tem acesso às informações de auditoria." />
+        <Footer />
+      </>
+    );
+  }
+
   return (
     <>
       <section className="content-block">
@@ -244,8 +255,8 @@ export default function AuditoriaDePlanos() {
 
           {dados && !podeAuditar && (
             <div className={s.aviso}>
-              Você pode consultar a auditoria, mas só gestor da área, coordenador ou analista sênior de SI podem classificar
-              planos.
+              Você pode consultar a auditoria, mas só coordenador, gerente ou administrador aplicam as validações de
+              conformidade.
             </div>
           )}
           {dados && podeAuditar && dados.usuario.perfil && (

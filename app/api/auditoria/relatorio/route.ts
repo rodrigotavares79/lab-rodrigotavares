@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
-import { getUsuarioRiscos } from "@/lib/riscosAuth";
+import { exigirPermissao } from "@/lib/riscosAuth";
 
 export const dynamic = "force-dynamic";
 
@@ -12,8 +12,8 @@ const DATA = /^\d{4}-\d{2}-\d{2}$/;
 // pelo prazo do plano — o maior prazo entre as ações dele.
 export async function GET(request: NextRequest) {
   try {
-    const usuario = await getUsuarioRiscos();
-    if (!usuario) return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+    const guarda = await exigirPermissao("verAuditoria");
+    if (guarda.resposta) return guarda.resposta;
 
     const p = request.nextUrl.searchParams;
     const projetoId = p.get("projetoId") || "";

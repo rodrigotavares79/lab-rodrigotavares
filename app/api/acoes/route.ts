@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
+import { exigirPermissao } from "@/lib/riscosAuth";
 
 // O driver HTTP do Neon usa fetch() por baixo dos panos, e o Next cacheia
 // fetch() por padrão em rotas sem uso de searchParams/cookies/headers —
@@ -11,6 +12,8 @@ export const dynamic = "force-dynamic";
 // - o Plano de Ação já estiver "Concluído" (não se cria ação nova nele), ou
 // - o risco dono do plano já estiver "Mitigado" (tudo congela).
 export async function POST(request: NextRequest) {
+  const guarda = await exigirPermissao("editarPlanos");
+  if (guarda.resposta) return guarda.resposta;
   try {
     const body = await request.json();
     const { planoAcaoId, descricao, responsavel, prazo } = body ?? {};

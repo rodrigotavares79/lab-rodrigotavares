@@ -772,3 +772,19 @@
 .conteudo :global(.tabela-guia td:first-child) {
   white-space: nowrap;
 }
+
+.perfilTopo {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .perfilTopo {
+    display: none;
+  }
+}

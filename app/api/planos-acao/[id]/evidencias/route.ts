@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
-import { getUsuarioRiscos } from "@/lib/riscosAuth";
+import { exigirPermissao } from "@/lib/riscosAuth";
 import {
   armazenamentoEvidenciasConfigurado,
   enviarEvidencia,
@@ -41,8 +41,9 @@ export async function GET(_request: NextRequest, props: { params: Promise<{ id: 
 export async function POST(request: NextRequest, props: { params: Promise<{ id: string }> }) {
   const { id } = await props.params;
   try {
-    const usuario = await getUsuarioRiscos();
-    if (!usuario) return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+    const guarda = await exigirPermissao("editarPlanos");
+    if (guarda.resposta) return guarda.resposta;
+    const usuario = guarda.usuario;
     if (!/^\d+$/.test(id ?? "")) {
       return NextResponse.json({ error: "ID de plano de ação inválido." }, { status: 400 });
     }

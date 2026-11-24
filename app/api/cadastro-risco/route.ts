@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { simularImpactoFinanceiro, type FaixaEstimativa } from "@/lib/riscoUtils";
 import { nivelRisco } from "@/lib/metodologiaRisco";
+import { exigirPermissao } from "@/lib/riscosAuth";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +34,8 @@ const ENV = process.env.NEXT_PUBLIC_ENV_NAME;
 const prefixoAmbiente = ENV === "homolog" ? "[HMG] " : ENV === "dev" ? "[DEV] " : "";
 
 export async function POST(request: NextRequest) {
+  const guarda = await exigirPermissao("editarRiscos");
+  if (guarda.resposta) return guarda.resposta;
   try {
     const data = await request.json();
 

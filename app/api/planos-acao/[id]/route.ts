@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
+import { exigirPermissao } from "@/lib/riscosAuth";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,8 @@ const STATUS_VALIDOS = ["Aberto", "Concluído"];
 // - Plano auditado como "Conforme" não pode mais ser alterado. Reabrir um
 //   plano Pendente o tira da fila da Auditoria.
 export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const guarda = await exigirPermissao("editarPlanos");
+  if (guarda.resposta) return guarda.resposta;
   const params = await props.params;
   try {
     const { id } = params;

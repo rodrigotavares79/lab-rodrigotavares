@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Footer from "@/components/Footer";
+import { usePerfilRiscos } from "@/components/riscos/PermissoesRiscos";
 
 type Projeto = { id: number; nome: string };
 type RiscoLinha = {
@@ -42,6 +43,7 @@ function formatData(iso: string | null): string {
 }
 
 export default function ListaDeRiscos() {
+  const perfil = usePerfilRiscos();
   const [projetos, setProjetos] = useState<Projeto[]>([]);
   const [projetoId, setProjetoId] = useState("");
   const [riscos, setRiscos] = useState<RiscoLinha[]>([]);
@@ -82,6 +84,7 @@ export default function ListaDeRiscos() {
                 completo, o nível atual e o plano de ação.
               </p>
             </div>
+            {perfil.permissoes.editarRiscos && (
             <a
               href="/seguranca/gestao-de-riscos/cadastro-de-riscos"
               className="btn-primary"
@@ -89,6 +92,7 @@ export default function ListaDeRiscos() {
             >
               + Novo risco ou importar CSV
             </a>
+            )}
           </div>
 
           <div className="form-field" style={{ maxWidth: "20rem", marginTop: "1.5rem" }}>

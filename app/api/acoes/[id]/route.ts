@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
+import { exigirPermissao } from "@/lib/riscosAuth";
 
 export const dynamic = "force-dynamic";
 
@@ -8,6 +9,8 @@ const STATUS_VALIDOS = ["Não iniciado", "Em andamento", "Concluído"];
 // PATCH: atualiza uma Ação (status, descrição, responsável, prazo).
 // Bloqueado por completo se o risco dono do plano já estiver "Mitigado".
 export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const guarda = await exigirPermissao("editarPlanos");
+  if (guarda.resposta) return guarda.resposta;
   const params = await props.params;
   try {
     const { id } = params;

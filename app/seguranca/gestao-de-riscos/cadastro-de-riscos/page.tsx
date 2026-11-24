@@ -5,6 +5,7 @@ import Footer from "@/components/Footer";
 import ImportarRiscosCSV from "@/components/ImportarRiscosCSV";
 import { type FaixaEstimativa } from "@/lib/riscoUtils";
 import { MATRIZ_5X5 } from "@/lib/metodologiaRisco";
+import { usePerfilRiscos, SemPermissao } from "@/components/riscos/PermissoesRiscos";
 
 const NIVEIS = [
   { value: 1, label: "1 — Muito Baixo" },
@@ -112,6 +113,7 @@ function CampoFaixa({
 }
 
 export default function CadastroDeRiscos() {
+  const perfil = usePerfilRiscos();
   const [modo, setModo] = useState<"form" | "csv">("form");
   const [impacto, setImpacto] = useState(0);
   const [probabilidade, setProbabilidade] = useState(0);
@@ -214,6 +216,15 @@ export default function CadastroDeRiscos() {
     } finally {
       setEnviando(false);
     }
+  }
+
+  if (perfil.carregado && !perfil.permissoes.editarRiscos) {
+    return (
+      <>
+        <SemPermissao mensagem="Seu perfil é de consulta: você pode ver os riscos e emitir relatórios, mas não cadastrar. Fale com um administrador se precisar desse acesso." />
+        <Footer />
+      </>
+    );
   }
 
   return (
