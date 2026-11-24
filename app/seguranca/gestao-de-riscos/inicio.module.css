@@ -321,30 +321,36 @@
 }
 
 .atalhos {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
-  gap: 0.75rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.atalhos li + li {
+  border-top: 1px solid var(--border);
 }
 
 .atalho {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 1rem;
   display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
+  align-items: center;
+  gap: 0.9rem;
+  min-height: 3.5rem;
+  padding: 0.7rem 1.1rem;
   color: var(--text);
   text-decoration: none;
-  transition: border-color 0.15s, transform 0.15s;
+  transition: background 0.15s;
 }
 
 .atalho:hover {
-  border-color: var(--accent);
-  transform: translateY(-1px);
+  background: #f5f5f2;
 }
 
 .atalhoIcone {
+  flex: none;
   width: 2.25rem;
   height: 2.25rem;
   border-radius: 9px;
@@ -353,21 +359,66 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 0.5rem;
 }
 
 .atalhoTitulo {
-  font-size: 0.875rem;
+  flex: none;
+  width: 9.5rem;
+  font-size: 0.9rem;
   font-weight: 600;
 }
 
 .atalhoSub {
-  font-size: 0.75rem;
+  flex: 1;
+  min-width: 0;
+  font-size: 0.82rem;
   color: var(--text-muted);
+}
+
+.atalhoSeta {
+  flex: none;
+  color: var(--text-muted);
+}
+
+.atalho:hover .atalhoSeta {
+  color: var(--accent);
+}
+
+/* KPI clicável */
+.kpiLink {
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+.kpiLink:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.kpiAlerta.kpiLink:hover {
+  border-color: var(--danger);
 }
 
 @media (max-width: 560px) {
   .itemPrazo {
+    display: none;
+  }
+
+  .atalho {
+    flex-wrap: wrap;
+  }
+
+  .atalhoTitulo {
+    width: auto;
+  }
+
+  .atalhoSub {
+    flex-basis: 100%;
+    padding-left: 3.15rem;
+  }
+
+  .atalhoSeta {
     display: none;
   }
 }

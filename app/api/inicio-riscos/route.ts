@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 
 // Dados resumidos da página inicial do Gestão de Riscos: KPIs, contagem por
-// célula da matriz 5×5 (nível atual) e os riscos que pedem atenção agora.
+// célula da matriz 5×5 (nível atual) e os riscos críticos e altos ativos.
 export const dynamic = "force-dynamic";
 
 export async function GET() {
@@ -53,6 +53,7 @@ export async function GET() {
       LEFT JOIN planos_acao pa ON pa.risco_id = r.id
       LEFT JOIN acoes a ON a.plano_acao_id = pa.id
       WHERE r.status IS DISTINCT FROM 'Mitigado'
+        AND r.impacto_qualitativo IN ('Alto', 'Significativo')
       GROUP BY r.id
       ORDER BY
         CASE r.impacto_qualitativo
@@ -60,7 +61,7 @@ export async function GET() {
           WHEN 'Moderado' THEN 2 WHEN 'Baixo' THEN 1 ELSE 0 END DESC,
         r.matrix_score DESC NULLS LAST,
         r.id DESC
-      LIMIT 4
+      LIMIT 5
     `;
 
     return NextResponse.json({

@@ -851,6 +851,14 @@ export default function DetalheDoRisco() {
   const [salvandoPlano, setSalvandoPlano] = useState(false);
   const [erroPlano, setErroPlano] = useState<string | null>(null);
 
+  // Link vindo de "Ações atrasadas" (#planos-de-acao): rola até os planos
+  // depois que eles carregam.
+  useEffect(() => {
+    if (!carregandoPlanos && window.location.hash === "#planos-de-acao") {
+      document.getElementById("planos-de-acao")?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [carregandoPlanos]);
+
   function carregarPlanos() {
     if (!params?.id) return;
     setCarregandoPlanos(true);
@@ -1059,7 +1067,7 @@ export default function DetalheDoRisco() {
                   </div>
                 </div>
 
-                <div className="dash-panel">
+                <div className="dash-panel" id="planos-de-acao" style={{ scrollMarginTop: "5rem" }}>
                   <div className="dash-panel-header">Planos de ação · {planos.length}</div>
                   <div className="dash-panel-body">
                     {carregandoPlanos && <p className="text-muted" style={{ fontSize: "0.85rem" }}>Carregando planos...</p>}

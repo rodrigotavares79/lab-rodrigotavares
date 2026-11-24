@@ -7,7 +7,7 @@ import { MATRIZ_5X5 } from "@/lib/metodologiaRisco";
 import s from "./inicio.module.css";
 
 // Página inicial do módulo: poucos KPIs, a matriz 5×5 com a contagem de
-// riscos ativos, os riscos que pedem atenção e atalhos curtos para as telas.
+// riscos ativos, os riscos críticos e altos e a lista de acesso rápido.
 // A navegação completa continua no menu lateral (RiscosShell).
 
 const BASE = "/seguranca/gestao-de-riscos";
@@ -43,12 +43,12 @@ const BADGE_POR_NIVEL: Record<string, string> = {
 };
 
 const ATALHOS = [
-  { titulo: "Política", sub: "Diretrizes e papéis", href: `${BASE}/politica`, icone: "M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z" },
-  { titulo: "Processo", sub: "Etapas do tratamento", href: `${BASE}/processo`, icone: "M5 6h14M5 12h10M5 18h6" },
-  { titulo: "Cadastro", sub: "Individual ou CSV", href: `${BASE}/cadastro-de-riscos`, icone: "M12 5v14M5 12h14" },
-  { titulo: "Lista de riscos", sub: "Detalhe e planos", href: `${BASE}/riscos`, icone: "M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01" },
-  { titulo: "Dashboard", sub: "Visão executiva", href: `${BASE}/dashboard`, icone: "M4 20V10M10 20V4M16 20v-7M22 20H2" },
-  { titulo: "Guia de uso", sub: "Telas e matriz 5×5", href: `${BASE}/guia-de-uso`, icone: "M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2zM4 19V5" },
+  { titulo: "Política", sub: "Diretrizes, papéis e periodicidade de revisão", href: `${BASE}/politica`, icone: "M12 3l8 4v5c0 5-3.5 8-8 9-4.5-1-8-4-8-9V7z" },
+  { titulo: "Processo", sub: "Passo a passo para identificar, priorizar e tratar", href: `${BASE}/processo`, icone: "M5 6h14M5 12h10M5 18h6" },
+  { titulo: "Cadastro", sub: "Registro individual ou em lote (CSV)", href: `${BASE}/cadastro-de-riscos`, icone: "M12 5v14M5 12h14" },
+  { titulo: "Lista de riscos", sub: "Todos os riscos, com detalhe e plano de ação", href: `${BASE}/riscos`, icone: "M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01" },
+  { titulo: "Dashboard", sub: "Visão executiva com indicadores e gráficos", href: `${BASE}/dashboard`, icone: "M4 20V10M10 20V4M16 20v-7M22 20H2" },
+  { titulo: "Guia de uso", sub: "Como usar as telas e a matriz 5×5", href: `${BASE}/guia-de-uso`, icone: "M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2zM4 19V5" },
 ];
 
 function formatPrazo(prazo: string | null): { texto: string; atrasado: boolean } {
@@ -103,7 +103,6 @@ export default function GestaoDeRiscos() {
               </p>
             </div>
             <div className={s.acoes}>
-              <Link href={`${BASE}/dashboard`} className={s.botaoSec}>Ver dashboard</Link>
               <Link href={`${BASE}/cadastro-de-riscos`} className={s.botaoPri}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true">
                   <path d="M12 5v14M5 12h14" />
@@ -146,17 +145,22 @@ export default function GestaoDeRiscos() {
               </div>
               <span className={s.kpiNota}>{k ? `${pctAcoes}% das ações concluídas` : " "}</span>
             </div>
-            <div className={`${s.kpi} ${atrasadas > 0 ? s.kpiAlerta : ""}`}>
+            <Link
+              href={`${BASE}/acoes-atrasadas`}
+              className={`${s.kpi} ${s.kpiLink} ${atrasadas > 0 ? s.kpiAlerta : ""}`}
+            >
               <span className={s.kpiRotulo}>Ações atrasadas</span>
               <span className={s.kpiValor}><Valor v={k?.acoesAtrasadas} /></span>
-              <span className={s.kpiNota}>{k ? (atrasadas > 0 ? "Prazo vencido" : "Tudo dentro do prazo") : " "}</span>
-            </div>
+              <span className={s.kpiNota}>
+                {k ? (atrasadas > 0 ? "Ver ações com prazo vencido →" : "Tudo dentro do prazo") : " "}
+              </span>
+            </Link>
           </section>
 
           <section className={s.meio}>
             <div className={`${s.painel} ${s.painelMatriz}`}>
               <div className={s.painelTopo}>
-                <h2>Matriz de riscos 5×5</h2>
+                <h2>Matriz de Riscos</h2>
                 <span>riscos ativos por célula</span>
               </div>
               <div className={s.matriz}>
@@ -195,11 +199,11 @@ export default function GestaoDeRiscos() {
 
             <div className={`${s.painel} ${s.painelAtencao}`}>
               <div className={s.painelTopo}>
-                <h2>Atenção agora</h2>
+                <h2>Riscos Críticos e Altos</h2>
                 <Link href={`${BASE}/riscos`} className={s.verTodos}>Ver todos</Link>
               </div>
               {dados && dados.atencao.length === 0 && (
-                <p className="text-muted" style={{ margin: 0 }}>Nenhum risco ativo no momento.</p>
+                <p className="text-muted" style={{ margin: 0 }}>Nenhum risco crítico ou alto ativo no momento.</p>
               )}
               {!dados && !erro && <p className="text-muted" style={{ margin: 0 }}>Carregando...</p>}
               <ul className={s.lista}>
@@ -228,20 +232,25 @@ export default function GestaoDeRiscos() {
           </section>
 
           <section className={s.atalhosBloco}>
-            <h2 className={s.tituloSecao}>Acesso rápido</h2>
-            <div className={s.atalhos}>
+            <h2 className={s.tituloSecao}>Acesso Rápido</h2>
+            <ul className={s.atalhos}>
               {ATALHOS.map((a) => (
-                <Link key={a.href} href={a.href} className={s.atalho}>
-                  <span className={s.atalhoIcone}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d={a.icone} />
+                <li key={a.href}>
+                  <Link href={a.href} className={s.atalho}>
+                    <span className={s.atalhoIcone}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d={a.icone} />
+                      </svg>
+                    </span>
+                    <span className={s.atalhoTitulo}>{a.titulo}</span>
+                    <span className={s.atalhoSub}>{a.sub}</span>
+                    <svg className={s.atalhoSeta} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M9 6l6 6-6 6" />
                     </svg>
-                  </span>
-                  <span className={s.atalhoTitulo}>{a.titulo}</span>
-                  <span className={s.atalhoSub}>{a.sub}</span>
-                </Link>
+                  </Link>
+                </li>
               ))}
-            </div>
+            </ul>
           </section>
         </div>
       </section>
