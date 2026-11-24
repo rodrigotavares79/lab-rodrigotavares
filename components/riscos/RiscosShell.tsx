@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
 import s from "./riscos.module.css";
@@ -12,7 +12,18 @@ import s from "./riscos.module.css";
 
 const BASE = "/seguranca/gestao-de-riscos";
 
-type ItemMenu = { href: string; label: string; exato?: boolean };
+type Contador = "auditoriaPendentes" | "acoesAtrasadas";
+type ItemMenu = {
+  href: string;
+  label: string;
+  exato?: boolean;
+  // Outras rotas que também deixam o item marcado (ex.: o cadastro conta
+  // como parte de "Riscos").
+  tambem?: string[];
+  contador?: Contador;
+  // Contador em vermelho (atraso) ou neutro (fila de trabalho).
+  alerta?: boolean;
+};
 type GrupoMenu = { titulo: string; itens: ItemMenu[] };
 
 const GRUPOS: GrupoMenu[] = [
@@ -24,36 +35,87 @@ const GRUPOS: GrupoMenu[] = [
     ],
   },
   {
-    titulo: "Operação",
+    titulo: "Gestão",
     itens: [
-      { href: `${BASE}/cadastro-de-riscos`, label: "Cadastro de Riscos" },
-      { href: `${BASE}/riscos`, label: "Lista de Riscos" },
+      { href: `${BASE}/riscos`, label: "Riscos", tambem: [`${BASE}/cadastro-de-riscos`] },
+      { href: `${BASE}/acoes-atrasadas`, label: "Ações atrasadas", contador: "acoesAtrasadas", alerta: true },
     ],
   },
   {
     titulo: "Auditoria",
     itens: [
-      { href: `${BASE}/auditoria`, label: "Auditoria de Planos", exato: true },
-      { href: `${BASE}/auditoria/relatorio`, label: "Relatório de Auditoria" },
+      { href: `${BASE}/auditoria`, label: "Auditoria de Planos", exato: true, contador: "auditoriaPendentes" },
     ],
   },
   {
-    titulo: "Governança",
+    titulo: "Relatórios",
     itens: [
-      { href: `${BASE}/politica`, label: "Política" },
-      { href: `${BASE}/processo`, label: "Processo" },
+      { href: `${BASE}/relatorio-executivo`, label: "Relatório Executivo" },
+      { href: `${BASE}/auditoria/relatorio`, label: "Relatório de Auditoria" },
     ],
   },
 ];
 
+// Documentos de consulta: ficam no rodapé do menu, fora das telas de trabalho.
+const DOCUMENTOS: ItemMenu[] = [
+  { href: `${BASE}/politica`, label: "Política" },
+  { href: `${BASE}/processo`, label: "Processo" },
+  { href: `${BASE}/guia-de-uso`, label: "Guia de Uso" },
+];
+
+function casa(pathname: string, href: string, exato?: boolean): boolean {
+  if (exato) return pathname === href;
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
 function ativo(pathname: string, item: ItemMenu): boolean {
-  if (item.exato) return pathname === item.href;
-  return pathname === item.href || pathname.startsWith(`${item.href}/`);
+  return casa(pathname, item.href, item.exato) || (item.tambem || []).some((h) => casa(pathname, h));
 }
 
 export default function RiscosShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || "";
   const [menuAberto, setMenuAberto] = useState(false);
+  const [contadores, setContadores] = useState<Partial<Record<Contador, number>>>({});
+
+  // Atualiza os contadores a cada troca de tela (ex.: depois de auditar um
+  // plano, o número da fila já cai ao voltar para outra página).
+  useEffect(() => {
+    let cancelado = false;
+    fetch("/api/menu-riscos")
+      .then((r) => r.json())
+      .then((d) => {
+        if (!cancelado && !d.error) setContadores(d);
+      })
+      .catch(() => {});
+    return () => {
+      cancelado = true;
+    };
+  }, [pathname]);
+
+  function renderItem(item: ItemMenu) {
+    const marcado = ativo(pathname, item);
+    const n = item.contador ? contadores[item.contador] : undefined;
+    return (
+      <li key={item.href}>
+        <a
+          href={item.href}
+          className={`${s.itemMenu} ${marcado ? s.itemAtivo : ""}`}
+          aria-current={marcado ? "page" : undefined}
+          onClick={() => setMenuAberto(false)}
+        >
+          <span>{item.label}</span>
+          {n !== undefined && n > 0 && (
+            <span
+              className={`${s.contador} ${item.alerta ? s.contadorAlerta : ""}`}
+              aria-label={`${n} ${item.alerta ? "atrasada" + (n > 1 ? "s" : "") : "pendente" + (n > 1 ? "s" : "")}`}
+            >
+              {n}
+            </span>
+          )}
+        </a>
+      </li>
+    );
+  }
 
   // O Relatório Executivo é uma página de impressão: abre sem a moldura.
   if (pathname.startsWith(`${BASE}/relatorio`)) {
@@ -97,30 +159,13 @@ export default function RiscosShell({ children }: { children: React.ReactNode })
             {GRUPOS.map((g) => (
               <div key={g.titulo} className={s.grupo}>
                 <div className={s.grupoTitulo}>{g.titulo}</div>
-                <ul>
-                  {g.itens.map((item) => (
-                    <li key={item.href}>
-                      <a
-                        href={item.href}
-                        className={`${s.itemMenu} ${ativo(pathname, item) ? s.itemAtivo : ""}`}
-                        aria-current={ativo(pathname, item) ? "page" : undefined}
-                        onClick={() => setMenuAberto(false)}
-                      >
-                        {item.label}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
+                <ul>{g.itens.map(renderItem)}</ul>
               </div>
             ))}
           </nav>
           <div className={s.lateralRodape}>
-            <a
-              href={`${BASE}/guia-de-uso`}
-              className={`${s.itemMenu} ${pathname.startsWith(`${BASE}/guia-de-uso`) ? s.itemAtivo : ""}`}
-            >
-              Guia de Uso
-            </a>
+            <div className={s.grupoTitulo}>Documentos</div>
+            <ul>{DOCUMENTOS.map(renderItem)}</ul>
             <span className={s.copyright}>© {new Date().getFullYear()} Rodrigo Tavares</span>
           </div>
         </aside>

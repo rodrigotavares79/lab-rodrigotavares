@@ -163,7 +163,10 @@
 }
 
 .itemMenu {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
   font-size: 0.86rem;
   color: var(--rs-text);
   text-decoration: none;
@@ -174,6 +177,30 @@
 
 .itemMenu:hover {
   background: var(--rs-bg);
+}
+
+.contador {
+  flex: none;
+  min-width: 1.35rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  background: var(--rs-primaria-tint);
+  color: var(--rs-primaria);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.itemAtivo .contador {
+  background: var(--rs-primaria);
+  color: #fff;
+}
+
+.contadorAlerta,
+.itemAtivo .contadorAlerta {
+  background: var(--rs-perigo-tint);
+  color: var(--rs-perigo);
 }
 
 .itemAtivo {

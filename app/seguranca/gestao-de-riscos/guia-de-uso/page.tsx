@@ -26,7 +26,7 @@ export default function GuiaDeUso() {
             <h2>Visão geral</h2>
             <p>
               Cada risco nasce no <strong>Cadastro de Riscos</strong>, aparece
-              na <strong>Lista de Riscos</strong> e evolui dentro da sua
+              na tela <strong>Riscos</strong> e evolui dentro da sua
               própria página de <strong>Detalhe</strong>, onde você registra
               fatores de risco, controles e planos de ação. O{" "}
               <strong>Dashboard</strong> consolida tudo isso em indicadores, e
@@ -65,7 +65,7 @@ export default function GuiaDeUso() {
             </ol>
             <p className="field-helper">
               Ao clicar em <strong>Cadastrar Risco</strong>, o formulário é
-              limpo e o risco já aparece na Lista de Riscos.
+              limpo e o risco já aparece na tela Riscos.
             </p>
 
             <h2>2. Importar vários riscos de uma vez (CSV)</h2>
@@ -130,9 +130,9 @@ export default function GuiaDeUso() {
               sem nenhuma proteção".
             </p>
 
-            <h2>4. Acompanhar na Lista de Riscos</h2>
+            <h2>4. Acompanhar na tela Riscos</h2>
             <p>
-              Em <strong>Lista de Riscos</strong> você vê todos os riscos
+              Na tela <strong>Riscos</strong> você vê todos os riscos
               cadastrados, com filtro por Projeto. A coluna Nível mostra o
               nível <strong>atual</strong> do risco (já considerando
               controles), e a coluna Status mostra se ele está{" "}
