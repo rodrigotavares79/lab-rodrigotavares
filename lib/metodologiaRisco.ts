@@ -65,23 +65,37 @@ export const ALPHA: Record<Vetor, { prob: number; imp: number }> = {
   "Ambos": { prob: 0.5, imp: 0.5 },
 };
 
-// Matriz 5×5 (Parâmetros §6) — linha = Probabilidade (1–5), coluna = Impacto (1–5)
-export const MATRIZ_5X5: number[][] = [
-  /* prob 1 */ [1, 1, 1, 2, 3],
-  /* prob 2 */ [1, 1, 2, 3, 3],
-  /* prob 3 */ [1, 2, 2, 3, 4],
-  /* prob 4 */ [1, 2, 3, 4, 4],
-  /* prob 5 */ [2, 3, 4, 4, 4],
+// Critérios de avaliação de risco (ISO/IEC 27005): nível = Probabilidade ×
+// Impacto (pontuação 1–25), em 4 faixas definidas pela organização:
+//   1–4 Baixo · 5–9 Médio · 10–16 Alto · 20–25 Crítico
+export const FAIXAS_NIVEL_RISCO = [
+  { nivel: 1, rotulo: "Baixo", min: 1, max: 4 },
+  { nivel: 2, rotulo: "Médio", min: 5, max: 9 },
+  { nivel: 3, rotulo: "Alto", min: 10, max: 16 },
+  { nivel: 4, rotulo: "Crítico", min: 20, max: 25 },
 ];
+
+export function nivelPorPontuacao(pontuacao: number): number {
+  if (pontuacao >= 20) return 4;
+  if (pontuacao >= 10) return 3;
+  if (pontuacao >= 5) return 2;
+  return 1;
+}
+
+// Matriz 5×5 — linha = Probabilidade (1–5), coluna = Impacto (1–5), gerada
+// pelas faixas acima (assim o desenho e o cálculo nunca divergem).
+export const MATRIZ_5X5: number[][] = [1, 2, 3, 4, 5].map((p) =>
+  [1, 2, 3, 4, 5].map((i) => nivelPorPontuacao(p * i))
+);
 
 export const NIVEL_RISCO_LABEL: Record<number, string> = {
   1: "Baixo",
-  2: "Moderado",
-  3: "Significativo",
-  4: "Alto",
+  2: "Médio",
+  3: "Alto",
+  4: "Crítico",
 };
 
-export const NIVEIS_RISCO_ORDEM = ["Baixo", "Moderado", "Significativo", "Alto"];
+export const NIVEIS_RISCO_ORDEM = ["Baixo", "Médio", "Alto", "Crítico"];
 
 // Faixas do Índice de Mitigação -> redução em níveis (Parâmetros §14).
 // Ordem decrescente de limiar — a primeira faixa cujo "min" o IM atinge vence.

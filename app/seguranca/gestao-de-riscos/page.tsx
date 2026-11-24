@@ -17,8 +17,8 @@ type Resumo = {
   kpis: {
     total: number;
     ativos: number;
+    criticos: number;
     altos: number;
-    significativos: number;
     planosAbertos: number;
     acoesTotal: number;
     acoesConcluidas: number;
@@ -38,12 +38,12 @@ type Resumo = {
 };
 
 const NIVEL_CLASSE: Record<number, string> = { 1: s.n1, 2: s.n2, 3: s.n3, 4: s.n4 };
-const NIVEL_NOMES: Record<number, string> = { 1: "Baixo", 2: "Moderado", 3: "Significativo", 4: "Alto" };
+const NIVEL_NOMES: Record<number, string> = { 1: "Baixo", 2: "Médio", 3: "Alto", 4: "Crítico" };
 const BADGE_POR_NIVEL: Record<string, string> = {
   Baixo: "badge-baixo",
-  Moderado: "badge-medio",
-  Significativo: "badge-alto",
-  Alto: "badge-critico",
+  "Médio": "badge-medio",
+  "Alto": "badge-alto",
+  "Crítico": "badge-critico",
 };
 
 function formatPrazo(prazo: string | null): { texto: string; atrasado: boolean } {
@@ -77,9 +77,9 @@ export default function GestaoDeRiscos() {
   }, []);
 
   const k = dados?.kpis;
-  const criticos = k ? k.altos + k.significativos : undefined;
+  const criticosEAltos = k ? k.criticos + k.altos : undefined;
+  const pctCriticos = k && k.ativos ? (k.criticos / k.ativos) * 100 : 0;
   const pctAltos = k && k.ativos ? (k.altos / k.ativos) * 100 : 0;
-  const pctSignif = k && k.ativos ? (k.significativos / k.ativos) * 100 : 0;
   const pctAcoes = k && k.acoesTotal ? Math.round((k.acoesConcluidas / k.acoesTotal) * 100) : 0;
   const atrasadas = k?.acoesAtrasadas ?? 0;
 
@@ -124,13 +124,13 @@ export default function GestaoDeRiscos() {
               <span className={s.kpiNota}>{k ? `${k.total - k.ativos} mitigados de ${k.total}` : " "}</span>
             </div>
             <div className={s.kpi}>
-              <span className={s.kpiRotulo}>Altos e significativos</span>
-              <span className={`${s.kpiValor} ${s.valorAlerta}`}><Valor v={criticos} /></span>
+              <span className={s.kpiRotulo}>Críticos e altos</span>
+              <span className={`${s.kpiValor} ${s.valorAlerta}`}><Valor v={criticosEAltos} /></span>
               <div className={s.barra} aria-hidden="true">
-                <div style={{ width: `${pctAltos}%`, background: "#c0392b" }} />
-                <div style={{ width: `${pctSignif}%`, background: "#e8a065" }} />
+                <div style={{ width: `${pctCriticos}%`, background: "#c0392b" }} />
+                <div style={{ width: `${pctAltos}%`, background: "#e8a065" }} />
               </div>
-              <span className={s.kpiNota}>{k ? `${k.altos} altos · ${k.significativos} significativos` : " "}</span>
+              <span className={s.kpiNota}>{k ? `${k.criticos} críticos · ${k.altos} altos` : " "}</span>
             </div>
             <div className={s.kpi}>
               <span className={s.kpiRotulo}>Planos de ação abertos</span>

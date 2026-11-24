@@ -136,8 +136,10 @@ export default function Politica() {
               <li>
                 <strong>Análise e Classificação</strong> — impacto e
                 probabilidade são avaliados, gerando a pontuação da matriz
-                de risco e sua classificação qualitativa (Baixo, Moderado,
-                Significativo ou Alto).
+                de risco (Probabilidade × Impacto, de 1 a 25) e sua
+                classificação qualitativa conforme os critérios de avaliação
+                da ISO/IEC 27005: Baixo (1–4), Médio (5–9), Alto (10–16) ou
+                Crítico (20–25).
               </li>
               <li>
                 <strong>Definição do Plano de Ação</strong> — para riscos

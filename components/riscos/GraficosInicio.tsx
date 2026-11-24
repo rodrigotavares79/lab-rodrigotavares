@@ -6,7 +6,7 @@ import s from "./GraficosInicio.module.css";
 
 // Três gráficos pequenos da página inicial do Gestão de Riscos:
 // top 3 categorias (barras horizontais), riscos por criticidade (pizza, rótulo
-// só no hover) e mitigação trimestral de riscos altos e significativos (gauge).
+// só no hover) e mitigação trimestral de riscos críticos e altos (gauge).
 
 type Categoria = { categoria: string; total: number };
 type Nivel = { nivel: string; total: number };
@@ -18,9 +18,9 @@ const CORES_CATEGORIA = ["#2f6bab", "#d97a2b", "#7b5ea7"];
 // Escala ordinal de criticidade, do mais leve ao mais grave.
 const NIVEIS = [
   { nivel: "Baixo", cor: "#6fa77f" },
-  { nivel: "Moderado", cor: "#e3b53b" },
-  { nivel: "Significativo", cor: "#e08a3c" },
-  { nivel: "Alto", cor: "#c0392b" },
+  { nivel: "Médio", cor: "#e3b53b" },
+  { nivel: "Alto", cor: "#e08a3c" },
+  { nivel: "Crítico", cor: "#c0392b" },
 ];
 
 type Dica = { texto: React.ReactNode; x: number; y: number } | null;
@@ -270,8 +270,8 @@ function GaugeMitigacao({ trimestres }: { trimestres: Trimestre[] | undefined })
           role="img"
           aria-label={
             pct === null
-              ? "Sem riscos altos ou significativos no trimestre atual"
-              : `${formatPct(pct)} dos riscos altos e significativos mitigados no trimestre ${atual?.trimestre}; meta de ${META}%`
+              ? "Sem riscos críticos ou altos no trimestre atual"
+              : `${formatPct(pct)} dos riscos críticos e altos mitigados no trimestre ${atual?.trimestre}; meta de ${META}%`
           }
         >
           {ZONAS.map((z) => (
@@ -315,8 +315,8 @@ function GaugeMitigacao({ trimestres }: { trimestres: Trimestre[] | undefined })
         <p className={s.gaugeNota}>
           {atual
             ? pct === null
-              ? `Trimestre ${atual.trimestre} · sem riscos altos ou significativos no período`
-              : `Trimestre ${atual.trimestre} · ${atual.mitigados} de ${atual.total} altos e significativos mitigados · meta ${META}%`
+              ? `Trimestre ${atual.trimestre} · sem riscos críticos ou altos no período`
+              : `Trimestre ${atual.trimestre} · ${atual.mitigados} de ${atual.total} críticos e altos mitigados · meta ${META}%`
             : " "}
         </p>
       </div>
