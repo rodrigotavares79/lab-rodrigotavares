@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
       ? await Promise.all([
           sql`SELECT id, plano_acao_id, descricao, responsavel, responsavel_email, prazo, status
               FROM acoes WHERE plano_acao_id = ANY(${ids}) ORDER BY criado_em ASC`,
-          sql`SELECT id, plano_acao_id, descricao, nome_arquivo, tipo_arquivo, tamanho_bytes, enviado_por_nome, criado_em
+          sql`SELECT id, plano_acao_id, descricao, nome_arquivo, tipo_arquivo, tamanho_bytes, enviado_por_nome, criado_em, sha256
               FROM planos_acao_evidencias WHERE plano_acao_id = ANY(${ids}) ORDER BY criado_em ASC`,
           sql`SELECT id, plano_acao_id, resultado, comentario, auditor_nome, criado_em
               FROM planos_acao_auditorias WHERE plano_acao_id = ANY(${ids}) ORDER BY criado_em DESC`,

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { sqlAuditado } from "@/lib/sqlAuditado";
 import { exigirPermissao } from "@/lib/riscosAuth";
+import { TIPOS_EXIBIVEIS } from "@/lib/assinaturaArquivo";
 import { apagarEvidencia, armazenamentoEvidenciasConfigurado, lerEvidencia } from "@/lib/riscosEvidencias";
 
 export const dynamic = "force-dynamic";
@@ -24,7 +25,7 @@ export async function GET(
 
     const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
     const rows = await sql`
-      SELECT arquivo_url, tipo_arquivo, nome_arquivo
+      SELECT arquivo_url, tipo_arquivo, nome_arquivo, sha256
       FROM planos_acao_evidencias
       WHERE id = ${evidenciaId} AND plano_acao_id = ${id}
     `;
@@ -43,7 +44,9 @@ export async function GET(
       status: 200,
       headers: {
         "Content-Type": resultado.blob.contentType || rows[0].tipo_arquivo || "application/octet-stream",
-        "Content-Disposition": `inline; filename*=UTF-8''${encodeURIComponent(nome)}`,
+        // B12: só PDF e imagens abrem no navegador; o resto é baixado.
+        "Content-Disposition": `${TIPOS_EXIBIVEIS.has(rows[0].tipo_arquivo) ? "inline" : "attachment"}; filename*=UTF-8''${encodeURIComponent(nome)}`,
+        ...(rows[0].sha256 ? { "X-Evidencia-SHA256": rows[0].sha256 } : {}),
         "Cache-Control": "private, no-store",
         "X-Content-Type-Options": "nosniff",
       },

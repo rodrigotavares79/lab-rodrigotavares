@@ -15,6 +15,8 @@ export type Evidencia = {
   enviado_por_nome: string | null;
   criado_em: string;
   url: string;
+  /** B12: hash SHA-256 do arquivo (evidências anteriores a 25/11 não têm). */
+  sha256?: string | null;
 };
 
 export function formatTamanho(bytes: number) {
@@ -65,6 +67,13 @@ export function ListaEvidencias({
             {e.descricao && <span style={{ fontSize: "0.8rem" }}>{e.descricao}</span>}
             <span className="text-muted" style={{ fontSize: "0.72rem" }}>
               {formatTamanho(e.tamanho_bytes)} · {e.enviado_por_nome || "—"} · {formatDataHora(e.criado_em)}
+            </span>
+            <span
+              className="text-muted"
+              style={{ fontSize: "0.68rem", fontFamily: "var(--font-mono, monospace)", wordBreak: "break-all" }}
+              title={e.sha256 ? `SHA-256: ${e.sha256}` : "Hash não registrado (evidência anterior a 25/11/2026)"}
+            >
+              SHA-256: {e.sha256 ? `${e.sha256.slice(0, 16)}…` : "não registrado"}
             </span>
           </span>
           {onRemover && (
@@ -158,7 +167,7 @@ export default function EvidenciasPlano({
               id={`evid-arquivo-${planoId}`}
               ref={arquivoRef}
               type="file"
-              accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.csv,.xlsx,.docx,.eml"
+              accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.log,.csv,.xlsx,.docx,.eml"
             />
           </div>
           <div className="form-field">
