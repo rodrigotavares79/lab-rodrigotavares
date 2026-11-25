@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import s from "@/components/riscos/riscos.module.css";
 import EvidenciasPlano, { type Evidencia } from "@/components/riscos/EvidenciasPlano";
+import AceitacaoRisco from "@/components/riscos/AceitacaoRisco";
+import { OPCOES_TRATAMENTO } from "@/lib/aceitacaoRisco";
 import { hojeSaoPaulo, situacaoRevisao, textoSituacaoRevisao } from "@/lib/revisaoRisco";
 import { montarEventos, type RegistroLog, type TipoEvento } from "@/lib/historicoRisco";
 import { STATUS_RISCO, statusPermitidos, validarTransicaoStatus, type StatusRisco } from "@/lib/statusRisco";
@@ -29,6 +31,7 @@ type FatorRisco = {
 
 type RiscoDetalhe = {
   id: number;
+  opcao_tratamento: string | null;
   revisado_em: string | null;
   dias_revisao: number | null;
   proxima_revisao: string | null;
@@ -143,6 +146,7 @@ const OPCOES_VETOR = ["Probabilidade", "Impacto", "Ambos"];
 
 function classeStatus(status: string | null): string {
   if (status === "Mitigado") return "status-resolved";
+  if (status === "Aceito") return "status-accepted";
   if (status === "Identificado") return "status-identified";
   return "status-pending";
 }
@@ -387,6 +391,7 @@ function LinhaDoTempo({ risco, planos }: { risco: RiscoDetalhe; planos: PlanoAca
     acao: `${s.marcador} ${s.marcadorAcao}`,
     evidencia: `${s.marcador} ${s.marcadorPlano}`,
     auditoria: `${s.marcador} ${s.marcadorPlano}`,
+    aceitacao: `${s.marcador} ${s.marcadorFator}`,
   };
 
   return (
@@ -1032,6 +1037,7 @@ export default function DetalheDoRisco() {
   const [impactoForm, setImpactoForm] = useState("");
   const [probabilidadeForm, setProbabilidadeForm] = useState("");
   const [statusForm, setStatusForm] = useState("");
+  const [opcaoForm, setOpcaoForm] = useState("");
   const [salvando, setSalvando] = useState(false);
   const [erroSalvar, setErroSalvar] = useState<string | null>(null);
   const [sucessoSalvar, setSucessoSalvar] = useState(false);
@@ -1048,6 +1054,7 @@ export default function DetalheDoRisco() {
         setImpactoForm(d.risco.impacto ? String(d.risco.impacto) : "");
         setProbabilidadeForm(d.risco.probabilidade ? String(d.risco.probabilidade) : "");
         setStatusForm(d.risco.status || "Identificado");
+        setOpcaoForm(d.risco.opcao_tratamento || "");
       })
       .catch((e) => setErro(e.message || "Erro ao carregar o risco."))
       .finally(() => setCarregando(false));
@@ -1072,6 +1079,7 @@ export default function DetalheDoRisco() {
           impacto: impactoForm ? Number(impactoForm) : undefined,
           probabilidade: probabilidadeForm ? Number(probabilidadeForm) : undefined,
           status: statusForm,
+          opcaoTratamento: opcaoForm || null,
         }),
       });
       const body = await res.json();
@@ -1202,6 +1210,23 @@ export default function DetalheDoRisco() {
             <option value="">—</option>
             {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}
           </select>
+        </div>
+        <div className="form-field form-field-wide">
+          <label htmlFor="opcaoForm">Opção de tratamento</label>
+          <select id="opcaoForm" value={opcaoForm} onChange={(e) => setOpcaoForm(e.target.value)}>
+            <option value="">— não definida —</option>
+            {OPCOES_TRATAMENTO.map((o) => <option key={o} value={o}>{o}</option>)}
+          </select>
+          {opcaoForm === "Aceitar" && risco?.status !== "Aceito" && (
+            <p className="field-helper" style={{ margin: "0.4rem 0 0" }}>
+              Para aceitar, solicite a aceitação com a Carta de Risco no painel &quot;Aceitação do risco&quot;.
+            </p>
+          )}
+          {risco?.status === "Aceito" && opcaoForm !== "Aceitar" && (
+            <p className="field-helper" style={{ margin: "0.4rem 0 0", color: "var(--danger)" }}>
+              Ao salvar, a aceitação vigente será revogada e o risco sai de Aceito.
+            </p>
+          )}
         </div>
         <div className="form-field form-field-wide">
           <label htmlFor="statusForm">Status</label>
@@ -1457,6 +1482,13 @@ export default function DetalheDoRisco() {
                 </div>
 
                 <ImpactoDecisao risco={risco} totalPlanos={planos.length} />
+                <AceitacaoRisco
+                  riscoId={risco.id}
+                  statusRisco={risco.status || "Identificado"}
+                  opcaoTratamento={risco.opcao_tratamento}
+                  podeSolicitar={podeEditarRisco}
+                  onAtualizado={carregarRisco}
+                />
 
                 {risco.sistema_critico && (
                   <div className="dash-panel">

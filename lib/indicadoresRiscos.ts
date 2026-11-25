@@ -23,10 +23,11 @@
 // - Ação atrasada: ação não concluída, com prazo anterior a hoje no fuso de
 //   São Paulo, de risco ainda ativo.
 // - Sem tratamento definido (B02): risco ativo Alto ou Crítico, sem plano de
-//   ação, com o prazo da política (parametros_politica.prazo_tratamento_dias,
-//   contado do cadastro) já vencido. View riscos_tratamento.
+//   ação e sem aceitação válida (B16), com o prazo da política
+//   (parametros_politica.prazo_tratamento_dias, contado do cadastro) já
+//   vencido. View riscos_tratamento.
 // - Conformidade com a política (B02): % dos riscos ativos Alto e Crítico que
-//   têm tratamento definido (pelo menos um plano).
+//   têm tratamento definido (pelo menos um plano ou aceitação válida).
 // - Revisão vencida (B17): risco ativo cuja próxima revisão (view
 //   riscos_revisao: última revisão + prazo do nível atual) é anterior a hoje
 //   no fuso de São Paulo.
@@ -123,9 +124,10 @@ async function resumoTratamento(sql: any, p: number | null) {
   const [linha] = await sql`
       SELECT
         COUNT(*)::int AS total,
-        COUNT(*) FILTER (WHERE planos > 0)::int AS com_tratamento,
+        COUNT(*) FILTER (WHERE planos > 0 OR aceito_valido)::int AS com_tratamento,
         COUNT(*) FILTER (
-          WHERE planos = 0 AND prazo_tratamento < (now() AT TIME ZONE 'America/Sao_Paulo')::date
+          WHERE planos = 0 AND NOT aceito_valido
+            AND prazo_tratamento < (now() AT TIME ZONE 'America/Sao_Paulo')::date
         )::int AS sem_tratamento
       FROM riscos_tratamento
       WHERE (${p}::int IS NULL OR projeto_id = ${p}::int)

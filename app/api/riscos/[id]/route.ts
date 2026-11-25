@@ -6,6 +6,7 @@ import { sqlAuditado } from "@/lib/sqlAuditado";
 import { exigirPermissao } from "@/lib/riscosAuth";
 import { STATUS_RISCO, statusValido, validarTransicaoStatus, type StatusRisco } from "@/lib/statusRisco";
 import { resumoPlanos } from "@/lib/sincronizarStatusRisco";
+import { opcaoValida } from "@/lib/aceitacaoRisco";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +30,7 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
         r.matrix_score, r.nivel_inicial, r.impacto_qualitativo, r.nivel_projetado,
         r.prob_nivel_atual, r.imp_nivel_atual, r.prob_nivel_projetado, r.imp_nivel_projetado,
         r.im_prob_atual, r.im_imp_atual, r.im_prob_projetado, r.im_imp_projetado,
-        r.status,
+        r.status, r.opcao_tratamento,
         r.sistema_critico_id, s.nome AS sistema_critico,
         r.duracao_horas, r.duracao_horas_min, r.duracao_horas_max,
         r.percentual_degradacao, r.percentual_degradacao_min, r.percentual_degradacao_max,
@@ -82,7 +83,10 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
     }
 
     const body = await request.json();
-    const { impacto, probabilidade, status } = body ?? {};
+    const { impacto, probabilidade, status, opcaoTratamento } = body ?? {};
+    if (opcaoTratamento !== undefined && opcaoTratamento !== null && !opcaoValida(opcaoTratamento)) {
+      return NextResponse.json({ error: "Opção de tratamento inválida." }, { status: 400 });
+    }
 
     if (status !== undefined && !statusValido(status)) {
       return NextResponse.json(
@@ -108,7 +112,7 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
 
     const sql = sqlAuditado(guarda.usuario);
 
-    const atualRows = await sql`SELECT impacto, probabilidade, status FROM riscos WHERE id = ${id}`;
+    const atualRows = await sql`SELECT impacto, probabilidade, status, opcao_tratamento FROM riscos WHERE id = ${id}`;
     if (atualRows.length === 0) {
       return NextResponse.json({ error: "Risco não encontrado." }, { status: 404 });
     }
@@ -117,8 +121,14 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
     // Regras de transição (lib/statusRisco): Mitigado é terminal; Em
     // Tratamento exige plano; Mitigado exige todos os planos Conforme; risco
     // com plano não volta para Identificado.
-    const novoStatus: StatusRisco = status ?? atual.status ?? "Identificado";
+    let novoStatus: StatusRisco = status ?? atual.status ?? "Identificado";
     const planos = await resumoPlanos(sql, id);
+    // B16: trocar a opção de tratamento de "Aceitar" para outra tira o risco
+    // de Aceito (vai para Em Tratamento se tiver plano, senão Identificado).
+    const novaOpcao = opcaoTratamento !== undefined ? opcaoTratamento : atual.opcao_tratamento;
+    if (atual.status === "Aceito" && novoStatus === "Aceito" && novaOpcao !== "Aceitar") {
+      novoStatus = planos.total > 0 ? "Em Tratamento" : "Identificado";
+    }
     const erroTransicao = validarTransicaoStatus(atual.status, novoStatus, planos);
     if (erroTransicao) {
       return NextResponse.json({ error: erroTransicao }, { status: 409 });
@@ -136,11 +146,22 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
           matrix_score = ${novoMatrixScore},
           nivel_inicial = ${novoNivelInerente},
           status = ${novoStatus},
+          opcao_tratamento = ${novaOpcao ?? null},
           mitigado_em = ${novoStatus === "Mitigado" ? new Date().toISOString() : null},
           -- B17: salvar a reavaliação registra a revisão periódica do risco.
           revisado_em = now()
       WHERE id = ${id} AND status IS DISTINCT FROM 'Mitigado'
     `;
+
+    // B16: sair de Aceito, ou deixar de escolher "Aceitar", revoga a
+    // aceitação pendente ou vigente.
+    if ((atual.status === "Aceito" && novoStatus !== "Aceito") || novaOpcao !== "Aceitar") {
+      await sql`
+        UPDATE aceitacoes_risco
+        SET situacao = 'Revogada', revogado_em = now(), revogado_por_email = ${guarda.usuario.email}
+        WHERE risco_id = ${id} AND situacao IN ('Pendente', 'Aprovada')
+      `;
+    }
 
     // O nível inerente pode ter mudado — recalcula Atual e Projetado a partir
     // dos fatores já cadastrados (se não houver nenhum, ambos ficam iguais ao
@@ -149,7 +170,7 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
 
     const rows = await sql`
       SELECT id, impacto, probabilidade, matrix_score, nivel_inicial, impacto_qualitativo,
-             nivel_projetado, status
+             nivel_projetado, status, opcao_tratamento
       FROM riscos WHERE id = ${id}
     `;
 

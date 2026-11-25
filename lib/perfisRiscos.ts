@@ -14,6 +14,7 @@ export type PerfilRiscos =
   | "auditor"
   | "coordenador"
   | "gerente"
+  | "ciso"
   | "administrador";
 
 export type PermissoesRiscos = {
@@ -36,6 +37,7 @@ export const ROTULO_PERFIL_RISCOS: Record<PerfilRiscos, string> = {
   auditor: "Auditor",
   coordenador: "Coordenador",
   gerente: "Gerente",
+  ciso: "CISO",
   administrador: "Administrador",
 };
 
@@ -50,6 +52,7 @@ export const MATRIZ_PERMISSOES: Record<PerfilRiscos, PermissoesRiscos> = {
   auditor: { ler: true, editarRiscos: false, editarPlanos: false, verAuditoria: true, auditar: true },
   coordenador: { ler: true, editarRiscos: true, editarPlanos: false, verAuditoria: true, auditar: true },
   gerente: { ler: true, editarRiscos: true, editarPlanos: false, verAuditoria: true, auditar: true },
+  ciso: { ler: true, editarRiscos: true, editarPlanos: false, verAuditoria: true, auditar: true },
   administrador: { ler: true, editarRiscos: true, editarPlanos: true, verAuditoria: true, auditar: true },
 };
 
@@ -61,7 +64,7 @@ export const MATRIZ_PERMISSOES: Record<PerfilRiscos, PermissoesRiscos> = {
 export function parsePerfilRiscos(metadata: Record<string, unknown> | null | undefined): PerfilRiscos {
   if (!metadata || !("perfilRiscos" in metadata)) return "sem_acesso";
   const v = metadata.perfilRiscos;
-  if (v === "analista_grc" || v === "auditor" || v === "coordenador" || v === "gerente" || v === "administrador") return v;
+  if (v === "analista_grc" || v === "auditor" || v === "coordenador" || v === "gerente" || v === "ciso" || v === "administrador") return v;
   if (v === "gestor") return "gerente";
   if (v === "analista_senior") return "analista_grc";
   if (v === "sem_acesso") return "sem_acesso";
@@ -79,3 +82,24 @@ export const MENSAGEM_SEM_PERMISSAO: Record<keyof PermissoesRiscos, string> = {
   verAuditoria: "Seu perfil não tem acesso às informações de auditoria.",
   auditar: "Somente auditor, coordenador, gerente ou administrador podem aplicar validações de conformidade.",
 };
+
+// B16 · Alçada para aprovar a aceitação de um risco, pelo nível ATUAL do
+// risco. Administrador não aprova por padrão: aceitar risco é decisão de
+// negócio, não de quem administra o sistema. Documentado em
+// docs/matriz-permissoes.md.
+export const ALCADA_ACEITACAO: Record<string, PerfilRiscos[]> = {
+  Baixo: ["coordenador", "gerente", "ciso"],
+  "Médio": ["coordenador", "gerente", "ciso"],
+  Alto: ["gerente", "ciso"],
+  "Crítico": ["ciso"],
+};
+
+export function podeAprovarAceitacao(perfil: PerfilRiscos, nivel: string | null | undefined): boolean {
+  if (!nivel) return false;
+  return (ALCADA_ACEITACAO[nivel] ?? []).includes(perfil);
+}
+
+export function rotuloAlcada(nivel: string | null | undefined): string {
+  const perfis = (nivel && ALCADA_ACEITACAO[nivel]) || [];
+  return perfis.map((p) => ROTULO_PERFIL_RISCOS[p]).join(", ") || "ninguém";
+}

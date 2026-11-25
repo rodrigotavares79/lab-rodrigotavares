@@ -1542,6 +1542,13 @@ h1, h2, h3 {
   font-weight: 600;
 }
 
+/* B16: risco aceito formalmente (Carta de Risco aprovada). */
+.dash-table td.status-accepted,
+.status-accepted {
+  color: #6b46c1;
+  font-weight: 600;
+}
+
 .dash-table td.status-pending {
   color: var(--text-muted);
 }

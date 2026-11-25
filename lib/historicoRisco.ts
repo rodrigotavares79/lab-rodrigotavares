@@ -22,7 +22,7 @@ export type RegistroLog = {
   transacao: number | string;
 };
 
-export type TipoEvento = "risco" | "fator" | "plano" | "acao" | "evidencia" | "auditoria";
+export type TipoEvento = "risco" | "fator" | "plano" | "acao" | "evidencia" | "auditoria" | "aceitacao";
 
 export type EventoHistorico = {
   data: string;
@@ -44,6 +44,7 @@ const TIPO_POR_TABELA: Record<string, TipoEvento> = {
   acoes: "acao",
   planos_acao_evidencias: "evidencia",
   planos_acao_auditorias: "auditoria",
+  aceitacoes_risco: "aceitacao",
 };
 
 export const ROTULOS_CAMPOS: Record<string, Record<string, string>> = {
@@ -62,6 +63,7 @@ export const ROTULOS_CAMPOS: Record<string, Record<string, string>> = {
     levantado_por: "Levantado por",
     sistema_critico_id: "Sistema crítico",
     mitigado_em: "Mitigado em",
+    opcao_tratamento: "Opção de tratamento",
   },
   fatores_risco: {
     descricao: "Descrição",
@@ -84,6 +86,11 @@ export const ROTULOS_CAMPOS: Record<string, Record<string, string>> = {
   },
   planos_acao_evidencias: {},
   planos_acao_auditorias: {},
+  aceitacoes_risco: {
+    situacao: "Situação",
+    valido_ate: "Válida até",
+    motivo_decisao: "Motivo",
+  },
 };
 
 function texto(v: unknown): string {
@@ -128,6 +135,14 @@ function titulo(tabela: string, operacao: RegistroLog["operacao"], linha: Regist
       return "Evidência atualizada";
     case "planos_acao_auditorias":
       return `Auditoria do plano: ${nome("resultado")}`;
+    case "aceitacoes_risco": {
+      if (operacao === "INSERT") return "Aceitação do risco solicitada (Carta de Risco)";
+      const situacao = nome("situacao");
+      if (situacao === "Aprovada") return `Aceitação aprovada por ${nome("decidido_por_nome")}`;
+      if (situacao === "Recusada") return `Aceitação recusada por ${nome("decidido_por_nome")}`;
+      if (situacao === "Revogada") return "Aceitação revogada";
+      return "Aceitação atualizada";
+    }
     default:
       return `${tabela}: ${operacao}`;
   }
