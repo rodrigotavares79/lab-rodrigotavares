@@ -15,9 +15,14 @@ export async function GET() {
   try {
     const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
     const usuario = guarda.usuario;
-    const [kpis, [semDono], pendentes] = await Promise.all([
+    const [kpis, [semDono], [controlesNaoAvaliados], pendentes] = await Promise.all([
       obterContadoresMenu(sql),
       sql`SELECT COUNT(*)::int AS n FROM riscos WHERE dono_email IS NULL AND status <> 'Mitigado'`,
+      sql`
+        SELECT COUNT(*)::int AS n FROM riscos r
+        WHERE r.status <> 'Mitigado' AND NOT r.sem_controles
+          AND NOT EXISTS (SELECT 1 FROM fatores_risco f WHERE f.risco_id = r.id)
+      `,
       sql`
         SELECT a.solicitado_por_email, r.impacto_qualitativo
         FROM aceitacoes_risco a JOIN riscos r ON r.id = a.risco_id
@@ -39,6 +44,8 @@ export async function GET() {
       semTratamento: kpis.semTratamento,
       aceitacoesPendentes,
       semDono: semDono.n,
+      // B15: riscos ativos sem controles informados nem declaração.
+      controlesNaoAvaliados: controlesNaoAvaliados.n,
       // B19: grupos de riscos repetidos (só para quem pode consolidar).
       duplicados: usuario.permissoes.editarRiscos ? (await listarGruposDuplicados(sql)).length : 0,
     });

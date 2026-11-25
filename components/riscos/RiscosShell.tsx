@@ -13,7 +13,7 @@ import { ProvedorPermissoesRiscos, SemPermissao, usePerfilRiscos, type Permissoe
 
 const BASE = "/seguranca/gestao-de-riscos";
 
-type Contador = "auditoriaPendentes" | "acoesAtrasadas" | "revisoesVencidas" | "semTratamento" | "aceitacoesPendentes" | "semDono" | "duplicados";
+type Contador = "auditoriaPendentes" | "acoesAtrasadas" | "revisoesVencidas" | "semTratamento" | "aceitacoesPendentes" | "semDono" | "duplicados" | "controlesNaoAvaliados";
 type ItemMenu = {
   href: string;
   label: string;
@@ -45,6 +45,7 @@ const GRUPOS: GrupoMenu[] = [
       { href: `${BASE}/revisoes-vencidas`, label: "Revisões vencidas", contador: "revisoesVencidas", alerta: true },
       { href: `${BASE}/sem-tratamento`, label: "Riscos sem tratamento", contador: "semTratamento", alerta: true },
       { href: `${BASE}/riscos?dono=sem`, label: "Riscos sem dono", contador: "semDono", alerta: true },
+      { href: `${BASE}/riscos?controles=nao-avaliados`, label: "Controles não avaliados", contador: "controlesNaoAvaliados" },
       { href: `${BASE}/aceitacoes-pendentes`, label: "Aceitações pendentes", contador: "aceitacoesPendentes" },
     ],
   },

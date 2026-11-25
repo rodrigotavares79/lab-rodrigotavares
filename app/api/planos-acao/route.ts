@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
 
     const planos = await sql`
-      SELECT id, risco_id, titulo, status, criado_em, concluido_em, criado_por_nome,
+      SELECT id, risco_id, titulo, status, criado_em, concluido_em, criado_por_nome, fator_id,
              auditoria_status, auditado_em, auditado_por_nome, auditoria_comentario
       FROM planos_acao
       WHERE risco_id = ${riscoId}
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
   if (guarda.resposta) return guarda.resposta;
   try {
     const body = await request.json();
-    const { riscoId, titulo } = body ?? {};
+    const { riscoId, titulo, fatorId } = body ?? {};
 
     if (!riscoId) {
       return NextResponse.json({ error: "riscoId é obrigatório." }, { status: 400 });
@@ -107,10 +107,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // B15: controle (fator) que o plano implementa, opcional; precisa ser do
+    // mesmo risco.
+    let fator: number | null = null;
+    if (fatorId !== undefined && fatorId !== null && fatorId !== "") {
+      const [f] = await sql`SELECT id FROM fatores_risco WHERE id = ${Number(fatorId)} AND risco_id = ${riscoId}`;
+      if (!f) return NextResponse.json({ error: "O controle escolhido não é deste risco." }, { status: 400 });
+      fator = f.id;
+    }
+
     const rows = await sql`
-      INSERT INTO planos_acao (risco_id, titulo, status, criado_por_email, criado_por_nome)
-      VALUES (${riscoId}, ${titulo.trim()}, 'Aberto', ${guarda.usuario.email}, ${guarda.usuario.nome})
-      RETURNING id, risco_id, titulo, status, criado_em
+      INSERT INTO planos_acao (risco_id, titulo, status, criado_por_email, criado_por_nome, fator_id)
+      VALUES (${riscoId}, ${titulo.trim()}, 'Aberto', ${guarda.usuario.email}, ${guarda.usuario.nome}, ${fator})
+      RETURNING id, risco_id, titulo, status, criado_em, fator_id
     `;
 
     const riscoStatus = await sincronizarStatusRisco(sql, riscoId);

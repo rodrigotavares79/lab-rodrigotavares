@@ -1,6 +1,9 @@
 import { validarCenario, montarTituloRisco } from "@/lib/cenarioRisco";
 import { ativoTemCusto } from "@/lib/ativosCriticos";
 import { resolverDonoRisco } from "@/lib/resolverDono";
+import { validarControlesCadastro } from "@/lib/controlesRisco";
+import { validarFator } from "@/lib/validarFator";
+import { recomputeRisco } from "@/lib/recomputeRisco";
 import { NextRequest, NextResponse } from "next/server";
 import { simularImpactoFinanceiro, type FaixaEstimativa } from "@/lib/riscoUtils";
 import { nivelRisco } from "@/lib/metodologiaRisco";
@@ -53,6 +56,9 @@ export async function POST(request: NextRequest) {
       donoContatoId,
       pontoFocalEmail,
       cenarioId,
+      controles,
+      semControles,
+      semControlesJustificativa,
       gatilho,
       resultado,
       dataLevantamento,
@@ -91,6 +97,20 @@ export async function POST(request: NextRequest) {
     const resolvidoDono = await resolverDonoRisco(sqlAuditado(guarda.usuario), { donoEmail, donoContatoId, pontoFocalEmail });
     if ("erro" in resolvidoDono) return NextResponse.json({ error: resolvidoDono.erro }, { status: 400 });
     const dono = resolvidoDono.dono;
+    // B15: controles existentes (fatores de risco com controle) ou a
+    // declaração "sem controles" com justificativa.
+    const listaControles: any[] = Array.isArray(controles) ? controles.slice(0, 20) : [];
+    const controlesInvalidos = validarControlesCadastro({
+      controles: listaControles.length,
+      semControles: !!semControles,
+      justificativa: semControlesJustificativa,
+    });
+    if (controlesInvalidos) return NextResponse.json({ error: controlesInvalidos }, { status: 400 });
+    for (const [i, c] of listaControles.entries()) {
+      const e = validarFator(c, false);
+      if (e) return NextResponse.json({ error: `Controle ${i + 1}: ${e}` }, { status: 400 });
+    }
+
     // B27: cenário do catálogo (opcional), precisa existir e estar ativo.
     let cenarioCatalogoId: number | null = null;
     if (cenarioId !== undefined && cenarioId !== null && cenarioId !== "") {
@@ -161,8 +181,9 @@ export async function POST(request: NextRequest) {
     const projetoRows = await sql`SELECT nome FROM projetos WHERE id = ${projetoId}`;
     const projetoNome = projetoRows[0]?.nome ?? "—";
 
-    await sql`
+    const riscoCriado = await sql`
       INSERT INTO riscos (
+        sem_controles, sem_controles_justificativa, sem_controles_por_email, sem_controles_em,
         projeto_id, categoria, causa, evento, consequencia, cenario_id, dono_email, dono_nome, dono_contato_id,
         ponto_focal_email, ponto_focal_nome, gatilho, resultado_potencial, levantado_por,
         data_levantamento, fonte, impacto, probabilidade, matrix_score,
@@ -178,6 +199,10 @@ export async function POST(request: NextRequest) {
         impacto_alto_indisponibilidade, impacto_alto_restauracao, impacto_alto_total,
         impacto_alto_p10, impacto_alto_p90
       ) VALUES (
+        ${!!semControles && listaControles.length === 0},
+        ${semControles && listaControles.length === 0 ? String(semControlesJustificativa).trim().slice(0, 2000) : null},
+        ${semControles && listaControles.length === 0 ? guarda.usuario.email : null},
+        ${semControles && listaControles.length === 0 ? new Date().toISOString() : null},
         ${projetoId}, ${categoria || null}, ${cenario.causa}, ${cenario.evento}, ${cenario.consequencia}, ${cenarioCatalogoId}, ${dono.dono_email}, ${dono.dono_nome}, ${dono.dono_contato_id},
         ${dono.ponto_focal_email}, ${dono.ponto_focal_nome}, ${gatilho || null}, ${resultado || null}, ${levantadoPor},
         ${dataLevantamento || null}, ${fonte || null}, ${impacto || null}, ${probabilidade || null},
@@ -193,7 +218,24 @@ export async function POST(request: NextRequest) {
         ${impactoAltoIndisponibilidade || null}, ${impactoAltoRestauracao || null}, ${impactoAltoTotal || null},
         ${impactoAltoP10}, ${impactoAltoP90}
       )
+      RETURNING id
     `;
+    const riscoId = riscoCriado[0].id;
+
+    // B15: grava os controles informados e recalcula o nível atual.
+    for (const [i, c] of listaControles.entries()) {
+      await sql`
+        INSERT INTO fatores_risco (
+          risco_id, codigo, descricao, explicacao, natureza, criticidade,
+          controle_descricao, tipo_controle, natureza_controle, eficacia_potencial, status_implementacao
+        ) VALUES (
+          ${riscoId}, ${`F${String(i + 1).padStart(2, "0")}`}, ${String(c.descricao).trim()}, ${c.explicacao || null},
+          ${c.natureza}, ${c.criticidade}, ${String(c.controleDescricao).trim()}, ${c.tipoControle},
+          ${c.naturezaControle}, ${c.eficaciaPotencial}, ${c.statusImplementacao || "Implementado — pendente de validação"}
+        )
+      `;
+    }
+    if (listaControles.length > 0) await recomputeRisco(sql, riscoId);
 
     async function enviarConfirmacao(): Promise<{ enviado: boolean; para: string; aviso?: string }> {
       const linhas: [string, string][] = [
@@ -301,6 +343,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       ok: true,
+      riscoId,
       email,
       impactoCritico: {
         indisponibilidade: impactoCriticoIndisponibilidade,

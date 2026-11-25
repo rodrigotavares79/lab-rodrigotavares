@@ -9,6 +9,8 @@ import { MATRIZ_5X5 } from "@/lib/metodologiaRisco";
 import { usePerfilRiscos, SemPermissao } from "@/components/riscos/PermissoesRiscos";
 import { ativoTemCusto } from "@/lib/ativosCriticos";
 import RiscosSemelhantes from "@/components/riscos/RiscosSemelhantes";
+import ControlesCadastro, { type ControleCadastro } from "@/components/riscos/ControlesCadastro";
+import { validarControlesCadastro } from "@/lib/controlesRisco";
 import CenariosSugeridos, { type CenarioCatalogo } from "@/components/riscos/CenariosSugeridos";
 import SeletorDono, { DONO_VAZIO, donoPreenchido, type ValorDono } from "@/components/riscos/SeletorDono";
 
@@ -129,6 +131,10 @@ export default function CadastroDeRiscos() {
   const [consequencia, setConsequencia] = useState("");
   // B27: cenário do catálogo ligado ao risco (opcional).
   const [cenarioCatalogo, setCenarioCatalogo] = useState<CenarioCatalogo | null>(null);
+  // B15: controles existentes ou declaração "sem controles".
+  const [controles, setControles] = useState<ControleCadastro[]>([]);
+  const [semControles, setSemControles] = useState(false);
+  const [justificativaSemControles, setJustificativaSemControles] = useState("");
   const [impacto, setImpacto] = useState(0);
   const [probabilidade, setProbabilidade] = useState(0);
   const [enviando, setEnviando] = useState(false);
@@ -190,6 +196,15 @@ export default function CadastroDeRiscos() {
       setErro(cenarioInvalido);
       return;
     }
+    const controlesInvalidos =
+      validarControlesCadastro({ controles: controles.length, semControles, justificativa: justificativaSemControles }) ||
+      (controles.some((c) => !c.controleDescricao.trim() || !c.descricao.trim())
+        ? "Descreva cada controle existente e o que ele trata."
+        : null);
+    if (controlesInvalidos) {
+      setErro(controlesInvalidos);
+      return;
+    }
     if (!donoPreenchido(dono)) {
       setErro(dono.donoContatoId !== null ? "Escolha o ponto focal (Analista GRC) do risco." : "Escolha o dono do risco.");
       return;
@@ -204,6 +219,9 @@ export default function CadastroDeRiscos() {
       donoEmail: dono.donoEmail || null,
       donoContatoId: dono.donoContatoId,
       cenarioId: cenarioCatalogo?.id ?? null,
+      controles,
+      semControles: controles.length === 0 && semControles,
+      semControlesJustificativa: justificativaSemControles,
       pontoFocalEmail: dono.pontoFocalEmail || null,
       gatilho: formData.get("gatilho"),
       resultado: formData.get("resultado"),
@@ -243,6 +261,9 @@ export default function CadastroDeRiscos() {
       form.reset();
       setCausa("");
       setCenarioCatalogo(null);
+      setControles([]);
+      setSemControles(false);
+      setJustificativaSemControles("");
       setDono(DONO_VAZIO);
       setEvento("");
       setConsequencia("");
@@ -512,6 +533,19 @@ export default function CadastroDeRiscos() {
                   )}
                 </div>
               </div>
+            </fieldset>
+
+            <fieldset className="form-section">
+              <legend>Controles Existentes</legend>
+              <ControlesCadastro
+                controles={controles}
+                setControles={setControles}
+                semControles={semControles}
+                setSemControles={setSemControles}
+                justificativa={justificativaSemControles}
+                setJustificativa={setJustificativaSemControles}
+                causa={causa}
+              />
             </fieldset>
 
             <fieldset className="form-section">

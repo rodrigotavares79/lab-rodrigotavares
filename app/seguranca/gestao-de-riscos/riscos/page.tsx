@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import Footer from "@/components/Footer";
 import { usePerfilRiscos } from "@/components/riscos/PermissoesRiscos";
+import { situacaoControles, ROTULO_SITUACAO_CONTROLES, type SituacaoControles } from "@/lib/controlesRisco";
 
 type Projeto = { id: number; nome: string };
 type RiscoLinha = {
@@ -19,6 +20,8 @@ type RiscoLinha = {
   status: string | null;
   criado_em: string;
   dono_email?: string | null;
+  fatores?: number;
+  sem_controles?: boolean | null;
   dono_nome?: string | null;
   dono_contato_id?: number | null;
   ponto_focal_nome?: string | null;
@@ -63,11 +66,13 @@ export default function ListaDeRiscos() {
   const [erro, setErro] = useState<string | null>(null);
   const [filtroDono, setFiltroDono] = useState("");
   const [filtroArea, setFiltroArea] = useState("");
+  const [filtroControles, setFiltroControles] = useState<"" | SituacaoControles>("");
 
   // ?dono=sem (link "Riscos sem dono" do menu) já abre filtrado.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("dono") === "sem") setFiltroDono(SEM_DONO);
+    if (params.get("controles") === "nao-avaliados") setFiltroControles("nao_avaliados");
     // ?contato=ID (link da tela Contatos de negócio): filtra pelo dono externo.
     const contato = Number(params.get("contato"));
     if (Number.isInteger(contato) && contato > 0) setContatoParam(contato);
@@ -93,9 +98,15 @@ export default function ListaDeRiscos() {
       riscos.filter((r) => {
         if (filtroDono === SEM_DONO ? !!r.dono_email : filtroDono && r.dono_email !== filtroDono) return false;
         if (filtroArea === SEM_AREA ? !!r.area : filtroArea && r.area !== filtroArea) return false;
+        if (
+          filtroControles &&
+          (r.status === "Mitigado" ||
+            situacaoControles({ fatores: r.fatores ?? 0, sem_controles: !!r.sem_controles }) !== filtroControles)
+        )
+          return false;
         return true;
       }),
-    [riscos, filtroDono, filtroArea]
+    [riscos, filtroDono, filtroArea, filtroControles]
   );
 
   useEffect(() => {
@@ -164,6 +175,19 @@ export default function ListaDeRiscos() {
               <option value={SEM_DONO}>Sem dono definido</option>
               {donos.map(([email, nome]) => (
                 <option key={email} value={email}>{nome}</option>
+              ))}
+            </select>
+          </div>
+          <div className="form-field" style={{ minWidth: "14rem", flex: "1 1 14rem", maxWidth: "20rem" }}>
+            <label htmlFor="filtroControlesLista">Controles existentes</label>
+            <select
+              id="filtroControlesLista"
+              value={filtroControles}
+              onChange={(e) => setFiltroControles(e.target.value as "" | SituacaoControles)}
+            >
+              <option value="">Todos</option>
+              {(Object.keys(ROTULO_SITUACAO_CONTROLES) as SituacaoControles[]).map((k) => (
+                <option key={k} value={k}>{ROTULO_SITUACAO_CONTROLES[k]}</option>
               ))}
             </select>
           </div>

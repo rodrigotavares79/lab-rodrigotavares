@@ -8,6 +8,7 @@ import AceitacaoRisco from "@/components/riscos/AceitacaoRisco";
 import CenarioRisco from "@/components/riscos/CenarioRisco";
 import OcorrenciasRisco from "@/components/riscos/OcorrenciasRisco";
 import ResponsabilidadeRisco from "@/components/riscos/ResponsabilidadeRisco";
+import SemControles from "@/components/riscos/SemControles";
 import { podeTrocarAtivo } from "@/lib/ativosCriticos";
 import { OPCOES_TRATAMENTO } from "@/lib/aceitacaoRisco";
 import { hojeSaoPaulo, situacaoRevisao, textoSituacaoRevisao } from "@/lib/revisaoRisco";
@@ -50,6 +51,10 @@ type RiscoDetalhe = {
   titulo: string | null;
   cenario_id: number | null;
   cenario_catalogo: string | null;
+  sem_controles: boolean;
+  sem_controles_justificativa: string | null;
+  sem_controles_por_email: string | null;
+  sem_controles_em: string | null;
   dono_email: string | null;
   dono_nome: string | null;
   dono_contato_id: number | null;
@@ -125,6 +130,7 @@ type PlanoAcao = {
   auditado_em: string | null;
   auditado_por_nome: string | null;
   auditoria_comentario: string | null;
+  fator_id?: number | null;
   acoes: Acao[];
   evidencias: Evidencia[];
 };
@@ -694,8 +700,11 @@ function PlanoAcaoCard({
   somenteLeitura,
   usuarios,
   onAtualizado,
+  controle,
 }: {
   plano: PlanoAcao;
+  // B15: controle (fator) que o plano implementa.
+  controle?: string | null;
   riscoMitigado: boolean;
   // Perfil sem permissão para editar planos de ação.
   somenteLeitura: boolean;
@@ -828,7 +837,14 @@ function PlanoAcaoCard({
         className="dash-panel-header"
         style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.75rem" }}
       >
-        <span>{plano.titulo}</span>
+        <span>
+          {plano.titulo}
+          {controle && (
+            <span style={{ display: "block", fontSize: "0.72rem", opacity: 0.85, fontWeight: 400 }}>
+              implementa o controle {controle}
+            </span>
+          )}
+        </span>
         <span style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", justifyContent: "flex-end" }}>
           {rotuloAud && (
             <span
@@ -1117,6 +1133,7 @@ export default function DetalheDoRisco() {
   const [planos, setPlanos] = useState<PlanoAcao[]>([]);
   const [carregandoPlanos, setCarregandoPlanos] = useState(true);
   const [tituloPlano, setTituloPlano] = useState("");
+  const [fatorPlano, setFatorPlano] = useState("");
   const [salvandoPlano, setSalvandoPlano] = useState(false);
   const [erroPlano, setErroPlano] = useState<string | null>(null);
 
@@ -1152,11 +1169,12 @@ export default function DetalheDoRisco() {
       const res = await fetch("/api/planos-acao", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ riscoId: risco.id, titulo: tituloPlano }),
+        body: JSON.stringify({ riscoId: risco.id, titulo: tituloPlano, fatorId: fatorPlano || null }),
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || "Falha ao cadastrar o plano de ação.");
       setTituloPlano("");
+      setFatorPlano("");
       setNovoPlanoAberto(false);
       carregarPlanos();
       // O servidor passa o risco para Em Tratamento ao criar o primeiro plano.
@@ -1409,9 +1427,15 @@ export default function DetalheDoRisco() {
                     </p>
 
                     {risco.fatores.length === 0 && (
-                      <p className="text-muted" style={{ fontSize: "0.85rem" }}>
-                        Nenhum fator de risco cadastrado ainda — o nível Atual permanece igual ao Inerente.
-                      </p>
+                      <SemControles
+                        riscoId={risco.id}
+                        semControles={risco.sem_controles}
+                        justificativa={risco.sem_controles_justificativa}
+                        declaradoPor={risco.sem_controles_por_email}
+                        declaradoEm={risco.sem_controles_em}
+                        podeEditar={podeEditarRisco && !riscoMitigado}
+                        onAtualizado={carregarRisco}
+                      />
                     )}
 
                     {risco.fatores.map((f) => (
@@ -1463,6 +1487,10 @@ export default function DetalheDoRisco() {
                       <PlanoAcaoCard
                         key={p.id}
                         plano={p}
+                        controle={(() => {
+                          const f = risco.fatores.find((x) => x.id === p.fator_id);
+                          return f ? `${f.codigo} · ${f.controle_descricao}` : null;
+                        })()}
                         riscoMitigado={riscoMitigado}
                         somenteLeitura={!podeEditarPlanos}
                         usuarios={usuarios}
@@ -1494,6 +1522,21 @@ export default function DetalheDoRisco() {
                               placeholder="Ex.: Redundância de link de internet"
                               required
                             />
+                          </div>
+                          <div className="form-field form-field-wide">
+                            <label htmlFor="fatorPlano">Controle que este plano implementa (opcional)</label>
+                            <select id="fatorPlano" value={fatorPlano} onChange={(e) => setFatorPlano(e.target.value)}>
+                              <option value="">Nenhum</option>
+                              {risco.fatores.map((f) => (
+                                <option key={f.id} value={f.id}>
+                                  {f.codigo} · {f.controle_descricao}
+                                </option>
+                              ))}
+                            </select>
+                            <p className="field-helper">
+                              Quando o plano for auditado como Conforme, o controle passa a &quot;Implementado e validado&quot;
+                              e o nível atual do risco é recalculado.
+                            </p>
                           </div>
                           <div className="form-field-wide form-actions">
                             <button type="submit" className="btn-primary" disabled={salvandoPlano}>
