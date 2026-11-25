@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { nivelRisco } from "@/lib/metodologiaRisco";
 import { recomputeRisco } from "@/lib/recomputeRisco";
+import { sqlAuditado } from "@/lib/sqlAuditado";
 import { exigirPermissao } from "@/lib/riscosAuth";
 import { STATUS_RISCO, statusValido, validarTransicaoStatus, type StatusRisco } from "@/lib/statusRisco";
 import { resumoPlanos } from "@/lib/sincronizarStatusRisco";
@@ -101,7 +102,7 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
       }
     }
 
-    const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
+    const sql = sqlAuditado(guarda.usuario);
 
     const atualRows = await sql`SELECT impacto, probabilidade, status FROM riscos WHERE id = ${id}`;
     if (atualRows.length === 0) {

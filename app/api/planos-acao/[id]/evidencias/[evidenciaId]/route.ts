@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
+import { sqlAuditado } from "@/lib/sqlAuditado";
 import { exigirPermissao, getUsuarioRiscos } from "@/lib/riscosAuth";
 import { apagarEvidencia, armazenamentoEvidenciasConfigurado, lerEvidencia } from "@/lib/riscosEvidencias";
 
@@ -63,7 +64,7 @@ export async function DELETE(
     if (guarda.resposta) return guarda.resposta;
     if (!idsValidos(id, evidenciaId)) return NextResponse.json({ error: "Evidência inválida." }, { status: 400 });
 
-    const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
+    const sql = sqlAuditado(guarda.usuario);
     const rows = await sql`
       SELECT e.arquivo_url, pa.status, r.status AS risco_status
       FROM planos_acao_evidencias e

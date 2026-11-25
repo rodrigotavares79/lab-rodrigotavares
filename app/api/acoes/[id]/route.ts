@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { neon } from "@neondatabase/serverless";
+import { sqlAuditado } from "@/lib/sqlAuditado";
 import { exigirPermissao } from "@/lib/riscosAuth";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +28,7 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
       );
     }
 
-    const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
+    const sql = sqlAuditado(guarda.usuario);
 
     const atualRows = await sql`
       SELECT a.descricao, a.responsavel, a.prazo, a.status, pa.status AS plano_status, r.status AS risco_status

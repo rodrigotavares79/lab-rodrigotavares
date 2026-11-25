@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { neon } from "@neondatabase/serverless";
 import { nivelRisco } from "@/lib/metodologiaRisco";
 import { calcularImpactoFinanceiro } from "@/lib/riscoUtils";
+import { sqlAuditado } from "@/lib/sqlAuditado";
 import { exigirPermissao } from "@/lib/riscosAuth";
 
 export const dynamic = "force-dynamic";
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
+    const sql = sqlAuditado(guarda.usuario);
 
     const projetoRows = await sql`SELECT id, nome FROM projetos`;
     const projetoPorNome = new Map<string, number>(

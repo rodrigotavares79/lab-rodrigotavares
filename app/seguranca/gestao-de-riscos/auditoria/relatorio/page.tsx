@@ -220,6 +220,25 @@ export default function RelatorioAuditoria() {
               )}
             </section>
           )}
+
+          <section className={s.resultado} aria-label="Log de alterações">
+            <div className={s.cabecalho}>
+              <div>
+                <h2 className={s.tituloResultado}>Log de alterações</h2>
+                <span className={s.periodo}>
+                  Toda criação, alteração e exclusão em riscos, fatores, planos, ações, evidências e auditorias, com
+                  autor, data e hora, entre {formatData(inicio)} e {formatData(fim)} (todos os projetos).
+                </span>
+              </div>
+              <a
+                className={s.botao}
+                href={`/api/log-alteracoes?${new URLSearchParams({ inicio, fim })}`}
+                download
+              >
+                Exportar CSV
+              </a>
+            </div>
+          </section>
         </div>
       </section>
       <Footer />
