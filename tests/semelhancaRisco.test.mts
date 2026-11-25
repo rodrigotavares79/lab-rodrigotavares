@@ -52,3 +52,29 @@ test("podeRegistrarOcorrencia bloqueia risco mitigado", () => {
   assert.equal(podeRegistrarOcorrencia("Identificado"), null);
   assert.equal(podeRegistrarOcorrencia("Aceito"), null);
 });
+
+import { agruparDuplicados, bloqueioComoDuplicado, bloqueioComoPrincipal } from "../lib/semelhancaRisco.ts";
+
+test("agruparDuplicados junta cenários iguais do mesmo projeto", () => {
+  const base = { evento: "Exploração de vulnerabilidade crítica", causa: "Vulnerabilidades sem correção no prazo", consequencia: "Exposição de dados" };
+  const grupos = agruparDuplicados([
+    { id: 30, projeto_id: 1, ...base },
+    { id: 26, projeto_id: 1, ...base },
+    { id: 50, projeto_id: 1, ...base, evento: "Exploração de vulnerabilidades críticas" },
+    { id: 34, projeto_id: 2, ...base },
+    { id: 27, projeto_id: 1, evento: "Atraso em processo essencial", causa: "Sem monitoramento", consequencia: "Prazo descumprido" },
+  ]);
+  assert.deepEqual(
+    grupos.map((g) => g.map((r) => r.id)),
+    [[26, 30, 50]]
+  );
+});
+
+test("bloqueios da consolidação", () => {
+  assert.equal(bloqueioComoDuplicado({ status: "Identificado", fatores: 0, aceitacoes: 0 }), null);
+  assert.match(bloqueioComoDuplicado({ status: "Mitigado", fatores: 0, aceitacoes: 0 })!, /Mitigado/);
+  assert.match(bloqueioComoDuplicado({ status: "Aceito", fatores: 0, aceitacoes: 1 })!, /aceitação/);
+  assert.match(bloqueioComoDuplicado({ status: "Em Tratamento", fatores: 2, aceitacoes: 0 })!, /fatores/);
+  assert.equal(bloqueioComoPrincipal({ status: "Em Tratamento", fatores: 3, aceitacoes: 1 }), null);
+  assert.match(bloqueioComoPrincipal({ status: "Mitigado", fatores: 0, aceitacoes: 0 })!, /Mitigado/);
+});

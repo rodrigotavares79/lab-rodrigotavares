@@ -51,6 +51,19 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
     `;
 
     if (rows.length === 0) {
+      // B19: risco consolidado em outro → aponta para o principal.
+      const [consolidado] = await sql`
+        SELECT risco_principal_id FROM riscos_consolidados WHERE risco_id_antigo = ${id}
+      `;
+      if (consolidado) {
+        return NextResponse.json(
+          {
+            error: `Este risco foi consolidado no risco #${consolidado.risco_principal_id} (era repetido no mesmo projeto).`,
+            consolidadoEm: consolidado.risco_principal_id,
+          },
+          { status: 404 }
+        );
+      }
       return NextResponse.json({ error: "Risco não encontrado." }, { status: 404 });
     }
 

@@ -3,6 +3,7 @@ import { neon } from "@neondatabase/serverless";
 import { exigirPermissao } from "@/lib/riscosAuth";
 import { obterContadoresMenu } from "@/lib/indicadoresRiscos";
 import { podeAprovarAceitacao } from "@/lib/perfisRiscos";
+import { listarGruposDuplicados } from "@/lib/riscosDuplicados";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +39,8 @@ export async function GET() {
       semTratamento: kpis.semTratamento,
       aceitacoesPendentes,
       semDono: semDono.n,
+      // B19: grupos de riscos repetidos (só para quem pode consolidar).
+      duplicados: usuario.permissoes.editarRiscos ? (await listarGruposDuplicados(sql)).length : 0,
     });
   } catch (err) {
     console.error(err);
