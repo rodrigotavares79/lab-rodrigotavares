@@ -150,7 +150,11 @@ export function montarEventos(registros: RegistroLog[]): EventoHistorico[] {
     const rotulos = ROTULOS_CAMPOS[primeira.tabela] || {};
 
     let mudancas: EventoHistorico["mudancas"] = [];
-    const revisao = primeira.tabela === "riscos" && linhas.some((l) => l.campo === "revisado_em");
+    // Revisão = revisado_em substituído por uma data nova. O preenchimento
+    // inicial (de vazio para uma data, feito pela migração 0018) não é revisão.
+    const revisao =
+      primeira.tabela === "riscos" &&
+      linhas.some((l) => l.campo === "revisado_em" && l.valor_anterior !== null && l.valor_anterior !== undefined);
     if (primeira.operacao === "UPDATE") {
       mudancas = linhas
         .filter((l) => l.campo && rotulos[l.campo])

@@ -36,7 +36,7 @@ export function textoSituacaoRevisao(s: SituacaoRevisao): string {
     case "vence_em_breve":
       return s.dias === 0 ? "vence hoje" : `vence em ${s.dias} dia${s.dias === 1 ? "" : "s"}`;
     case "em_dia":
-      return `em dia (faltam ${s.dias} dias)`;
+      return `em dia, faltam ${s.dias} dias`;
     case "sem_prazo":
       return "sem prazo definido";
   }

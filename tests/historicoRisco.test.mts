@@ -108,3 +108,10 @@ test("reavaliação com mudança de valor junta a revisão e o recálculo", () =
   assert.equal(eventos[0].titulo, "Risco reavaliado (revisão periódica)");
   assert.deepEqual(eventos[0].mudancas.map((m) => m.campo), ["Impacto inerente", "Nível atual"]);
 });
+
+test("preenchimento inicial de revisado_em (migração) não aparece na linha do tempo", () => {
+  const eventos = montarEventos([
+    { id: 1, ocorrido_em: "2026-11-25T14:42:00Z", tabela: "riscos", registro_id: "58", operacao: "UPDATE", campo: "revisado_em", valor_anterior: null, valor_novo: "2026-09-20T13:56:14", usuario_email: "banco: neondb_owner", usuario_nome: null, origem: "banco", transacao: 600 },
+  ]);
+  assert.equal(eventos.length, 0);
+});
