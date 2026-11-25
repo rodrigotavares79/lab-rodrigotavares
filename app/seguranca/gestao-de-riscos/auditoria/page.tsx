@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Footer from "@/components/Footer";
+import { MSG_SEM_EVIDENCIA } from "@/lib/regrasAuditoria";
 import { ListaEvidencias, type Evidencia } from "@/components/riscos/EvidenciasPlano";
 import s from "./auditoria.module.css";
 import { usePerfilRiscos, SemPermissao } from "@/components/riscos/PermissoesRiscos";
@@ -77,6 +78,8 @@ function Decisao({ plano, onDecidido }: { plano: PlanoAuditoria; onDecidido: () 
   const [comentario, setComentario] = useState("");
   const [enviando, setEnviando] = useState<Situacao | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  // B08: sem evidência anexada não há o que validar como Conforme.
+  const semEvidencia = plano.evidencias.length === 0;
 
   async function decidir(resultado: "Conforme" | "Não conforme") {
     if (resultado === "Não conforme" && !comentario.trim()) {
@@ -115,7 +118,13 @@ function Decisao({ plano, onDecidido }: { plano: PlanoAuditoria; onDecidido: () 
         placeholder="Ex.: Evidência do reteste confirma a correção da vulnerabilidade."
       />
       <div className={s.botoes}>
-        <button type="button" className={s.botaoConforme} onClick={() => decidir("Conforme")} disabled={enviando !== null}>
+        <button
+          type="button"
+          className={s.botaoConforme}
+          onClick={() => decidir("Conforme")}
+          disabled={enviando !== null || semEvidencia}
+          title={semEvidencia ? MSG_SEM_EVIDENCIA : undefined}
+        >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M5 12l5 5 9-10" />
           </svg>
@@ -128,6 +137,11 @@ function Decisao({ plano, onDecidido }: { plano: PlanoAuditoria; onDecidido: () 
           {enviando === "Não conforme" ? "Registrando..." : "Não conforme"}
         </button>
       </div>
+      {semEvidencia && (
+        <p className="text-muted" style={{ fontSize: "0.8rem", margin: 0 }}>
+          {MSG_SEM_EVIDENCIA}
+        </p>
+      )}
       {erro && (
         <div className="error-banner" style={{ marginTop: 0 }}>
           <span className="success-icon error-icon">!</span>
