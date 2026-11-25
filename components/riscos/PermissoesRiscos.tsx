@@ -16,13 +16,14 @@ export type PermissoesRiscos = {
 export type PerfilRiscosCliente = {
   carregado: boolean;
   nome: string;
+  email: string;
   perfil: string;
   rotulo: string;
   permissoes: PermissoesRiscos;
 };
 
 const NADA: PermissoesRiscos = { ler: false, editarRiscos: false, editarPlanos: false, verAuditoria: false, auditar: false };
-const INICIAL: PerfilRiscosCliente = { carregado: false, nome: "", perfil: "sem_acesso", rotulo: "", permissoes: NADA };
+const INICIAL: PerfilRiscosCliente = { carregado: false, nome: "", email: "", perfil: "sem_acesso", rotulo: "", permissoes: NADA };
 
 const Contexto = createContext<PerfilRiscosCliente>(INICIAL);
 
@@ -33,7 +34,7 @@ export function ProvedorPermissoesRiscos({ children }: { children: React.ReactNo
       .then((r) => r.json())
       .then((d) => {
         if (d.error) throw new Error(d.error);
-        setPerfil({ carregado: true, nome: d.nome, perfil: d.perfil, rotulo: d.rotulo, permissoes: d.permissoes });
+        setPerfil({ carregado: true, nome: d.nome, email: d.email || "", perfil: d.perfil, rotulo: d.rotulo, permissoes: d.permissoes });
       })
       .catch(() => setPerfil({ ...INICIAL, carregado: true }));
   }, []);

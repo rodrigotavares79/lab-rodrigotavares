@@ -120,6 +120,7 @@ export default function CadastroDeRiscos() {
   const [enviando, setEnviando] = useState(false);
   const [enviado, setEnviado] = useState(false);
   const [emailEnviadoPara, setEmailEnviadoPara] = useState("");
+  const [avisoEmail, setAvisoEmail] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
 
   const [projetos, setProjetos] = useState<Projeto[]>([]);
@@ -164,14 +165,12 @@ export default function CadastroDeRiscos() {
 
     const form = e.currentTarget;
     const formData = new FormData(form);
-    const levantadoPor = String(formData.get("levantadoPor") || "");
 
     const payload = {
       projetoId,
       categoria: formData.get("categoria"),
       gatilho: formData.get("gatilho"),
       resultado: formData.get("resultado"),
-      levantadoPor,
       dataLevantamento: formData.get("dataLevantamento"),
       fonte: formData.get("fonte"),
       impacto,
@@ -197,10 +196,13 @@ export default function CadastroDeRiscos() {
 
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || "Não foi possível enviar o e-mail de confirmação.");
+        throw new Error(body.error || "Não foi possível cadastrar o risco.");
       }
 
-      setEmailEnviadoPara(levantadoPor);
+      // B10: o risco já foi gravado; o e-mail pode ter sido pulado ou falhado.
+      const corpo = await res.json().catch(() => ({}));
+      setEmailEnviadoPara(corpo.email?.enviado ? corpo.email.para : "");
+      setAvisoEmail(corpo.email?.enviado ? null : corpo.email?.aviso || null);
       setEnviado(true);
       form.reset();
       setImpacto(0);
@@ -305,14 +307,15 @@ export default function CadastroDeRiscos() {
                   <label htmlFor="levantadoPor">Levantado Por</label>
                   <input
                     id="levantadoPor"
-                    name="levantadoPor"
-                    type="email"
-                    required
-                    placeholder="nome@empresa.com"
+                    type="text"
+                    value={perfil.carregado ? `${perfil.nome} <${perfil.email}>` : "Carregando..."}
+                    readOnly
+                    aria-readonly="true"
+                    style={{ background: "var(--surface)", cursor: "not-allowed" }}
                   />
                   <p className="field-helper">
-                    Um e-mail de confirmação com os dados deste risco será
-                    enviado automaticamente para este endereço.
+                    Preenchido com o seu usuário. O e-mail de confirmação com os dados deste risco
+                    vai para o seu endereço.
                   </p>
                 </div>
 
@@ -479,7 +482,11 @@ export default function CadastroDeRiscos() {
                 <span className="success-icon">✓</span>
                 <span className="success-text">
                   <strong>Risco cadastrado com sucesso.</strong>
-                  <span>Uma cópia dos dados foi enviada para {emailEnviadoPara}.</span>
+                  <span>
+                    {emailEnviadoPara
+                      ? `Uma cópia dos dados foi enviada para ${emailEnviadoPara}.`
+                      : avisoEmail || "O risco foi cadastrado."}
+                  </span>
                 </span>
               </div>
             )}

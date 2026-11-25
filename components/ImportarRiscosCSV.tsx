@@ -226,7 +226,7 @@ export default function ImportarRiscosCSV() {
                     <td>{i + 2}</td>
                     <td>{l.projeto || "—"}</td>
                     <td>{l.categoria || "—"}</td>
-                    <td>{l.levantadoPor || "—"}</td>
+                    <td>{l.levantadoPor || "você (quem importa)"}</td>
                     <td>{l.impacto || "—"}</td>
                     <td>{l.probabilidade || "—"}</td>
                     <td>{l.sistemaCritico || "—"}</td>

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { nivelRisco } from "@/lib/metodologiaRisco";
 import { calcularImpactoFinanceiro } from "@/lib/riscoUtils";
 import { sqlAuditado } from "@/lib/sqlAuditado";
+import { resolverLevantadoPorImportacao } from "@/lib/levantadoPor";
+import { listarUsuariosRiscos } from "@/lib/usuariosRiscos";
 import { exigirPermissao } from "@/lib/riscosAuth";
 
 export const dynamic = "force-dynamic";
@@ -108,10 +110,14 @@ export async function POST(request: NextRequest) {
     const suspeitas: { linha: number; motivo: string }[] = [];
     const paraInserir: any[] = [];
 
+    // B10: "Levantado Por" precisa ser um usuário do sistema; em branco, vale
+    // quem está importando.
+    const emailsDoSistema = (await listarUsuariosRiscos()).map((u) => u.email);
+
     linhas.forEach((linha, idx) => {
       const numeroLinha = idx + 2; // +2 = considerando linha de cabeçalho (linha 1)
       const projetoNome = (linha.projeto || "").trim();
-      const levantadoPor = (linha.levantadoPor || "").trim();
+      const resolvido = resolverLevantadoPorImportacao(linha.levantadoPor, emailsDoSistema, guarda.usuario.email);
 
       if (!projetoNome) {
         erros.push({ linha: numeroLinha, motivo: "Projeto não informado." });
@@ -123,10 +129,11 @@ export async function POST(request: NextRequest) {
         return;
       }
 
-      if (!levantadoPor || !levantadoPor.includes("@")) {
-        erros.push({ linha: numeroLinha, motivo: "'Levantado Por' ausente ou não é um e-mail válido." });
+      if ("erro" in resolvido) {
+        erros.push({ linha: numeroLinha, motivo: resolvido.erro });
         return;
       }
+      const levantadoPor = resolvido.email;
 
       let impacto: number | null = null;
       let probabilidade: number | null = null;
