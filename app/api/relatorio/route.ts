@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
+import { obterIndicadores } from "@/lib/indicadoresRiscos";
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,55 +17,14 @@ export async function GET(request: NextRequest) {
     }
     const projeto = projetoRows[0].nome;
 
-    const kpisRows = await sql`
-      SELECT
-        COUNT(*)::int AS total,
-        COUNT(*) FILTER (WHERE status = 'Mitigado')::int AS mitigados,
-        COUNT(*) FILTER (WHERE impacto_qualitativo = 'Crítico' AND status != 'Mitigado')::int AS criticos_abertos
-      FROM riscos WHERE projeto_id = ${projetoId}
-    `;
-
-    // Nível inicial x atual: mesmo cálculo do Dashboard, escopado a este projeto.
-    const mitigacaoRows = await sql`
-      SELECT
-        COUNT(*) FILTER (WHERE rank_atual < rank_inicial)::int AS melhorou,
-        COUNT(*) FILTER (WHERE rank_atual = rank_inicial)::int AS manteve,
-        COUNT(*) FILTER (WHERE rank_atual > rank_inicial)::int AS piorou
-      FROM (
-        SELECT
-          CASE nivel_inicial WHEN 'Baixo' THEN 1 WHEN 'Médio' THEN 2 WHEN 'Alto' THEN 3 WHEN 'Crítico' THEN 4 END AS rank_inicial,
-          CASE impacto_qualitativo WHEN 'Baixo' THEN 1 WHEN 'Médio' THEN 2 WHEN 'Alto' THEN 3 WHEN 'Crítico' THEN 4 END AS rank_atual
-        FROM riscos
-        WHERE projeto_id = ${projetoId} AND nivel_inicial IS NOT NULL AND impacto_qualitativo IS NOT NULL
-      ) t
-    `;
+    const ind = await obterIndicadores(sql, Number(projetoId));
 
     // Riscos Críticos e Altos ainda em aberto (não Mitigado), mais graves primeiro.
     const riscosAbertos = await sql`
       SELECT id, categoria, gatilho, impacto_qualitativo, status
       FROM riscos
-      WHERE projeto_id = ${projetoId} AND status != 'Mitigado' AND impacto_qualitativo IN ('Alto', 'Crítico')
+      WHERE projeto_id = ${projetoId} AND status <> 'Mitigado' AND impacto_qualitativo IN ('Alto', 'Crítico')
       ORDER BY (impacto_qualitativo = 'Crítico') DESC, matrix_score DESC
-    `;
-
-    // Resumo de Planos de Ação do projeto.
-    const planosResumoRows = await sql`
-      SELECT
-        COUNT(*)::int AS total,
-        COUNT(*) FILTER (WHERE pa.status = 'Concluído')::int AS concluidos,
-        COUNT(*) FILTER (WHERE pa.status != 'Concluído')::int AS abertos
-      FROM planos_acao pa
-      JOIN riscos r ON r.id = pa.risco_id
-      WHERE r.projeto_id = ${projetoId}
-    `;
-
-    // Ações com prazo vencido: prazo já passou e a ação ainda não foi concluída.
-    const acoesVencidasRows = await sql`
-      SELECT COUNT(*)::int AS total
-      FROM acoes a
-      JOIN planos_acao pa ON pa.id = a.plano_acao_id
-      JOIN riscos r ON r.id = pa.risco_id
-      WHERE r.projeto_id = ${projetoId} AND a.status != 'Concluído' AND a.prazo IS NOT NULL AND a.prazo < CURRENT_DATE
     `;
 
     // Lista dos Planos de Ação do projeto, com contagem de ações (total e concluídas).
@@ -84,10 +44,19 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       projeto,
-      kpis: kpisRows[0],
-      mitigacao: mitigacaoRows[0],
+      kpis: {
+        total: ind.kpis.total,
+        mitigados: ind.kpis.mitigados,
+        criticos_abertos: ind.kpis.criticos,
+      },
+      mitigacao: ind.inerenteXAtual,
       riscosAbertos,
-      planosResumo: { ...planosResumoRows[0], acoesVencidas: acoesVencidasRows[0].total },
+      planosResumo: {
+        total: ind.kpis.planosTotal,
+        concluidos: ind.kpis.planosConcluidos,
+        abertos: ind.kpis.planosAbertos,
+        acoesVencidas: ind.kpis.acoesAtrasadas,
+      },
       planos,
     });
   } catch (err) {

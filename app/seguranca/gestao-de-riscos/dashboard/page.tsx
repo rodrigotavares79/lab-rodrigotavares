@@ -21,6 +21,7 @@ type DashboardData = {
   kpis: Kpis;
   niveis: NivelRisco[];
   niveisIniciais: NivelRisco[];
+  niveisAtuaisTodos: NivelRisco[];
   mitigacao: Mitigacao;
   categorias: Categoria[];
   evolucao: Evolucao[];
@@ -74,7 +75,9 @@ export default function Dashboard() {
   const mitigacao = data?.mitigacao;
 
   const ORDEM_NIVEIS = ["Baixo", "Médio", "Alto", "Crítico"];
-  const totalPorNivelAtual = new Map((data?.niveis || []).map((n) => [n.nivel, n.total]));
+  // Inerente x Atual compara os dois sobre TODOS os riscos (inclusive
+  // mitigados); os demais gráficos mostram só os riscos ativos.
+  const totalPorNivelAtual = new Map((data?.niveisAtuaisTodos || []).map((n) => [n.nivel, n.total]));
   const totalPorNivelInicial = new Map((data?.niveisIniciais || []).map((n) => [n.nivel, n.total]));
   const comparativoNiveis = ORDEM_NIVEIS.map((nivel) => ({
     nivel,
@@ -177,7 +180,7 @@ export default function Dashboard() {
                   <div className="kpi-card-value">{kpis.criticos_abertos}</div>
                 </div>
                 <div className="kpi-card">
-                  <div className="kpi-card-header">Riscos em Aberto (Identificado)</div>
+                  <div className="kpi-card-header">Riscos em Aberto</div>
                   <div className="kpi-card-value">{kpis.em_aberto}</div>
                 </div>
               </div>
@@ -212,7 +215,7 @@ export default function Dashboard() {
                 </div>
 
                 <div className="dash-panel">
-                  <div className="dash-panel-header">Riscos por Categoria</div>
+                  <div className="dash-panel-header">Riscos Ativos por Categoria</div>
                   <div className="dash-panel-body">
                     {categorias.length === 0 ? (
                       <p className="text-muted" style={{ margin: 0, fontSize: "0.85rem" }}>Sem dados suficientes.</p>
@@ -241,7 +244,7 @@ export default function Dashboard() {
               </div>
 
               <div className="dash-panel">
-                <div className="dash-panel-header">Níveis de Risco</div>
+                <div className="dash-panel-header">Riscos Ativos por Nível</div>
                 <div className="dash-panel-body">
                   {donut.length === 0 ? (
                     <p className="text-muted" style={{ margin: 0, fontSize: "0.85rem" }}>Sem dados suficientes.</p>
@@ -280,7 +283,7 @@ export default function Dashboard() {
                 <div className="dash-panel-header">Nível Inerente x Nível Atual</div>
                 <div className="dash-panel-body">
                   <p className="text-muted" style={{ fontSize: "0.82rem", marginTop: 0, marginBottom: "1rem" }}>
-                    Compara o nível calculado na criação de cada risco com o nível atual, depois de
+                    Compara, em todos os riscos (inclusive mitigados), o nível calculado na criação com o nível atual, depois de
                     eventuais reavaliações pós-mitigação{projetoId ? " neste projeto" : ""}.
                   </p>
 
@@ -344,7 +347,7 @@ export default function Dashboard() {
                         <tr>
                           <th>Projeto</th>
                           <th>Riscos Cadastrados</th>
-                          <th>Críticos</th>
+                          <th>Críticos Ativos</th>
                         </tr>
                       </thead>
                       <tbody>
