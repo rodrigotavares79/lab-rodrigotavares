@@ -40,10 +40,18 @@ export async function GET(request: NextRequest) {
       SELECT
         to_char(ocorrido_em AT TIME ZONE 'America/Sao_Paulo', 'DD/MM/YYYY HH24:MI:SS') AS data_hora,
         usuario_nome, usuario_email, origem, tabela, registro_id, risco_id,
-        operacao, campo, valor_anterior, valor_novo, transacao
+        operacao, campo, valor_anterior, valor_novo, transacao, ocorrido_em AS ordem
       FROM log_alteracoes
       WHERE (ocorrido_em AT TIME ZONE 'America/Sao_Paulo')::date BETWEEN ${inicio}::date AND ${fim}::date
-      ORDER BY ocorrido_em, id
+      UNION ALL
+      -- B07: tentativas bloqueadas (ex.: auditoria com conflito de funções).
+      SELECT
+        to_char(ocorrido_em AT TIME ZONE 'America/Sao_Paulo', 'DD/MM/YYYY HH24:MI:SS'),
+        usuario_nome, usuario_email, 'aplicacao', 'eventos_seguranca', registro, risco_id,
+        'BLOQUEIO', tipo, NULL::jsonb, to_jsonb(detalhe), NULL::bigint, ocorrido_em
+      FROM eventos_seguranca
+      WHERE (ocorrido_em AT TIME ZONE 'America/Sao_Paulo')::date BETWEEN ${inicio}::date AND ${fim}::date
+      ORDER BY ordem
     `;
 
     const cabecalho = [

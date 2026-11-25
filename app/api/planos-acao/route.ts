@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
 
     const planos = await sql`
-      SELECT id, risco_id, titulo, status, criado_em, concluido_em,
+      SELECT id, risco_id, titulo, status, criado_em, concluido_em, criado_por_nome,
              auditoria_status, auditado_em, auditado_por_nome, auditoria_comentario
       FROM planos_acao
       WHERE risco_id = ${riscoId}
@@ -106,8 +106,8 @@ export async function POST(request: NextRequest) {
     }
 
     const rows = await sql`
-      INSERT INTO planos_acao (risco_id, titulo, status)
-      VALUES (${riscoId}, ${titulo.trim()}, 'Aberto')
+      INSERT INTO planos_acao (risco_id, titulo, status, criado_por_email, criado_por_nome)
+      VALUES (${riscoId}, ${titulo.trim()}, 'Aberto', ${guarda.usuario.email}, ${guarda.usuario.nome})
       RETURNING id, risco_id, titulo, status, criado_em
     `;
 
