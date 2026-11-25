@@ -175,7 +175,7 @@ export default function GestaoDeRiscos() {
               href={`${BASE}/sem-tratamento`}
               className={`${s.kpi} ${s.kpiLink} ${semTratamento > 0 ? s.kpiAlerta : ""}`}
             >
-              <span className={s.kpiRotulo}>Sem tratamento definido</span>
+              <span className={s.kpiRotulo}>Riscos sem tratamento</span>
               <span className={s.kpiValor}><Valor v={k?.semTratamento} /></span>
               <div className={s.barra} aria-hidden="true">
                 <div style={{ width: `${pctTratamento ?? 0}%`, background: "var(--accent)" }} />

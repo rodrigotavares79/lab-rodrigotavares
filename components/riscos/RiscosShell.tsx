@@ -13,7 +13,7 @@ import { ProvedorPermissoesRiscos, SemPermissao, usePerfilRiscos, type Permissoe
 
 const BASE = "/seguranca/gestao-de-riscos";
 
-type Contador = "auditoriaPendentes" | "acoesAtrasadas" | "revisoesVencidas" | "semTratamento";
+type Contador = "auditoriaPendentes" | "acoesAtrasadas" | "revisoesVencidas" | "semTratamento" | "aceitacoesPendentes";
 type ItemMenu = {
   href: string;
   label: string;
@@ -38,20 +38,32 @@ const GRUPOS: GrupoMenu[] = [
     ],
   },
   {
-    titulo: "Gestão",
+    // Pendências do dia: tudo aqui tem contador.
+    titulo: "Acompanhamento",
     itens: [
-      { href: `${BASE}/riscos`, label: "Riscos", tambem: [`${BASE}/cadastro-de-riscos`] },
       { href: `${BASE}/acoes-atrasadas`, label: "Ações atrasadas", contador: "acoesAtrasadas", alerta: true },
       { href: `${BASE}/revisoes-vencidas`, label: "Revisões vencidas", contador: "revisoesVencidas", alerta: true },
-      { href: `${BASE}/sem-tratamento`, label: "Sem tratamento definido", contador: "semTratamento", alerta: true },
+      { href: `${BASE}/sem-tratamento`, label: "Riscos sem tratamento", contador: "semTratamento", alerta: true },
+      { href: `${BASE}/aceitacoes-pendentes`, label: "Aceitações pendentes", contador: "aceitacoesPendentes" },
     ],
+  },
+  {
+    titulo: "Riscos",
+    itens: [
+      { href: `${BASE}/riscos`, label: "Lista de riscos" },
+      { href: `${BASE}/cadastro-de-riscos`, label: "Cadastrar risco", exige: "editarRiscos" },
+    ],
+  },
+  {
+    titulo: "Planos de Ação",
+    itens: [{ href: `${BASE}/planos-de-acao`, label: "Todos os planos" }],
   },
   {
     titulo: "Auditoria",
     itens: [
       {
         href: `${BASE}/auditoria`,
-        label: "Auditoria de Planos",
+        label: "Fila de auditoria",
         exato: true,
         contador: "auditoriaPendentes",
         exige: "verAuditoria",
@@ -65,8 +77,8 @@ const GRUPOS: GrupoMenu[] = [
   {
     titulo: "Relatórios",
     itens: [
-      { href: `${BASE}/relatorio-executivo`, label: "Relatório Executivo" },
-      { href: `${BASE}/auditoria/relatorio`, label: "Relatório de Auditoria", exige: "verAuditoria" },
+      { href: `${BASE}/relatorio-executivo`, label: "Executivo" },
+      { href: `${BASE}/auditoria/relatorio`, label: "Auditoria", exige: "verAuditoria" },
     ],
   },
 ];
@@ -75,7 +87,7 @@ const GRUPOS: GrupoMenu[] = [
 const DOCUMENTOS: ItemMenu[] = [
   { href: `${BASE}/politica`, label: "Política" },
   { href: `${BASE}/processo`, label: "Processo" },
-  { href: `${BASE}/guia-de-uso`, label: "Guia de Uso" },
+  { href: `${BASE}/guia-de-uso`, label: "Guia de uso" },
 ];
 
 function casa(pathname: string, href: string, exato?: boolean): boolean {
