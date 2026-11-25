@@ -8,6 +8,7 @@ import { type FaixaEstimativa } from "@/lib/riscoUtils";
 import { MATRIZ_5X5 } from "@/lib/metodologiaRisco";
 import { usePerfilRiscos, SemPermissao } from "@/components/riscos/PermissoesRiscos";
 import { ativoTemCusto } from "@/lib/ativosCriticos";
+import RiscosSemelhantes from "@/components/riscos/RiscosSemelhantes";
 import SeletorDono, { DONO_VAZIO, donoPreenchido, type ValorDono } from "@/components/riscos/SeletorDono";
 
 const NIVEIS = [
@@ -367,6 +368,8 @@ export default function CadastroDeRiscos() {
                     {montarTituloRisco({ causa, evento, consequencia }) || "preencha causa, evento e consequência"}
                   </p>
                 </div>
+
+                <RiscosSemelhantes projetoId={projetoId} evento={evento} causa={causa} consequencia={consequencia} />
 
                 <div className="form-field">
                   <label htmlFor="gatilho">Ponto de Gatilho</label>
