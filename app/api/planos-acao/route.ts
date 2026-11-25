@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
 
     const planoIds = planos.map((p: any) => p.id);
     const acoes = await sql`
-      SELECT id, plano_acao_id, descricao, responsavel, prazo, status, criado_em
+      SELECT id, plano_acao_id, descricao, responsavel, responsavel_email, prazo, status, criado_em
       FROM acoes
       WHERE plano_acao_id = ANY(${planoIds})
       ORDER BY criado_em ASC

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sqlAuditado } from "@/lib/sqlAuditado";
 import { exigirPermissao } from "@/lib/riscosAuth";
+import { buscarUsuarioRiscos } from "@/lib/usuariosRiscos";
 
 // O driver HTTP do Neon usa fetch() por baixo dos panos, e o Next cacheia
 // fetch() por padrão em rotas sem uso de searchParams/cookies/headers —
@@ -16,13 +17,22 @@ export async function POST(request: NextRequest) {
   if (guarda.resposta) return guarda.resposta;
   try {
     const body = await request.json();
-    const { planoAcaoId, descricao, responsavel, prazo } = body ?? {};
+    const { planoAcaoId, descricao, responsavelEmail, prazo } = body ?? {};
 
     if (!planoAcaoId) {
       return NextResponse.json({ error: "planoAcaoId é obrigatório." }, { status: 400 });
     }
     if (!descricao || typeof descricao !== "string" || !descricao.trim()) {
       return NextResponse.json({ error: "Descrição da ação é obrigatória." }, { status: 400 });
+    }
+
+    // B09: o responsável é escolhido entre os usuários do sistema.
+    const responsavel = await buscarUsuarioRiscos(responsavelEmail);
+    if (!responsavel) {
+      return NextResponse.json(
+        { error: "Escolha o responsável na lista de usuários do sistema." },
+        { status: 400 }
+      );
     }
 
     const sql = sqlAuditado(guarda.usuario);
@@ -52,9 +62,9 @@ export async function POST(request: NextRequest) {
     }
 
     const rows = await sql`
-      INSERT INTO acoes (plano_acao_id, descricao, responsavel, prazo, status)
-      VALUES (${planoAcaoId}, ${descricao.trim()}, ${responsavel || null}, ${prazo || null}, 'Não iniciado')
-      RETURNING id, plano_acao_id, descricao, responsavel, prazo, status, criado_em
+      INSERT INTO acoes (plano_acao_id, descricao, responsavel, responsavel_email, prazo, status)
+      VALUES (${planoAcaoId}, ${descricao.trim()}, ${responsavel.nome}, ${responsavel.email}, ${prazo || null}, 'Não iniciado')
+      RETURNING id, plano_acao_id, descricao, responsavel, responsavel_email, prazo, status, criado_em
     `;
 
     return NextResponse.json({ acao: rows[0] });
