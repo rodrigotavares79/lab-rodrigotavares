@@ -14,8 +14,9 @@ export async function GET() {
   try {
     const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
     const usuario = guarda.usuario;
-    const [kpis, pendentes] = await Promise.all([
+    const [kpis, [semDono], pendentes] = await Promise.all([
       obterContadoresMenu(sql),
+      sql`SELECT COUNT(*)::int AS n FROM riscos WHERE dono_email IS NULL AND status <> 'Mitigado'`,
       sql`
         SELECT a.solicitado_por_email, r.impacto_qualitativo
         FROM aceitacoes_risco a JOIN riscos r ON r.id = a.risco_id
@@ -36,6 +37,7 @@ export async function GET() {
       revisoesVencidas: kpis.revisoesVencidas,
       semTratamento: kpis.semTratamento,
       aceitacoesPendentes,
+      semDono: semDono.n,
     });
   } catch (err) {
     console.error(err);

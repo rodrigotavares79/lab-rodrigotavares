@@ -4,11 +4,14 @@ import { listarUsuariosRiscos } from "@/lib/usuariosRiscos";
 
 export const dynamic = "force-dynamic";
 
-// GET: usuários que podem ser responsáveis por ações (B09). Só para quem
-// cadastra e edita planos de ação.
+// GET: usuários do módulo, para escolher o responsável por ações (B09) e o
+// dono do risco (B14). Só para quem edita riscos ou planos de ação.
 export async function GET() {
-  const guarda = await exigirPermissao("editarPlanos");
+  const guarda = await exigirPermissao("ler");
   if (guarda.resposta) return guarda.resposta;
+  if (!guarda.usuario.permissoes.editarRiscos && !guarda.usuario.permissoes.editarPlanos) {
+    return NextResponse.json({ error: "Seu perfil não permite esta ação." }, { status: 403 });
+  }
   try {
     return NextResponse.json({ usuarios: await listarUsuariosRiscos() });
   } catch (err) {

@@ -13,9 +13,9 @@ export async function GET(request: NextRequest) {
 
     const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
     const rows = await sql`
-      SELECT id, nome, custo_indisponibilidade_hora, custo_restauracao_hora_homem
+      SELECT id, nome, tipo, area_responsavel, custo_indisponibilidade_hora, custo_restauracao_hora_homem
       FROM sistemas_criticos
-      WHERE projeto_id = ${projetoId}
+      WHERE projeto_id = ${projetoId} AND ativo
       ORDER BY nome ASC
     `;
     return NextResponse.json({ sistemas: rows });

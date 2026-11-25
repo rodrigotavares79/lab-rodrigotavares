@@ -13,7 +13,7 @@ import { ProvedorPermissoesRiscos, SemPermissao, usePerfilRiscos, type Permissoe
 
 const BASE = "/seguranca/gestao-de-riscos";
 
-type Contador = "auditoriaPendentes" | "acoesAtrasadas" | "revisoesVencidas" | "semTratamento" | "aceitacoesPendentes";
+type Contador = "auditoriaPendentes" | "acoesAtrasadas" | "revisoesVencidas" | "semTratamento" | "aceitacoesPendentes" | "semDono";
 type ItemMenu = {
   href: string;
   label: string;
@@ -44,6 +44,7 @@ const GRUPOS: GrupoMenu[] = [
       { href: `${BASE}/acoes-atrasadas`, label: "Ações atrasadas", contador: "acoesAtrasadas", alerta: true },
       { href: `${BASE}/revisoes-vencidas`, label: "Revisões vencidas", contador: "revisoesVencidas", alerta: true },
       { href: `${BASE}/sem-tratamento`, label: "Riscos sem tratamento", contador: "semTratamento", alerta: true },
+      { href: `${BASE}/riscos?dono=sem`, label: "Riscos sem dono", contador: "semDono", alerta: true },
       { href: `${BASE}/aceitacoes-pendentes`, label: "Aceitações pendentes", contador: "aceitacoesPendentes" },
     ],
   },
@@ -52,6 +53,7 @@ const GRUPOS: GrupoMenu[] = [
     itens: [
       { href: `${BASE}/riscos`, label: "Lista de riscos" },
       { href: `${BASE}/cadastro-de-riscos`, label: "Cadastrar risco", exige: "editarRiscos" },
+      { href: `${BASE}/ativos-criticos`, label: "Ativos e processos" },
     ],
   },
   {

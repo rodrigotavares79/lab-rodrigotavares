@@ -7,6 +7,7 @@ import ImportarRiscosCSV from "@/components/ImportarRiscosCSV";
 import { type FaixaEstimativa } from "@/lib/riscoUtils";
 import { MATRIZ_5X5 } from "@/lib/metodologiaRisco";
 import { usePerfilRiscos, SemPermissao } from "@/components/riscos/PermissoesRiscos";
+import { ativoTemCusto } from "@/lib/ativosCriticos";
 
 const NIVEIS = [
   { value: 1, label: "1 — Muito Baixo" },
@@ -20,9 +21,13 @@ type Projeto = { id: number; nome: string };
 type SistemaCritico = {
   id: number;
   nome: string;
-  custo_indisponibilidade_hora: string;
-  custo_restauracao_hora_homem: string;
+  tipo?: string | null;
+  area_responsavel?: string | null;
+  custo_indisponibilidade_hora: number | string | null;
+  custo_restauracao_hora_homem: number | string | null;
 };
+
+type UsuarioDono = { email: string; nome: string; perfil: string };
 
 
 const NIVEL_RISCO: Record<number, { label: string; className: string }> = {
@@ -132,6 +137,9 @@ export default function CadastroDeRiscos() {
   const [projetoId, setProjetoId] = useState("");
 
   const [sistemas, setSistemas] = useState<SistemaCritico[]>([]);
+  // B14: dono do risco (usuário do módulo), distinto de quem levantou.
+  const [usuarios, setUsuarios] = useState<UsuarioDono[]>([]);
+  const [donoEmail, setDonoEmail] = useState("");
   const [sistemaCriticoId, setSistemaCriticoId] = useState("");
   const [duracaoHoras, setDuracaoHoras] = useState<FaixaTexto>(faixaVazia());
   const [percentualDegradacao, setPercentualDegradacao] = useState<FaixaTexto>({ min: "30", provavel: "30", max: "30" });
@@ -151,6 +159,13 @@ export default function CadastroDeRiscos() {
   }, []);
 
   useEffect(() => {
+    fetch("/api/usuarios-riscos")
+      .then((r) => r.json())
+      .then((d) => setUsuarios(d.usuarios || []))
+      .catch(() => setUsuarios([]));
+  }, []);
+
+  useEffect(() => {
     if (!projetoId) {
       setSistemas([]);
       setSistemaCriticoId("");
@@ -162,6 +177,9 @@ export default function CadastroDeRiscos() {
       .catch(() => setSistemas([]));
     setSistemaCriticoId("");
   }, [projetoId]);
+
+  const sistemaSelecionado = sistemas.find((x) => String(x.id) === String(sistemaCriticoId));
+  const sistemaSelecionadoTemCusto = !!sistemaSelecionado && ativoTemCusto(sistemaSelecionado);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -176,6 +194,10 @@ export default function CadastroDeRiscos() {
       setErro(cenarioInvalido);
       return;
     }
+    if (!donoEmail) {
+      setErro("Escolha o dono do risco.");
+      return;
+    }
 
     const payload = {
       projetoId,
@@ -183,6 +205,7 @@ export default function CadastroDeRiscos() {
       causa,
       evento,
       consequencia,
+      donoEmail,
       gatilho: formData.get("gatilho"),
       resultado: formData.get("resultado"),
       dataLevantamento: formData.get("dataLevantamento"),
@@ -220,6 +243,7 @@ export default function CadastroDeRiscos() {
       setEnviado(true);
       form.reset();
       setCausa("");
+      setDonoEmail("");
       setEvento("");
       setConsequencia("");
       setImpacto(0);
@@ -362,6 +386,21 @@ export default function CadastroDeRiscos() {
                 </div>
 
                 <div className="form-field">
+                  <label htmlFor="donoRisco">Dono do Risco *</label>
+                  <select id="donoRisco" value={donoEmail} onChange={(e) => setDonoEmail(e.target.value)}>
+                    <option value="">Selecione</option>
+                    {usuarios.map((u) => (
+                      <option key={u.email} value={u.email}>
+                        {u.nome} ({u.email})
+                      </option>
+                    ))}
+                  </select>
+                  <p className="field-helper">
+                    Quem responde pelo risco e decide o tratamento. Pode ser diferente de quem levantou.
+                  </p>
+                </div>
+
+                <div className="form-field">
                   <label htmlFor="levantadoPor">Levantado Por</label>
                   <input
                     id="levantadoPor"
@@ -473,10 +512,10 @@ export default function CadastroDeRiscos() {
             </fieldset>
 
             <fieldset className="form-section">
-              <legend>Sistema Crítico Vinculado (opcional)</legend>
+              <legend>Ativo ou Processo Afetado</legend>
               <div className="form-grid">
                 <div className="form-field">
-                  <label htmlFor="sistemaCritico">Sistema Crítico vinculado</label>
+                  <label htmlFor="sistemaCritico">Ativo ou processo (inventário)</label>
                   <select
                     id="sistemaCritico"
                     value={sistemaCriticoId}
@@ -485,15 +524,27 @@ export default function CadastroDeRiscos() {
                   >
                     <option value="">Nenhum</option>
                     {sistemas.map((s) => (
-                      <option key={s.id} value={s.id}>{s.nome}</option>
+                      <option key={s.id} value={s.id}>
+                        {s.nome}
+                        {s.tipo ? ` · ${s.tipo}` : ""}
+                        {s.area_responsavel ? ` · ${s.area_responsavel}` : ""}
+                      </option>
                     ))}
                   </select>
-                  {!projetoId && (
+                  {!projetoId ? (
                     <p className="field-helper">Selecione um Projeto primeiro.</p>
+                  ) : (
+                    <p className="field-helper">
+                      Não está na lista?{" "}
+                      <a href="/seguranca/gestao-de-riscos/ativos-criticos" target="_blank" rel="noreferrer">
+                        Cadastre no inventário
+                      </a>{" "}
+                      e escolha o projeto de novo. Só ativos com custos geram a estimativa financeira.
+                    </p>
                   )}
                 </div>
 
-                {sistemaCriticoId && (
+                {sistemaSelecionadoTemCusto && (
                   <>
                     <CampoFaixa
                       legend="Duração Estimada da Indisponibilidade (horas)"

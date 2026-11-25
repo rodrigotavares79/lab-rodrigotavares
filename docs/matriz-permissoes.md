@@ -33,6 +33,12 @@ Valor desconhecido = Leitura.
   alterações (CSV) e registros de auditoria na linha do tempo.
 - **Auditar**: classificar planos como Conforme / Não conforme.
 
+## Dono do risco e inventário de ativos (B14)
+
+- Todo risco novo tem um **dono** (usuário do módulo), distinto de quem levantou. Definir ou trocar o dono exige `editarRiscos`.
+- O inventário de **ativos e processos críticos** é consultado por qualquer perfil com `ler` e cadastrado/editado por quem tem `editarRiscos`.
+- A lista de usuários (para escolher dono ou responsável por ação) é liberada para quem tem `editarRiscos` ou `editarPlanos`.
+
 ## Alçada de aceitação de risco (B16)
 
 Aceitar um risco exige uma Carta de Risco (PDF ou DOCX) e a aprovação de alguém com alçada para o nível **atual** do risco (se o risco mudar de nível depois do pedido, vale a alçada do nível novo):

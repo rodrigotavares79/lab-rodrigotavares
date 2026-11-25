@@ -6,6 +6,8 @@ import s from "@/components/riscos/riscos.module.css";
 import EvidenciasPlano, { type Evidencia } from "@/components/riscos/EvidenciasPlano";
 import AceitacaoRisco from "@/components/riscos/AceitacaoRisco";
 import CenarioRisco from "@/components/riscos/CenarioRisco";
+import ResponsabilidadeRisco from "@/components/riscos/ResponsabilidadeRisco";
+import { podeTrocarAtivo } from "@/lib/ativosCriticos";
 import { OPCOES_TRATAMENTO } from "@/lib/aceitacaoRisco";
 import { hojeSaoPaulo, situacaoRevisao, textoSituacaoRevisao } from "@/lib/revisaoRisco";
 import { montarEventos, type RegistroLog, type TipoEvento } from "@/lib/historicoRisco";
@@ -45,6 +47,10 @@ type RiscoDetalhe = {
   evento: string | null;
   consequencia: string | null;
   titulo: string | null;
+  dono_email: string | null;
+  dono_nome: string | null;
+  ativo_tipo: string | null;
+  ativo_area: string | null;
   levantado_por: string;
   data_levantamento: string | null;
   fonte: string | null;
@@ -1308,6 +1314,10 @@ export default function DetalheDoRisco() {
                     <span className={classeStatus(risco.status)}>{risco.status || "Identificado"}</span>
                   </span>
                   <span className={s.chip}>
+                    <span className={s.chipRotulo}>Dono</span>
+                    {risco.dono_nome || <a href="#responsabilidade" style={{ color: "var(--danger)" }}>sem dono</a>}
+                  </span>
+                  <span className={s.chip}>
                     <span className={s.chipRotulo}>Projeto</span>
                     {risco.projeto}
                   </span>
@@ -1323,6 +1333,23 @@ export default function DetalheDoRisco() {
 
             <div className={s.grade}>
               <div className={s.coluna}>
+                <ResponsabilidadeRisco
+                  key={`resp-${risco.id}-${risco.dono_email}-${risco.sistema_critico_id}`}
+                  riscoId={risco.id}
+                  projetoId={risco.projeto_id}
+                  donoEmail={risco.dono_email}
+                  donoNome={risco.dono_nome}
+                  levantadoPor={risco.levantado_por}
+                  ativoId={risco.sistema_critico_id}
+                  ativoNome={risco.sistema_critico}
+                  ativoTipo={risco.ativo_tipo}
+                  ativoArea={risco.ativo_area}
+                  podeTrocarAtivo={podeTrocarAtivo(risco)}
+                  podeEditar={podeEditarRisco}
+                  bloqueado={riscoMitigado}
+                  onAtualizado={carregarRisco}
+                />
+
                 <CenarioRisco
                   key={`${risco.id}-${risco.titulo}-${risco.gatilho}-${risco.resultado_potencial}`}
                   riscoId={risco.id}
@@ -1340,7 +1367,6 @@ export default function DetalheDoRisco() {
                   <div className="dash-panel-header">Identificação</div>
                   <div className="dash-panel-body">
                     <dl className={s.campos}>
-                      <Campo label="Levantado por" value={risco.levantado_por} />
                       <Campo label="Data de levantamento" value={formatData(risco.data_levantamento)} />
                       <Campo label="Fonte" value={risco.fonte || "—"} />
                       <Campo label="Cadastrado em" value={formatData(risco.criado_em)} />
@@ -1516,7 +1542,7 @@ export default function DetalheDoRisco() {
                     <div className="dash-panel-header">Sistema crítico vinculado</div>
                     <div className="dash-panel-body">
                       <dl className={s.campos}>
-                        <Campo label="Sistema" value={risco.sistema_critico} largo />
+                        <Campo label="Ativo ou processo" value={risco.sistema_critico} largo />
                         <Campo label="Duração (h)" value={valorComFaixa(risco.duracao_horas, risco.duracao_horas_min, risco.duracao_horas_max)} />
                         <Campo label="Degradação (%)" value={valorComFaixa(risco.percentual_degradacao, risco.percentual_degradacao_min, risco.percentual_degradacao_max)} />
                         <Campo label="Pessoas na restauração" value={valorComFaixa(risco.restauracao_pessoas, risco.restauracao_pessoas_min, risco.restauracao_pessoas_max)} />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import Footer from "@/components/Footer";
 import { usePerfilRiscos } from "@/components/riscos/PermissoesRiscos";
@@ -18,7 +18,15 @@ type RiscoLinha = {
   matrix_score: number | null;
   status: string | null;
   criado_em: string;
+  dono_email?: string | null;
+  dono_nome?: string | null;
+  ativo?: string | null;
+  area?: string | null;
 };
+
+// Valor especial do filtro de dono: riscos sem dono definido (B14).
+const SEM_DONO = "__sem_dono__";
+const SEM_AREA = "__sem_area__";
 
 const BADGE_POR_NIVEL: Record<string, string> = {
   "Baixo": "badge-baixo",
@@ -51,6 +59,33 @@ export default function ListaDeRiscos() {
   const [riscos, setRiscos] = useState<RiscoLinha[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
+  const [filtroDono, setFiltroDono] = useState("");
+  const [filtroArea, setFiltroArea] = useState("");
+
+  // ?dono=sem (link "Riscos sem dono" do menu) já abre filtrado.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("dono") === "sem") setFiltroDono(SEM_DONO);
+  }, []);
+
+  const donos = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const r of riscos) if (r.dono_email) m.set(r.dono_email, r.dono_nome || r.dono_email);
+    return [...m.entries()].sort((a, b) => a[1].localeCompare(b[1], "pt-BR"));
+  }, [riscos]);
+  const areas = useMemo(
+    () => [...new Set(riscos.map((r) => r.area).filter((a): a is string => !!a))].sort((a, b) => a.localeCompare(b, "pt-BR")),
+    [riscos]
+  );
+  const visiveis = useMemo(
+    () =>
+      riscos.filter((r) => {
+        if (filtroDono === SEM_DONO ? !!r.dono_email : filtroDono && r.dono_email !== filtroDono) return false;
+        if (filtroArea === SEM_AREA ? !!r.area : filtroArea && r.area !== filtroArea) return false;
+        return true;
+      }),
+    [riscos, filtroDono, filtroArea]
+  );
 
   useEffect(() => {
     fetch("/api/projetos")
@@ -97,7 +132,8 @@ export default function ListaDeRiscos() {
             )}
           </div>
 
-          <div className="form-field" style={{ maxWidth: "20rem", marginTop: "1.5rem" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem", marginTop: "1.5rem" }}>
+          <div className="form-field" style={{ minWidth: "14rem", flex: "1 1 14rem", maxWidth: "20rem" }}>
             <label htmlFor="filtroProjetoLista">Projeto</label>
             <select
               id="filtroProjetoLista"
@@ -109,6 +145,27 @@ export default function ListaDeRiscos() {
                 <option key={p.id} value={p.id}>{p.nome}</option>
               ))}
             </select>
+          </div>
+          <div className="form-field" style={{ minWidth: "14rem", flex: "1 1 14rem", maxWidth: "20rem" }}>
+            <label htmlFor="filtroDonoLista">Dono do risco</label>
+            <select id="filtroDonoLista" value={filtroDono} onChange={(e) => setFiltroDono(e.target.value)}>
+              <option value="">Todos</option>
+              <option value={SEM_DONO}>Sem dono definido</option>
+              {donos.map(([email, nome]) => (
+                <option key={email} value={email}>{nome}</option>
+              ))}
+            </select>
+          </div>
+          <div className="form-field" style={{ minWidth: "14rem", flex: "1 1 14rem", maxWidth: "20rem" }}>
+            <label htmlFor="filtroAreaLista">Área responsável</label>
+            <select id="filtroAreaLista" value={filtroArea} onChange={(e) => setFiltroArea(e.target.value)}>
+              <option value="">Todas</option>
+              <option value={SEM_AREA}>Sem ativo/área vinculada</option>
+              {areas.map((a) => (
+                <option key={a} value={a}>{a}</option>
+              ))}
+            </select>
+          </div>
           </div>
 
           {carregando && <p className="text-muted" style={{ marginTop: "2rem" }}>Carregando...</p>}
@@ -138,7 +195,9 @@ export default function ListaDeRiscos() {
           {!carregando && !erro && riscos.length > 0 && (
             <div className="dash-panel" style={{ marginTop: "2rem" }}>
               <div className="dash-panel-header">
-                {riscos.length} risco{riscos.length > 1 ? "s" : ""} encontrado{riscos.length > 1 ? "s" : ""}
+                {visiveis.length === riscos.length
+                  ? `${riscos.length} risco${riscos.length > 1 ? "s" : ""} encontrado${riscos.length > 1 ? "s" : ""}`
+                  : `${visiveis.length} de ${riscos.length} riscos`}
               </div>
               <div className="dash-panel-body">
                 <div className="dash-table-scroll">
@@ -151,12 +210,13 @@ export default function ListaDeRiscos() {
                         <th>Risco</th>
                         <th>Nível</th>
                         <th>Status</th>
-                        <th>Levantado Por</th>
+                        <th>Dono</th>
+                        <th>Ativo / Área</th>
                         <th>Data</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {riscos.map((r) => (
+                      {visiveis.map((r) => (
                         <tr key={r.id}>
                           <td>
                             <Link
@@ -179,7 +239,15 @@ export default function ListaDeRiscos() {
                             )}
                           </td>
                           <td className={classeStatus(r.status)}>{r.status || "Identificado"}</td>
-                          <td>{r.levantado_por}</td>
+                          <td>
+                            {r.dono_nome || r.dono_email || (
+                              <span style={{ color: "var(--danger)", fontWeight: 600 }}>sem dono</span>
+                            )}
+                          </td>
+                          <td style={{ whiteSpace: "normal", minWidth: "10rem" }}>
+                            {r.ativo || "—"}
+                            {r.area && <div className="text-muted" style={{ fontSize: "0.75rem" }}>{r.area}</div>}
+                          </td>
                           <td>{formatData(r.data_levantamento)}</td>
                         </tr>
                       ))}
