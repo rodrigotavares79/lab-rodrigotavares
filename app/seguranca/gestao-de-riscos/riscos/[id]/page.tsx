@@ -86,10 +86,13 @@ type Acao = {
   plano_acao_id: number;
   descricao: string;
   responsavel: string | null;
+  responsavel_email: string | null;
   prazo: string | null;
   status: string;
   criado_em: string;
 };
+
+type UsuarioResponsavel = { email: string; nome: string; perfil: string };
 
 type PlanoAcao = {
   id: number;
@@ -666,12 +669,15 @@ function PlanoAcaoCard({
   plano,
   riscoMitigado,
   somenteLeitura,
+  usuarios,
   onAtualizado,
 }: {
   plano: PlanoAcao;
   riscoMitigado: boolean;
   // Perfil sem permissão para editar planos de ação.
   somenteLeitura: boolean;
+  // B09: usuários que podem ser responsáveis (vazio para quem só lê).
+  usuarios: UsuarioResponsavel[];
   onAtualizado: () => void;
 }) {
   const [descricaoAcao, setDescricaoAcao] = useState("");
@@ -725,7 +731,7 @@ function PlanoAcaoCard({
         body: JSON.stringify({
           planoAcaoId: plano.id,
           descricao: descricaoAcao,
-          responsavel: responsavelAcao || null,
+          responsavelEmail: responsavelAcao || null,
           prazo: prazoAcao || null,
         }),
       });
@@ -754,6 +760,23 @@ function PlanoAcaoCard({
       onAtualizado();
     } catch (err) {
       setErroAcao(err instanceof Error ? err.message : "Erro ao atualizar a ação.");
+    }
+  }
+
+  // B09: vincula uma ação antiga (responsável em texto livre) a um usuário.
+  async function handleVincularResponsavel(acaoId: number, email: string) {
+    if (!email) return;
+    try {
+      const res = await fetch(`/api/acoes/${acaoId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ responsavelEmail: email }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || "Falha ao vincular o responsável.");
+      onAtualizado();
+    } catch (err) {
+      setErroAcao(err instanceof Error ? err.message : "Erro ao vincular o responsável.");
     }
   }
 
@@ -839,7 +862,27 @@ function PlanoAcaoCard({
                 {plano.acoes.map((a) => (
                   <tr key={a.id}>
                     <td style={{ whiteSpace: "normal", minWidth: "14rem" }}>{a.descricao}</td>
-                    <td>{a.responsavel || "—"}</td>
+                    <td style={{ whiteSpace: "normal", minWidth: "9rem" }}>
+                      {a.responsavel || "—"}
+                      {!a.responsavel_email && (
+                        <div style={{ fontSize: "0.72rem", color: "var(--warning, #b7791f)" }}>
+                          não vinculado a usuário
+                        </div>
+                      )}
+                      {!a.responsavel_email && !riscoMitigado && !somenteLeitura && usuarios.length > 0 && (
+                        <select
+                          aria-label={`Vincular responsável da ação ${a.descricao}`}
+                          defaultValue=""
+                          onChange={(e) => handleVincularResponsavel(a.id, e.target.value)}
+                          style={{ fontSize: "0.75rem", marginTop: "0.25rem", maxWidth: "12rem" }}
+                        >
+                          <option value="" disabled>Vincular a usuário…</option>
+                          {usuarios.map((u) => (
+                            <option key={u.email} value={u.email}>{u.nome}</option>
+                          ))}
+                        </select>
+                      )}
+                    </td>
                     <td>
                       {formatData(a.prazo)}
                       {acaoVencida(a.prazo, a.status) && (
@@ -925,12 +968,16 @@ function PlanoAcaoCard({
               </div>
               <div className="form-field">
                 <label>Responsável</label>
-                <input
-                  type="text"
-                  value={responsavelAcao}
-                  onChange={(e) => setResponsavelAcao(e.target.value)}
-                  placeholder="Nome ou e-mail"
-                />
+                <select value={responsavelAcao} onChange={(e) => setResponsavelAcao(e.target.value)} required>
+                  <option value="" disabled>
+                    {usuarios.length ? "Escolha um usuário" : "Nenhum usuário disponível"}
+                  </option>
+                  {usuarios.map((u) => (
+                    <option key={u.email} value={u.email}>
+                      {u.nome} · {u.perfil}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="form-field">
                 <label>Prazo</label>
@@ -1109,6 +1156,16 @@ export default function DetalheDoRisco() {
   const perfil = usePerfilRiscos();
   const podeEditarRisco = perfil.permissoes.editarRiscos;
   const podeEditarPlanos = perfil.permissoes.editarPlanos;
+
+  // B09: usuários que podem ser responsáveis por ações.
+  const [usuarios, setUsuarios] = useState<UsuarioResponsavel[]>([]);
+  useEffect(() => {
+    if (!podeEditarPlanos) return;
+    fetch("/api/usuarios-riscos")
+      .then((r) => r.json())
+      .then((d) => setUsuarios(d.usuarios || []))
+      .catch(() => setUsuarios([]));
+  }, [podeEditarPlanos]);
   const [novoFatorAberto, setNovoFatorAberto] = useState(false);
   const [novoPlanoAberto, setNovoPlanoAberto] = useState(false);
 
@@ -1311,6 +1368,7 @@ export default function DetalheDoRisco() {
                         plano={p}
                         riscoMitigado={riscoMitigado}
                         somenteLeitura={!podeEditarPlanos}
+                        usuarios={usuarios}
                         onAtualizado={carregarPlanos}
                       />
                     ))}
