@@ -1,3 +1,4 @@
+import { validarCenario, montarTituloRisco } from "@/lib/cenarioRisco";
 import { NextRequest, NextResponse } from "next/server";
 import { simularImpactoFinanceiro, type FaixaEstimativa } from "@/lib/riscoUtils";
 import { nivelRisco } from "@/lib/metodologiaRisco";
@@ -43,6 +44,9 @@ export async function POST(request: NextRequest) {
     const {
       projetoId,
       categoria,
+      causa,
+      evento,
+      consequencia,
       gatilho,
       resultado,
       dataLevantamento,
@@ -68,6 +72,13 @@ export async function POST(request: NextRequest) {
     }
     if (!projetoId) {
       return NextResponse.json({ error: "Projeto é obrigatório." }, { status: 400 });
+    }
+    // B13: cenário estruturado obrigatório (o título do risco sai dele).
+    const limpar = (v: unknown) => (typeof v === "string" ? v.trim().replace(/\s+/g, " ") : "");
+    const cenario = { causa: limpar(causa), evento: limpar(evento), consequencia: limpar(consequencia) };
+    const cenarioInvalido = validarCenario(cenario);
+    if (cenarioInvalido) {
+      return NextResponse.json({ error: cenarioInvalido }, { status: 400 });
     }
 
     const sql = sqlAuditado(guarda.usuario);
@@ -126,7 +137,7 @@ export async function POST(request: NextRequest) {
 
     await sql`
       INSERT INTO riscos (
-        projeto_id, categoria, gatilho, resultado_potencial, levantado_por,
+        projeto_id, categoria, causa, evento, consequencia, gatilho, resultado_potencial, levantado_por,
         data_levantamento, fonte, impacto, probabilidade, matrix_score,
         nivel_inicial, impacto_qualitativo, nivel_projetado,
         prob_nivel_atual, imp_nivel_atual, prob_nivel_projetado, imp_nivel_projetado,
@@ -140,7 +151,7 @@ export async function POST(request: NextRequest) {
         impacto_alto_indisponibilidade, impacto_alto_restauracao, impacto_alto_total,
         impacto_alto_p10, impacto_alto_p90
       ) VALUES (
-        ${projetoId}, ${categoria || null}, ${gatilho || null}, ${resultado || null}, ${levantadoPor},
+        ${projetoId}, ${categoria || null}, ${cenario.causa}, ${cenario.evento}, ${cenario.consequencia}, ${gatilho || null}, ${resultado || null}, ${levantadoPor},
         ${dataLevantamento || null}, ${fonte || null}, ${impacto || null}, ${probabilidade || null},
         ${matrixScore || null}, ${nivelInerente}, ${nivelInerente}, ${nivelInerente},
         ${probabilidade || null}, ${impacto || null}, ${probabilidade || null}, ${impacto || null},
@@ -160,8 +171,12 @@ export async function POST(request: NextRequest) {
       const linhas: [string, string][] = [
         ["Projeto", projetoNome],
         ["Categoria do Risco", categoria || "—"],
+        ["Risco", montarTituloRisco(cenario) || "—"],
+        ["Causa", cenario.causa],
+        ["Evento", cenario.evento],
+        ["Consequência", cenario.consequencia],
         ["Ponto de Gatilho", gatilho || "—"],
-        ["Resultado Potencial", resultado || "—"],
+        ["Detalhamento do impacto", resultado || "—"],
         ["Levantado Por", levantadoPor],
         ["Data de Levantamento", dataLevantamento || "—"],
         ["Fonte", fonte || "—"],

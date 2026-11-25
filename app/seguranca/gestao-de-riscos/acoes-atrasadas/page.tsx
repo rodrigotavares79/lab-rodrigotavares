@@ -18,6 +18,7 @@ type AcaoAtrasada = {
   plano: string;
   risco_id: number;
   gatilho: string | null;
+  titulo?: string | null;
   categoria: string | null;
   impacto_qualitativo: string | null;
   dias_atraso: number;
@@ -107,7 +108,7 @@ export default function AcoesAtrasadas() {
                             <div className="text-muted" style={{ fontSize: "0.75rem" }}>{a.plano}</div>
                           </td>
                           <td style={{ whiteSpace: "normal", minWidth: "12rem" }}>
-                            #{a.risco_id} · {a.gatilho || a.categoria || "—"}
+                            #{a.risco_id} · {a.titulo || a.gatilho || a.categoria || "—"}
                           </td>
                           <td>
                             {a.impacto_qualitativo ? (

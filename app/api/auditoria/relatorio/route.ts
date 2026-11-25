@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
         SELECT
           pa.id, pa.titulo, pa.status, pa.auditoria_status, pa.auditado_em, pa.auditado_por_nome,
           pa.auditoria_comentario,
-          r.id AS risco_id, r.gatilho, pr.id AS projeto_id, pr.nome AS projeto,
+          r.id AS risco_id, r.gatilho, r.titulo AS risco_titulo, pr.id AS projeto_id, pr.nome AS projeto,
           MAX(NULLIF(a.prazo::text, '')::date) AS prazo,
           STRING_AGG(DISTINCT NULLIF(TRIM(a.responsavel), ''), ', ') AS responsaveis,
           COUNT(a.id)::int AS total_acoes,

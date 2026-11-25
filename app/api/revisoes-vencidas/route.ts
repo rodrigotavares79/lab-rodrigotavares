@@ -14,7 +14,7 @@ export async function GET() {
     const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
     const riscos = await sql`
       SELECT
-        r.id, r.gatilho, r.categoria, r.impacto_qualitativo, r.status,
+        r.id, r.gatilho, r.titulo, r.categoria, r.impacto_qualitativo, r.status,
         p.nome AS projeto,
         to_char(rv.revisado_em AT TIME ZONE 'America/Sao_Paulo', 'YYYY-MM-DD') AS revisado_em,
         rv.dias_revisao, to_char(rv.proxima_revisao, 'YYYY-MM-DD') AS proxima_revisao,

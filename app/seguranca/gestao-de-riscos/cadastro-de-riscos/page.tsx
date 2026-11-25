@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, FormEvent } from "react";
+import { montarTituloRisco, validarCenario, TAMANHO_MAXIMO_CAMPO } from "@/lib/cenarioRisco";
 import Footer from "@/components/Footer";
 import ImportarRiscosCSV from "@/components/ImportarRiscosCSV";
 import { type FaixaEstimativa } from "@/lib/riscoUtils";
@@ -115,6 +116,10 @@ function CampoFaixa({
 export default function CadastroDeRiscos() {
   const perfil = usePerfilRiscos();
   const [modo, setModo] = useState<"form" | "csv">("form");
+  // B13: cenário estruturado; o título é montado a partir destes três campos.
+  const [causa, setCausa] = useState("");
+  const [evento, setEvento] = useState("");
+  const [consequencia, setConsequencia] = useState("");
   const [impacto, setImpacto] = useState(0);
   const [probabilidade, setProbabilidade] = useState(0);
   const [enviando, setEnviando] = useState(false);
@@ -166,9 +171,18 @@ export default function CadastroDeRiscos() {
     const form = e.currentTarget;
     const formData = new FormData(form);
 
+    const cenarioInvalido = validarCenario({ causa, evento, consequencia });
+    if (cenarioInvalido) {
+      setErro(cenarioInvalido);
+      return;
+    }
+
     const payload = {
       projetoId,
       categoria: formData.get("categoria"),
+      causa,
+      evento,
+      consequencia,
       gatilho: formData.get("gatilho"),
       resultado: formData.get("resultado"),
       dataLevantamento: formData.get("dataLevantamento"),
@@ -205,6 +219,9 @@ export default function CadastroDeRiscos() {
       setAvisoEmail(corpo.email?.enviado ? null : corpo.email?.aviso || null);
       setEnviado(true);
       form.reset();
+      setCausa("");
+      setEvento("");
+      setConsequencia("");
       setImpacto(0);
       setProbabilidade(0);
       setProjetoId("");
@@ -293,13 +310,54 @@ export default function CadastroDeRiscos() {
                   </select>
                 </div>
 
+                <div className="form-field form-field-wide">
+                  <label htmlFor="causa">Causa *</label>
+                  <input
+                    id="causa"
+                    type="text"
+                    value={causa}
+                    maxLength={TAMANHO_MAXIMO_CAMPO}
+                    onChange={(e) => setCausa(e.target.value)}
+                    placeholder="Por que pode acontecer: ameaça, vulnerabilidade ou falha de controle"
+                  />
+                </div>
+
+                <div className="form-field form-field-wide">
+                  <label htmlFor="evento">Evento *</label>
+                  <input
+                    id="evento"
+                    type="text"
+                    value={evento}
+                    maxLength={TAMANHO_MAXIMO_CAMPO}
+                    onChange={(e) => setEvento(e.target.value)}
+                    placeholder="O que pode acontecer"
+                  />
+                </div>
+
+                <div className="form-field form-field-wide">
+                  <label htmlFor="consequencia">Consequência *</label>
+                  <input
+                    id="consequencia"
+                    type="text"
+                    value={consequencia}
+                    maxLength={TAMANHO_MAXIMO_CAMPO}
+                    onChange={(e) => setConsequencia(e.target.value)}
+                    placeholder="O que acontece se o evento ocorrer"
+                  />
+                  <p className="field-helper">
+                    <strong>Título do risco:</strong>{" "}
+                    {montarTituloRisco({ causa, evento, consequencia }) || "preencha causa, evento e consequência"}
+                  </p>
+                </div>
+
                 <div className="form-field">
                   <label htmlFor="gatilho">Ponto de Gatilho</label>
                   <input
                     id="gatilho"
                     name="gatilho"
                     type="text"
-                    placeholder="O que dispara esse risco"
+                    maxLength={500}
+                    placeholder="Sinal observável de que o risco está se materializando"
                   />
                 </div>
 
@@ -339,12 +397,12 @@ export default function CadastroDeRiscos() {
                 </div>
 
                 <div className="form-field form-field-wide">
-                  <label htmlFor="resultado">Resultado Potencial</label>
+                  <label htmlFor="resultado">Detalhamento do impacto</label>
                   <textarea
                     id="resultado"
                     name="resultado"
                     rows={3}
-                    placeholder="Descreva o possível impacto caso o risco se concretize"
+                    placeholder="Opcional: detalhe o impacto (áreas afetadas, prazos, valores)"
                   />
                 </div>
               </div>

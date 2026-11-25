@@ -33,6 +33,7 @@ type PlanoAuditoria = {
   auditoria_comentario: string | null;
   risco_id: number;
   gatilho: string | null;
+  risco_titulo?: string | null;
   categoria: string | null;
   impacto_qualitativo: string | null;
   projeto: string | null;
@@ -158,7 +159,7 @@ function CardPlano({ plano, podeAuditar, onDecidido }: { plano: PlanoAuditoria; 
       <header className={s.cardTopo}>
         <div className={s.cardTitulos}>
           <Link href={`${BASE}/riscos/${plano.risco_id}#planos-de-acao`} className={s.risco}>
-            Risco #{plano.risco_id} · {plano.gatilho || plano.categoria || "sem descrição"}
+            Risco #{plano.risco_id} · {plano.risco_titulo || plano.gatilho || plano.categoria || "sem descrição"}
           </Link>
           <h2 className={s.planoTitulo}>{plano.titulo}</h2>
           <span className={s.meta}>

@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     const rows = projetoId
       ? await sql`
           SELECT
-            r.id, p.nome AS projeto, r.categoria, r.gatilho, r.levantado_por,
+            r.id, p.nome AS projeto, r.categoria, r.gatilho, r.titulo, r.levantado_por,
             r.data_levantamento, r.impacto_qualitativo, r.matrix_score,
             r.status, r.criado_em
           FROM riscos r
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
         `
       : await sql`
           SELECT
-            r.id, p.nome AS projeto, r.categoria, r.gatilho, r.levantado_por,
+            r.id, p.nome AS projeto, r.categoria, r.gatilho, r.titulo, r.levantado_por,
             r.data_levantamento, r.impacto_qualitativo, r.matrix_score,
             r.status, r.criado_em
           FROM riscos r

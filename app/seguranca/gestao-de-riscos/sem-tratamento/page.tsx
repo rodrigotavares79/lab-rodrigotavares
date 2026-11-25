@@ -13,6 +13,7 @@ const BASE = "/seguranca/gestao-de-riscos";
 type SemTratamento = {
   id: number;
   gatilho: string | null;
+  titulo?: string | null;
   categoria: string | null;
   impacto_qualitativo: string | null;
   status: string;
@@ -104,7 +105,7 @@ export default function SemTratamento() {
                         <tr key={r.id}>
                           <td style={{ whiteSpace: "normal", minWidth: "14rem" }}>
                             <Link href={`${BASE}/riscos/${r.id}#planos-de-acao`} style={{ color: "var(--accent)", fontWeight: 600 }}>
-                              #{r.id} · {r.gatilho || r.categoria || "—"}
+                              #{r.id} · {r.titulo || r.gatilho || r.categoria || "—"}
                             </Link>
                             <div className="text-muted" style={{ fontSize: "0.75rem" }}>{r.status}</div>
                           </td>

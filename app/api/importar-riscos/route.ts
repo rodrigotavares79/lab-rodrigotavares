@@ -5,6 +5,7 @@ import { sqlAuditado } from "@/lib/sqlAuditado";
 import { resolverLevantadoPorImportacao } from "@/lib/levantadoPor";
 import { listarUsuariosRiscos } from "@/lib/usuariosRiscos";
 import { exigirPermissao } from "@/lib/riscosAuth";
+import { validarCenario } from "@/lib/cenarioRisco";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,9 @@ const MAX_LINHAS = 500;
 type LinhaCsv = {
   projeto?: string;
   categoria?: string;
+  causa?: string;
+  evento?: string;
+  consequencia?: string;
   gatilho?: string;
   resultado?: string;
   levantadoPor?: string;
@@ -97,10 +101,14 @@ export async function POST(request: NextRequest) {
     );
 
     // Riscos já existentes no banco, para detectar suspeita de duplicidade.
-    // Critério: mesmo Projeto + mesmo Ponto de Gatilho (nome normalizado).
-    const riscosExistentes = await sql`SELECT projeto_id, gatilho FROM riscos WHERE gatilho IS NOT NULL`;
+    // Critério (B13): mesmo Projeto + mesmo Evento + mesma Causa (normalizados).
+    const chaveCenario = (projetoId: unknown, evento: unknown, causa: unknown) =>
+      `${projetoId}::${normalizarTexto(String(evento ?? ""))}::${normalizarTexto(String(causa ?? ""))}`;
+    const riscosExistentes = await sql`
+      SELECT projeto_id, evento, causa FROM riscos WHERE evento IS NOT NULL AND causa IS NOT NULL
+    `;
     const chavesExistentes = new Set<string>(
-      riscosExistentes.map((r: any) => `${r.projeto_id}::${normalizarTexto(String(r.gatilho))}`)
+      riscosExistentes.map((r: any) => chaveCenario(r.projeto_id, r.evento, r.causa))
     );
     // chaves já usadas dentro deste próprio arquivo (linha anterior do mesmo CSV)
     const chavesNoBatch = new Set<string>();
@@ -126,6 +134,15 @@ export async function POST(request: NextRequest) {
       const projetoId = projetoPorNome.get(normalizarTexto(projetoNome));
       if (!projetoId) {
         erros.push({ linha: numeroLinha, motivo: `Projeto "${projetoNome}" não encontrado.` });
+        return;
+      }
+
+      // B13: cenário estruturado obrigatório (causa, evento, consequência).
+      const limpar = (v: string | undefined) => (v || "").trim().replace(/\s+/g, " ");
+      const cenario = { causa: limpar(linha.causa), evento: limpar(linha.evento), consequencia: limpar(linha.consequencia) };
+      const cenarioInvalido = validarCenario(cenario);
+      if (cenarioInvalido) {
+        erros.push({ linha: numeroLinha, motivo: cenarioInvalido });
         return;
       }
 
@@ -188,18 +205,17 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      // Suspeita de duplicidade: mesmo Projeto + mesmo Ponto de Gatilho, seja
-      // contra um risco já existente no banco, seja contra outra linha deste
-      // mesmo arquivo. Se o usuário já confirmou esta linha numa segunda
+      // Suspeita de duplicidade: mesmo Projeto + mesmo Evento + mesma Causa,
+      // seja contra um risco já existente no banco, seja contra outra linha
+      // deste mesmo arquivo. Se o usuário já confirmou esta linha numa segunda
       // chamada (confirmarLinhas), a suspeita é ignorada e a linha é inserida.
-      const gatilhoNormalizado = normalizarTexto(linha.gatilho);
-      if (gatilhoNormalizado) {
-        const chave = `${projetoId}::${gatilhoNormalizado}`;
+      {
+        const chave = chaveCenario(projetoId, cenario.evento, cenario.causa);
         const suspeita = chavesExistentes.has(chave) || chavesNoBatch.has(chave);
         if (suspeita && !confirmarLinhas.has(numeroLinha)) {
           suspeitas.push({
             linha: numeroLinha,
-            motivo: `Já existe um risco com o mesmo Projeto e Ponto de Gatilho ("${(linha.gatilho || "").trim()}"). Confirme se quer importar mesmo assim.`,
+            motivo: `Já existe um risco com o mesmo Projeto, Evento e Causa ("${cenario.evento}"). Confirme se quer importar mesmo assim.`,
           });
           return;
         }
@@ -209,6 +225,9 @@ export async function POST(request: NextRequest) {
       paraInserir.push({
         projetoId,
         categoria: linha.categoria || null,
+        causa: cenario.causa,
+        evento: cenario.evento,
+        consequencia: cenario.consequencia,
         gatilho: linha.gatilho || null,
         resultado: linha.resultado || null,
         levantadoPor,
@@ -230,7 +249,7 @@ export async function POST(request: NextRequest) {
     for (const r of paraInserir) {
       await sql`
         INSERT INTO riscos (
-          projeto_id, categoria, gatilho, resultado_potencial, levantado_por,
+          projeto_id, categoria, causa, evento, consequencia, gatilho, resultado_potencial, levantado_por,
           data_levantamento, fonte, impacto, probabilidade, matrix_score,
           nivel_inicial, impacto_qualitativo, nivel_projetado,
           prob_nivel_atual, imp_nivel_atual, prob_nivel_projetado, imp_nivel_projetado,
@@ -238,7 +257,7 @@ export async function POST(request: NextRequest) {
           impacto_critico_indisponibilidade, impacto_critico_restauracao, impacto_critico_total,
           impacto_alto_indisponibilidade, impacto_alto_restauracao, impacto_alto_total
         ) VALUES (
-          ${r.projetoId}, ${r.categoria}, ${r.gatilho}, ${r.resultado}, ${r.levantadoPor},
+          ${r.projetoId}, ${r.categoria}, ${r.causa}, ${r.evento}, ${r.consequencia}, ${r.gatilho}, ${r.resultado}, ${r.levantadoPor},
           ${r.dataLevantamento}, ${r.fonte}, ${r.impacto}, ${r.probabilidade}, ${r.matrixScore},
           ${r.classificacao}, ${r.classificacao}, ${r.classificacao},
           ${r.probabilidade}, ${r.impacto}, ${r.probabilidade}, ${r.impacto},

@@ -18,7 +18,7 @@ export async function GET() {
       SELECT
         a.id, a.descricao, a.responsavel, a.prazo, a.status,
         pa.titulo AS plano,
-        r.id AS risco_id, r.gatilho, r.categoria, r.impacto_qualitativo,
+        r.id AS risco_id, r.gatilho, r.titulo, r.categoria, r.impacto_qualitativo,
         ((now() AT TIME ZONE 'America/Sao_Paulo')::date - NULLIF(a.prazo::text, '')::date)::int AS dias_atraso
       FROM acoes a
       JOIN planos_acao pa ON pa.id = a.plano_acao_id

@@ -24,6 +24,7 @@ type Linha = {
   auditoria_comentario: string | null;
   risco_id: number;
   gatilho: string | null;
+  risco_titulo?: string | null;
   projeto: string;
   prazo: string;
   responsaveis: string | null;
@@ -191,7 +192,7 @@ export default function RelatorioAuditoria() {
                               <span className={s.plano}>{l.titulo}</span>
                               <Link href={`${BASE}/riscos/${l.risco_id}#planos-de-acao`} className={s.risco}>
                                 Risco #{l.risco_id}
-                                {l.gatilho ? ` · ${l.gatilho}` : ""}
+                                {l.risco_titulo || l.gatilho ? ` · ${l.risco_titulo || l.gatilho}` : ""}
                               </Link>
                             </td>
                             <td style={{ whiteSpace: "normal", minWidth: "9rem" }}>{l.responsaveis || "—"}</td>
