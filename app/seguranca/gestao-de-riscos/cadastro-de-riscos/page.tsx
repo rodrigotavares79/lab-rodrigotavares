@@ -8,6 +8,7 @@ import { type FaixaEstimativa } from "@/lib/riscoUtils";
 import { MATRIZ_5X5 } from "@/lib/metodologiaRisco";
 import { usePerfilRiscos, SemPermissao } from "@/components/riscos/PermissoesRiscos";
 import { ativoTemCusto } from "@/lib/ativosCriticos";
+import SeletorDono, { DONO_VAZIO, donoPreenchido, type ValorDono } from "@/components/riscos/SeletorDono";
 
 const NIVEIS = [
   { value: 1, label: "1 — Muito Baixo" },
@@ -27,7 +28,6 @@ type SistemaCritico = {
   custo_restauracao_hora_homem: number | string | null;
 };
 
-type UsuarioDono = { email: string; nome: string; perfil: string };
 
 
 const NIVEL_RISCO: Record<number, { label: string; className: string }> = {
@@ -137,9 +137,8 @@ export default function CadastroDeRiscos() {
   const [projetoId, setProjetoId] = useState("");
 
   const [sistemas, setSistemas] = useState<SistemaCritico[]>([]);
-  // B14: dono do risco (usuário do módulo), distinto de quem levantou.
-  const [usuarios, setUsuarios] = useState<UsuarioDono[]>([]);
-  const [donoEmail, setDonoEmail] = useState("");
+  // B14: dono do risco (usuário ou contato de negócio), distinto de quem levantou.
+  const [dono, setDono] = useState<ValorDono>(DONO_VAZIO);
   const [sistemaCriticoId, setSistemaCriticoId] = useState("");
   const [duracaoHoras, setDuracaoHoras] = useState<FaixaTexto>(faixaVazia());
   const [percentualDegradacao, setPercentualDegradacao] = useState<FaixaTexto>({ min: "30", provavel: "30", max: "30" });
@@ -156,13 +155,6 @@ export default function CadastroDeRiscos() {
       .then((r) => r.json())
       .then((d) => setProjetos(d.projetos || []))
       .catch(() => setProjetos([]));
-  }, []);
-
-  useEffect(() => {
-    fetch("/api/usuarios-riscos")
-      .then((r) => r.json())
-      .then((d) => setUsuarios(d.usuarios || []))
-      .catch(() => setUsuarios([]));
   }, []);
 
   useEffect(() => {
@@ -194,8 +186,8 @@ export default function CadastroDeRiscos() {
       setErro(cenarioInvalido);
       return;
     }
-    if (!donoEmail) {
-      setErro("Escolha o dono do risco.");
+    if (!donoPreenchido(dono)) {
+      setErro(dono.donoContatoId !== null ? "Escolha o ponto focal (Analista GRC) do risco." : "Escolha o dono do risco.");
       return;
     }
 
@@ -205,7 +197,9 @@ export default function CadastroDeRiscos() {
       causa,
       evento,
       consequencia,
-      donoEmail,
+      donoEmail: dono.donoEmail || null,
+      donoContatoId: dono.donoContatoId,
+      pontoFocalEmail: dono.pontoFocalEmail || null,
       gatilho: formData.get("gatilho"),
       resultado: formData.get("resultado"),
       dataLevantamento: formData.get("dataLevantamento"),
@@ -243,7 +237,7 @@ export default function CadastroDeRiscos() {
       setEnviado(true);
       form.reset();
       setCausa("");
-      setDonoEmail("");
+      setDono(DONO_VAZIO);
       setEvento("");
       setConsequencia("");
       setImpacto(0);
@@ -385,20 +379,7 @@ export default function CadastroDeRiscos() {
                   />
                 </div>
 
-                <div className="form-field">
-                  <label htmlFor="donoRisco">Dono do Risco *</label>
-                  <select id="donoRisco" value={donoEmail} onChange={(e) => setDonoEmail(e.target.value)}>
-                    <option value="">Selecione</option>
-                    {usuarios.map((u) => (
-                      <option key={u.email} value={u.email}>
-                        {u.nome} ({u.email})
-                      </option>
-                    ))}
-                  </select>
-                  <p className="field-helper">
-                    Quem responde pelo risco e decide o tratamento. Pode ser diferente de quem levantou.
-                  </p>
-                </div>
+                <SeletorDono valor={dono} onChange={setDono} idPrefixo="donoCadastro" />
 
                 <div className="form-field">
                   <label htmlFor="levantadoPor">Levantado Por</label>

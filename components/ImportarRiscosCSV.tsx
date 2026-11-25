@@ -10,6 +10,7 @@ type LinhaMapeada = {
   evento: string;
   consequencia: string;
   dono: string;
+  pontoFocal: string;
   gatilho: string;
   resultado: string;
   levantadoPor: string;
@@ -32,6 +33,7 @@ const MAPA_CABECALHOS: [string, keyof LinhaMapeada][] = [
   ["evento", "evento"],
   ["consequência", "consequencia"],
   ["dono do risco", "dono"],
+  ["ponto focal", "pontoFocal"],
   ["ponto de gatilho", "gatilho"],
   ["resultado potencial", "resultado"],
   ["detalhamento do impacto", "resultado"],
@@ -118,6 +120,7 @@ export default function ImportarRiscosCSV() {
             evento: linha.evento || "",
             consequencia: linha.consequencia || "",
             dono: linha.dono || "",
+            pontoFocal: linha.pontoFocal || "",
             gatilho: linha.gatilho || "",
             resultado: linha.resultado || "",
             levantadoPor: linha.levantadoPor || "",

@@ -57,6 +57,7 @@ export const ROTULOS_CAMPOS: Record<string, Record<string, string>> = {
     nivel_projetado: "Nível projetado",
     categoria: "Categoria",
     dono_nome: "Dono do risco",
+    ponto_focal_nome: "Ponto focal",
     sistema_critico_id: "Ativo ou processo (nº do inventário)",
     causa: "Causa",
     evento: "Evento",

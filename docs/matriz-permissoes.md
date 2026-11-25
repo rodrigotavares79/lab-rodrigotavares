@@ -35,8 +35,9 @@ Valor desconhecido = Leitura.
 
 ## Dono do risco e inventário de ativos (B14)
 
-- Todo risco novo tem um **dono** (usuário do módulo), distinto de quem levantou. Definir ou trocar o dono exige `editarRiscos`.
-- O inventário de **ativos e processos críticos** é consultado por qualquer perfil com `ler` e cadastrado/editado por quem tem `editarRiscos`.
+- Todo risco novo tem um **dono**, distinto de quem levantou: um usuário do módulo ou um **contato de negócio** sem acesso ao sistema (tela "Contatos de negócio"). Definir ou trocar o dono exige `editarRiscos`.
+- Risco com dono externo tem sempre um **ponto focal** com perfil **Analista GRC**, que atualiza o risco em nome do dono. A aprovação de aceitação (B16) continua exigindo usuário com alçada; a concordância do dono externo vai na Carta de Risco.
+- Contatos de negócio e o inventário de **ativos e processos críticos** é consultado por qualquer perfil com `ler` e cadastrado/editado por quem tem `editarRiscos`.
 - A lista de usuários (para escolher dono ou responsável por ação) é liberada para quem tem `editarRiscos` ou `editarPlanos`.
 
 ## Alçada de aceitação de risco (B16)

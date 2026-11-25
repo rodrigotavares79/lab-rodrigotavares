@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { exigirPermissao } from "@/lib/riscosAuth";
 import { sqlAuditado } from "@/lib/sqlAuditado";
-import { buscarUsuarioRiscos } from "@/lib/usuariosRiscos";
-import { MSG_SEM_DONO, podeTrocarAtivo } from "@/lib/ativosCriticos";
+import { podeTrocarAtivo } from "@/lib/ativosCriticos";
+import { resolverDonoRisco } from "@/lib/resolverDono";
 
 export const dynamic = "force-dynamic";
 
-// B14 · PUT { donoEmail, ativoId? } — define o dono do risco e o ativo ou
-// processo afetado. O dono é obrigatório e precisa ser usuário do módulo. O
+// B14 · PUT { donoEmail | donoContatoId, pontoFocalEmail?, ativoId? } — define
+// o dono do risco (usuário do módulo ou contato de negócio; com contato, o
+// ponto focal Analista GRC é obrigatório) e o ativo ou processo afetado. O
 // ativo precisa ser do mesmo projeto e estar ativo; só pode ser trocado
 // enquanto o risco não tem estimativa financeira (calculada com os custos do
 // ativo anterior).
@@ -18,11 +19,10 @@ export async function PUT(request: NextRequest, props: { params: Promise<{ id: s
   try {
     if (!/^\d+$/.test(id ?? "")) return NextResponse.json({ error: "ID de risco inválido." }, { status: 400 });
     const body = await request.json().catch(() => ({}));
-    if (!body?.donoEmail) return NextResponse.json({ error: MSG_SEM_DONO }, { status: 400 });
-    const dono = await buscarUsuarioRiscos(body.donoEmail);
-    if (!dono) return NextResponse.json({ error: "O dono precisa ser um usuário do Gestão de Riscos." }, { status: 400 });
-
     const sql = sqlAuditado(guarda.usuario);
+    const resolvido = await resolverDonoRisco(sql, body ?? {});
+    if ("erro" in resolvido) return NextResponse.json({ error: resolvido.erro }, { status: 400 });
+    const dono = resolvido.dono;
     const [risco] = await sql`
       SELECT projeto_id, status, sistema_critico_id, impacto_critico_total, impacto_alto_total
       FROM riscos WHERE id = ${id}
@@ -55,7 +55,10 @@ export async function PUT(request: NextRequest, props: { params: Promise<{ id: s
     }
 
     await sql`
-      UPDATE riscos SET dono_email = ${dono.email}, dono_nome = ${dono.nome}, sistema_critico_id = ${ativoId}
+      UPDATE riscos
+      SET dono_email = ${dono.dono_email}, dono_nome = ${dono.dono_nome}, dono_contato_id = ${dono.dono_contato_id},
+          ponto_focal_email = ${dono.ponto_focal_email}, ponto_focal_nome = ${dono.ponto_focal_nome},
+          sistema_critico_id = ${ativoId}
       WHERE id = ${id}
     `;
     return NextResponse.json({ ok: true });

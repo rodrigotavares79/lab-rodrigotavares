@@ -1,6 +1,6 @@
 import { validarCenario, montarTituloRisco } from "@/lib/cenarioRisco";
-import { MSG_SEM_DONO, ativoTemCusto } from "@/lib/ativosCriticos";
-import { buscarUsuarioRiscos } from "@/lib/usuariosRiscos";
+import { ativoTemCusto } from "@/lib/ativosCriticos";
+import { resolverDonoRisco } from "@/lib/resolverDono";
 import { NextRequest, NextResponse } from "next/server";
 import { simularImpactoFinanceiro, type FaixaEstimativa } from "@/lib/riscoUtils";
 import { nivelRisco } from "@/lib/metodologiaRisco";
@@ -50,6 +50,8 @@ export async function POST(request: NextRequest) {
       evento,
       consequencia,
       donoEmail,
+      donoContatoId,
+      pontoFocalEmail,
       gatilho,
       resultado,
       dataLevantamento,
@@ -83,13 +85,14 @@ export async function POST(request: NextRequest) {
     if (cenarioInvalido) {
       return NextResponse.json({ error: cenarioInvalido }, { status: 400 });
     }
-    // B14: dono do risco obrigatório, entre os usuários do módulo.
-    if (!donoEmail) return NextResponse.json({ error: MSG_SEM_DONO }, { status: 400 });
-    const dono = await buscarUsuarioRiscos(donoEmail);
-    if (!dono) {
-      return NextResponse.json({ error: "O dono precisa ser um usuário do Gestão de Riscos." }, { status: 400 });
-    }
-    const donoTexto = `${dono.nome} <${dono.email}>`;
+    // B14: dono do risco obrigatório: usuário do módulo ou contato de negócio
+    // (com ponto focal Analista GRC).
+    const resolvidoDono = await resolverDonoRisco(sqlAuditado(guarda.usuario), { donoEmail, donoContatoId, pontoFocalEmail });
+    if ("erro" in resolvidoDono) return NextResponse.json({ error: resolvidoDono.erro }, { status: 400 });
+    const dono = resolvidoDono.dono;
+    const donoTexto =
+      `${dono.dono_nome} <${dono.dono_email}>` +
+      (dono.ponto_focal_nome ? ` · ponto focal: ${dono.ponto_focal_nome}` : "");
 
     const sql = sqlAuditado(guarda.usuario);
 
@@ -152,7 +155,8 @@ export async function POST(request: NextRequest) {
 
     await sql`
       INSERT INTO riscos (
-        projeto_id, categoria, causa, evento, consequencia, dono_email, dono_nome, gatilho, resultado_potencial, levantado_por,
+        projeto_id, categoria, causa, evento, consequencia, dono_email, dono_nome, dono_contato_id,
+        ponto_focal_email, ponto_focal_nome, gatilho, resultado_potencial, levantado_por,
         data_levantamento, fonte, impacto, probabilidade, matrix_score,
         nivel_inicial, impacto_qualitativo, nivel_projetado,
         prob_nivel_atual, imp_nivel_atual, prob_nivel_projetado, imp_nivel_projetado,
@@ -166,7 +170,8 @@ export async function POST(request: NextRequest) {
         impacto_alto_indisponibilidade, impacto_alto_restauracao, impacto_alto_total,
         impacto_alto_p10, impacto_alto_p90
       ) VALUES (
-        ${projetoId}, ${categoria || null}, ${cenario.causa}, ${cenario.evento}, ${cenario.consequencia}, ${dono.email}, ${dono.nome}, ${gatilho || null}, ${resultado || null}, ${levantadoPor},
+        ${projetoId}, ${categoria || null}, ${cenario.causa}, ${cenario.evento}, ${cenario.consequencia}, ${dono.dono_email}, ${dono.dono_nome}, ${dono.dono_contato_id},
+        ${dono.ponto_focal_email}, ${dono.ponto_focal_nome}, ${gatilho || null}, ${resultado || null}, ${levantadoPor},
         ${dataLevantamento || null}, ${fonte || null}, ${impacto || null}, ${probabilidade || null},
         ${matrixScore || null}, ${nivelInerente}, ${nivelInerente}, ${nivelInerente},
         ${probabilidade || null}, ${impacto || null}, ${probabilidade || null}, ${impacto || null},
