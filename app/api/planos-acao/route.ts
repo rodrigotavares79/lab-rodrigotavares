@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
+import { sqlAuditado } from "@/lib/sqlAuditado";
 import { exigirPermissao, getUsuarioRiscos } from "@/lib/riscosAuth";
 import { sincronizarStatusRisco } from "@/lib/sincronizarStatusRisco";
 
@@ -91,7 +92,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Título do plano de ação é obrigatório." }, { status: 400 });
     }
 
-    const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
+    const sql = sqlAuditado(guarda.usuario);
 
     const riscoRows = await sql`SELECT id, status FROM riscos WHERE id = ${riscoId}`;
     if (riscoRows.length === 0) {

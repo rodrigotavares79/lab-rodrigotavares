@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { neon } from "@neondatabase/serverless";
 import {
   OPCOES_NATUREZA_FATOR,
   OPCOES_CRITICIDADE,
@@ -10,6 +9,7 @@ import {
   OPCOES_VETOR,
 } from "@/lib/metodologiaRisco";
 import { recomputeRisco } from "@/lib/recomputeRisco";
+import { sqlAuditado } from "@/lib/sqlAuditado";
 import { exigirPermissao } from "@/lib/riscosAuth";
 
 export const dynamic = "force-dynamic";
@@ -37,7 +37,7 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
     }
 
     const body = await request.json();
-    const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
+    const sql = sqlAuditado(guarda.usuario);
 
     const atual = await carregarFatorComRisco(sql, id);
     if (!atual) return NextResponse.json({ error: "Fator de risco não encontrado." }, { status: 404 });
@@ -113,7 +113,7 @@ export async function DELETE(request: NextRequest, props: { params: Promise<{ id
       return NextResponse.json({ error: "ID de fator de risco inválido." }, { status: 400 });
     }
 
-    const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
+    const sql = sqlAuditado(guarda.usuario);
     const atual = await carregarFatorComRisco(sql, id);
     if (!atual) return NextResponse.json({ error: "Fator de risco não encontrado." }, { status: 404 });
     if (atual.risco_status === "Mitigado") {

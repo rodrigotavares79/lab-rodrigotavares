@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { neon } from "@neondatabase/serverless";
+import { sqlAuditado } from "@/lib/sqlAuditado";
 import { exigirPermissao } from "@/lib/riscosAuth";
 import { sincronizarStatusRisco } from "@/lib/sincronizarStatusRisco";
 
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ plan
       );
     }
 
-    const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
+    const sql = sqlAuditado(guarda.usuario);
     const rows = await sql`
       SELECT pa.status, pa.auditoria_status, pa.risco_id, r.status AS risco_status
       FROM planos_acao pa JOIN riscos r ON r.id = pa.risco_id

@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { neon } from "@neondatabase/serverless";
 import {
   OPCOES_NATUREZA_FATOR,
   OPCOES_CRITICIDADE,
@@ -10,6 +9,7 @@ import {
   OPCOES_VETOR,
 } from "@/lib/metodologiaRisco";
 import { recomputeRisco } from "@/lib/recomputeRisco";
+import { sqlAuditado } from "@/lib/sqlAuditado";
 import { exigirPermissao } from "@/lib/riscosAuth";
 
 export const dynamic = "force-dynamic";
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     const erro = validar(body);
     if (erro) return NextResponse.json({ error: erro }, { status: 400 });
 
-    const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
+    const sql = sqlAuditado(guarda.usuario);
 
     const riscoRows = await sql`SELECT id, status FROM riscos WHERE id = ${body.riscoId}`;
     if (riscoRows.length === 0) {

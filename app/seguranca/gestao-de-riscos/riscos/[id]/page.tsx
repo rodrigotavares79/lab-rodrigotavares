@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import s from "@/components/riscos/riscos.module.css";
 import EvidenciasPlano, { type Evidencia } from "@/components/riscos/EvidenciasPlano";
+import { montarEventos, type RegistroLog, type TipoEvento } from "@/lib/historicoRisco";
 import { STATUS_RISCO, statusPermitidos, validarTransicaoStatus, type StatusRisco } from "@/lib/statusRisco";
 import { usePerfilRiscos } from "@/components/riscos/PermissoesRiscos";
 
@@ -273,25 +274,48 @@ function ImpactoDecisao({ risco, totalPlanos }: { risco: RiscoDetalhe; totalPlan
   );
 }
 
-/* ---------- Linha do tempo (montada a partir das datas já gravadas) ---------- */
+/* ---------- Linha do tempo (B06: log de alterações + datas de criação) ---------- */
 
-type Evento = { data: string; titulo: string; meta: string; tipo: "risco" | "fator" | "plano" | "acao" };
+type Evento = {
+  data: string;
+  titulo: string;
+  meta: string;
+  tipo: TipoEvento;
+  mudancas?: { campo: string; de: string; para: string }[];
+};
 
 function LinhaDoTempo({ risco, planos }: { risco: RiscoDetalhe; planos: PlanoAcao[] }) {
-  const eventos: Evento[] = [
+  const [registros, setRegistros] = useState<RegistroLog[] | null>(null);
+
+  useEffect(() => {
+    fetch(`/api/riscos/${risco.id}/historico`)
+      .then((r) => r.json())
+      .then((d) => setRegistros(d.registros || []))
+      .catch(() => setRegistros([]));
+    // Recarrega quando o risco ou os planos mudam (status, novo plano etc.).
+  }, [risco, planos]);
+
+  const doLog = montarEventos(registros || []);
+  // Criações já registradas no log não se repetem pelas datas de criação.
+  const criadosNoLog = new Set(doLog.filter((e) => e.operacao === "INSERT").map((e) => e.chave));
+
+  const derivados: (Evento & { chave: string })[] = [
     {
+      chave: `riscos:${risco.id}`,
       data: risco.criado_em,
       titulo: "Risco cadastrado",
       meta: `${formatData(risco.criado_em)} · por ${risco.levantado_por}`,
       tipo: "risco" as const,
     },
     ...risco.fatores.map((f) => ({
+      chave: `fatores_risco:${f.id}`,
       data: f.criado_em,
       titulo: `Fator ${f.codigo} adicionado`,
       meta: `${formatData(f.criado_em)} · ${f.status_implementacao}`,
       tipo: "fator" as const,
     })),
     ...planos.map((p) => ({
+      chave: `planos_acao:${p.id}`,
       data: p.criado_em,
       titulo: `Plano de ação criado: ${p.titulo}`,
       meta: `${formatData(p.criado_em)} · ${p.status}`,
@@ -299,38 +323,63 @@ function LinhaDoTempo({ risco, planos }: { risco: RiscoDetalhe; planos: PlanoAca
     })),
     ...planos.flatMap((p) =>
       (p.acoes || []).map((a) => ({
+        chave: `acoes:${a.id}`,
         data: a.criado_em,
         titulo: `Ação registrada: ${a.descricao}`,
         meta: `${formatData(a.criado_em)}${a.responsavel ? ` · ${a.responsavel}` : ""} · ${a.status}`,
         tipo: "acao" as const,
       }))
     ),
+  ];
+
+  const eventos: Evento[] = [
+    ...derivados.filter((e) => !criadosNoLog.has(e.chave)),
+    ...doLog.map((e) => ({
+      data: e.data,
+      titulo: e.titulo,
+      meta: `${formatDataHoraAud(e.data)} · ${e.autor}`,
+      tipo: e.tipo,
+      mudancas: e.mudancas,
+    })),
   ]
     .filter((e) => e.data)
-    .sort((a, b) => String(b.data).localeCompare(String(a.data)));
+    .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
 
-  const classeMarcador = {
+  const classeMarcador: Record<TipoEvento, string> = {
     risco: s.marcador,
     fator: `${s.marcador} ${s.marcadorFator}`,
     plano: `${s.marcador} ${s.marcadorPlano}`,
     acao: `${s.marcador} ${s.marcadorAcao}`,
+    evidencia: `${s.marcador} ${s.marcadorPlano}`,
+    auditoria: `${s.marcador} ${s.marcadorPlano}`,
   };
 
   return (
     <div className="dash-panel">
       <div className="dash-panel-header">Linha do tempo</div>
       <div className="dash-panel-body">
+        {registros === null && <p className="text-muted" style={{ margin: "0 0 0.75rem" }}>Carregando histórico...</p>}
         <ol className={s.linhaTempo}>
           {eventos.map((e, i) => (
             <li key={`${e.tipo}-${i}`}>
               <span className={classeMarcador[e.tipo]} aria-hidden="true" />
               <p className={s.eventoTitulo}>{e.titulo}</p>
+              {e.mudancas && e.mudancas.length > 0 && (
+                <div className={s.eventoMeta} style={{ margin: "0.15rem 0" }}>
+                  {e.mudancas.map((m) => (
+                    <div key={m.campo}>
+                      {m.campo}: {m.de} → <strong>{m.para}</strong>
+                    </div>
+                  ))}
+                </div>
+              )}
               <p className={s.eventoMeta}>{e.meta}</p>
             </li>
           ))}
         </ol>
         <p className={s.nota}>
-          Mostra quando cada registro foi criado. Alterações posteriores ainda não ficam registradas.
+          Alterações registradas automaticamente a partir de 25/11/2026, com autor, data e hora. Antes disso, só as
+          datas de criação. O log completo pode ser exportado no Relatório de Auditoria.
         </p>
       </div>
     </div>
