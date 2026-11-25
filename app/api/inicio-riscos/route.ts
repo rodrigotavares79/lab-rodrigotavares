@@ -1,3 +1,4 @@
+import { exigirPermissao } from "@/lib/riscosAuth";
 import { NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { obterIndicadores } from "@/lib/indicadoresRiscos";
@@ -8,6 +9,8 @@ import { obterIndicadores } from "@/lib/indicadoresRiscos";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  const guarda = await exigirPermissao("ler");
+  if (guarda.resposta) return guarda.resposta;
   try {
     const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
 

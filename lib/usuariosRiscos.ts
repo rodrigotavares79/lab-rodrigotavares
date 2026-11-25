@@ -1,10 +1,10 @@
 import { clerkClient } from "@clerk/nextjs/server";
-import { parsePerfilRiscos, ROTULO_PERFIL_RISCOS } from "@/lib/riscosAuth";
+import { parsePerfilRiscos, permissoesDoPerfil, ROTULO_PERFIL_RISCOS } from "@/lib/perfisRiscos";
 
 // Usuários que podem ser responsáveis por ações do Gestão de Riscos (B09):
-// contas do Clerk com a chave `perfilRiscos` no publicMetadata (qualquer
-// perfil). Isso deixa de fora quem só usa outros módulos do lab, como o
-// Gestão de Condomínio.
+// contas do Clerk com acesso ao módulo (chave `perfilRiscos`, qualquer perfil
+// exceto "sem_acesso" — ver lib/perfisRiscos). Isso deixa de fora quem só usa
+// outros módulos do lab, como o Gestão de Condomínio.
 
 export type UsuarioResponsavel = { email: string; nome: string; perfil: string };
 
@@ -12,7 +12,11 @@ export async function listarUsuariosRiscos(): Promise<UsuarioResponsavel[]> {
   const client = await clerkClient();
   const { data } = await client.users.getUserList({ limit: 200 });
   return data
-    .filter((u) => u.publicMetadata && "perfilRiscos" in u.publicMetadata && !u.banned)
+    .filter(
+      (u) =>
+        !u.banned &&
+        permissoesDoPerfil(parsePerfilRiscos(u.publicMetadata as Record<string, unknown>)).ler
+    )
     .map((u) => {
       const email =
         u.emailAddresses.find((e) => e.id === u.primaryEmailAddressId)?.emailAddress ??

@@ -1,9 +1,12 @@
+import { exigirPermissao } from "@/lib/riscosAuth";
 import { NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  const guarda = await exigirPermissao("ler");
+  if (guarda.resposta) return guarda.resposta;
   try {
     const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
     const rows = await sql`SELECT id, nome FROM projetos ORDER BY nome ASC`;

@@ -1,3 +1,4 @@
+import { exigirPermissao } from "@/lib/riscosAuth";
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { obterIndicadores } from "@/lib/indicadoresRiscos";
@@ -5,6 +6,8 @@ import { obterIndicadores } from "@/lib/indicadoresRiscos";
 // Dados do Dashboard. Os indicadores vêm de lib/indicadoresRiscos (fonte
 // única, mesmas definições do Início e do Relatório Executivo).
 export async function GET(request: NextRequest) {
+  const guarda = await exigirPermissao("ler");
+  if (guarda.resposta) return guarda.resposta;
   try {
     const projetoParam = request.nextUrl.searchParams.get("projetoId");
     if (projetoParam && !/^\d+$/.test(projetoParam)) {

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
 import s from "./riscos.module.css";
-import { ProvedorPermissoesRiscos, usePerfilRiscos, type PermissoesRiscos } from "./PermissoesRiscos";
+import { ProvedorPermissoesRiscos, SemPermissao, usePerfilRiscos, type PermissoesRiscos } from "./PermissoesRiscos";
 
 // Moldura própria do módulo Gestão de Riscos: barra superior + menu lateral
 // agrupado. Vale só para as rotas em /seguranca/gestao-de-riscos — o
@@ -205,7 +205,14 @@ function Moldura({ pathname, children }: { pathname: string; children: React.Rea
         </aside>
         {menuAberto && <div className={s.veu} onClick={() => setMenuAberto(false)} aria-hidden="true" />}
 
-        <main className={s.conteudo}>{children}</main>
+        <main className={s.conteudo}>
+          {/* B11: conta sem perfil no módulo não vê nada (as APIs também recusam). */}
+          {perfil.carregado && !perfil.permissoes.ler ? (
+            <SemPermissao mensagem="Seu usuário não tem acesso ao Gestão de Riscos. Peça a um administrador para definir seu perfil." />
+          ) : (
+            children
+          )}
+        </main>
       </div>
     </div>
   );

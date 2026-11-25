@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
-import { getUsuarioRiscos } from "@/lib/riscosAuth";
+import { exigirPermissao } from "@/lib/riscosAuth";
 
 export const dynamic = "force-dynamic";
 
@@ -9,10 +9,11 @@ export const dynamic = "force-dynamic";
 // recente para a mais antiga. Quem não pode ver a auditoria não recebe os
 // registros de auditoria.
 export async function GET(_request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const guarda = await exigirPermissao("ler");
+  if (guarda.resposta) return guarda.resposta;
   const { id } = await props.params;
   try {
-    const usuario = await getUsuarioRiscos();
-    if (!usuario) return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+    const usuario = guarda.usuario;
     if (!/^\d+$/.test(id ?? "")) {
       return NextResponse.json({ error: "ID de risco inválido." }, { status: 400 });
     }

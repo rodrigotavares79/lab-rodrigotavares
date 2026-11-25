@@ -15,6 +15,8 @@ export const dynamic = "force-dynamic";
 // GET: evidências de um Plano de Ação. O endereço real do arquivo nunca sai
 // da API — o navegador abre cada uma pela rota /evidencias/[evidenciaId].
 export async function GET(_request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const guarda = await exigirPermissao("ler");
+  if (guarda.resposta) return guarda.resposta;
   const { id } = await props.params;
   try {
     if (!/^\d+$/.test(id ?? "")) {
