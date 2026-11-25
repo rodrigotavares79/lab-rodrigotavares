@@ -6,6 +6,7 @@ import s from "@/components/riscos/riscos.module.css";
 import EvidenciasPlano, { type Evidencia } from "@/components/riscos/EvidenciasPlano";
 import AceitacaoRisco from "@/components/riscos/AceitacaoRisco";
 import CenarioRisco from "@/components/riscos/CenarioRisco";
+import OcorrenciasRisco from "@/components/riscos/OcorrenciasRisco";
 import ResponsabilidadeRisco from "@/components/riscos/ResponsabilidadeRisco";
 import { podeTrocarAtivo } from "@/lib/ativosCriticos";
 import { OPCOES_TRATAMENTO } from "@/lib/aceitacaoRisco";
@@ -406,6 +407,7 @@ function LinhaDoTempo({ risco, planos }: { risco: RiscoDetalhe; planos: PlanoAca
     evidencia: `${s.marcador} ${s.marcadorPlano}`,
     auditoria: `${s.marcador} ${s.marcadorPlano}`,
     aceitacao: `${s.marcador} ${s.marcadorFator}`,
+    ocorrencia: `${s.marcador} ${s.marcadorFator}`,
   };
 
   return (
@@ -1368,6 +1370,8 @@ export default function DetalheDoRisco() {
                   bloqueado={riscoMitigado}
                   onAtualizado={carregarRisco}
                 />
+
+                <OcorrenciasRisco riscoId={risco.id} />
 
                 <div className="dash-panel">
                   <div className="dash-panel-header">Identificação</div>
