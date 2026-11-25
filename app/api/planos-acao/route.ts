@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
     `;
 
     const evidencias = await sql`
-      SELECT id, plano_acao_id, descricao, nome_arquivo, tipo_arquivo, tamanho_bytes, enviado_por_nome, criado_em
+      SELECT id, plano_acao_id, descricao, nome_arquivo, tipo_arquivo, tamanho_bytes, enviado_por_nome, criado_em, sha256
       FROM planos_acao_evidencias
       WHERE plano_acao_id = ANY(${planoIds})
       ORDER BY criado_em ASC

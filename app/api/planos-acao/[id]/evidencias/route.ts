@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { sqlAuditado } from "@/lib/sqlAuditado";
+import { validarConteudoEvidencia } from "@/lib/assinaturaArquivo";
 import { exigirPermissao } from "@/lib/riscosAuth";
 import {
   armazenamentoEvidenciasConfigurado,
   enviarEvidencia,
+  sha256Hex,
   TAMANHO_MAXIMO_EVIDENCIA,
   TIPOS_EVIDENCIA,
   urlDaEvidencia,
@@ -24,7 +26,7 @@ export async function GET(_request: NextRequest, props: { params: Promise<{ id: 
     }
     const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
     const rows = await sql`
-      SELECT id, descricao, nome_arquivo, tipo_arquivo, tamanho_bytes, enviado_por_nome, criado_em
+      SELECT id, descricao, nome_arquivo, tipo_arquivo, tamanho_bytes, enviado_por_nome, criado_em, sha256
       FROM planos_acao_evidencias
       WHERE plano_acao_id = ${id}
       ORDER BY criado_em ASC
@@ -94,13 +96,21 @@ export async function POST(request: NextRequest, props: { params: Promise<{ id: 
       );
     }
 
-    const blob = await enviarEvidencia(id, arquivo, arquivo.name, arquivo.type);
+    // B12: o conteúdo precisa corresponder ao tipo e à extensão declarados.
+    const dados = new Uint8Array(await arquivo.arrayBuffer());
+    const invalido = validarConteudoEvidencia(arquivo.type, arquivo.name, dados);
+    if (invalido) {
+      return NextResponse.json({ error: invalido }, { status: 400 });
+    }
+    const hash = sha256Hex(dados);
+
+    const blob = await enviarEvidencia(id, dados, arquivo.type);
     const rows = await sql`
       INSERT INTO planos_acao_evidencias
-        (plano_acao_id, descricao, nome_arquivo, tipo_arquivo, tamanho_bytes, arquivo_url, enviado_por_nome, enviado_por_email)
+        (plano_acao_id, descricao, nome_arquivo, tipo_arquivo, tamanho_bytes, arquivo_url, enviado_por_nome, enviado_por_email, sha256)
       VALUES
-        (${id}, ${descricao}, ${arquivo.name.slice(0, 200)}, ${arquivo.type}, ${arquivo.size}, ${blob.url}, ${usuario.nome}, ${usuario.email})
-      RETURNING id, descricao, nome_arquivo, tipo_arquivo, tamanho_bytes, enviado_por_nome, criado_em
+        (${id}, ${descricao}, ${arquivo.name.slice(0, 200)}, ${arquivo.type}, ${arquivo.size}, ${blob.url}, ${usuario.nome}, ${usuario.email}, ${hash})
+      RETURNING id, descricao, nome_arquivo, tipo_arquivo, tamanho_bytes, enviado_por_nome, criado_em, sha256
     `;
     return NextResponse.json({ evidencia: { ...rows[0], url: urlDaEvidencia(id, rows[0].id) } });
   } catch (err) {

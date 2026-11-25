@@ -1,8 +1,12 @@
 import { put, get, del } from "@vercel/blob";
+import { createHash, randomUUID } from "node:crypto";
 
 // Evidências dos Planos de Ação ficam num Blob store PRIVADO da Vercel: o
-// arquivo nunca abre por link direto, só pela rota
-// /api/planos-acao/[id]/evidencias/[evidenciaId], que exige login.
+// arquivo nunca abre por link direto (nem URL assinada), só pela rota
+// /api/planos-acao/[id]/evidencias/[evidenciaId], que confere a permissão a
+// cada acesso (B11). B12: nome aleatório no armazenamento (o nome original
+// fica só no banco), conteúdo validado pela assinatura do formato
+// (lib/assinaturaArquivo) e hash SHA-256 registrado.
 //
 // Usa um store próprio (prefixo de variável RISCOS_BLOB) quando existir; sem
 // ele, aproveita o store privado do Condomínio (CONDOMINIO_BLOB), numa pasta
@@ -40,17 +44,17 @@ export function urlDaEvidencia(planoId: number | string, evidenciaId: number | s
   return `/api/planos-acao/${planoId}/evidencias/${evidenciaId}`;
 }
 
-function nomeSeguro(nome: string): string {
-  const limpo = nome.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-zA-Z0-9._-]+/g, "-");
-  return limpo.slice(-80) || "arquivo";
+export function sha256Hex(dados: Uint8Array): string {
+  return createHash("sha256").update(dados).digest("hex");
 }
 
-export async function enviarEvidencia(planoId: number | string, arquivo: Blob, nomeOriginal: string, tipo: string) {
+export async function enviarEvidencia(planoId: number | string, dados: Uint8Array, tipo: string) {
   const c = credenciais();
   if (!c) throw new Error("ARMAZENAMENTO_NAO_CONFIGURADO");
-  return put(`riscos/evidencias/plano-${planoId}/${Date.now()}-${nomeSeguro(nomeOriginal)}`, arquivo, {
+  // Nome aleatório: não expõe o nome original nem permite adivinhar caminhos.
+  return put(`riscos/evidencias/plano-${planoId}/${randomUUID()}`, Buffer.from(dados), {
     access: "private",
-    addRandomSuffix: true,
+    addRandomSuffix: false,
     contentType: tipo,
     ...c,
   });
