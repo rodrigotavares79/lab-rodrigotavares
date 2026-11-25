@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { exigirPermissao } from "@/lib/riscosAuth";
 import { obterContadoresMenu } from "@/lib/indicadoresRiscos";
+import { podeAprovarAceitacao } from "@/lib/perfisRiscos";
 
 export const dynamic = "force-dynamic";
 
@@ -12,14 +13,29 @@ export async function GET() {
   if (guarda.resposta) return guarda.resposta;
   try {
     const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
-    const kpis = await obterContadoresMenu(sql);
     const usuario = guarda.usuario;
+    const [kpis, pendentes] = await Promise.all([
+      obterContadoresMenu(sql),
+      sql`
+        SELECT a.solicitado_por_email, r.impacto_qualitativo
+        FROM aceitacoes_risco a JOIN riscos r ON r.id = a.risco_id
+        WHERE a.situacao = 'Pendente'
+      `,
+    ]);
+    // B16: conta só as aceitações que este usuário pode decidir (tem alçada
+    // para o nível atual e não foi quem pediu).
+    const aceitacoesPendentes = pendentes.filter(
+      (p: any) =>
+        podeAprovarAceitacao(usuario.perfil, p.impacto_qualitativo) &&
+        String(p.solicitado_por_email || "").toLowerCase() !== usuario.email.toLowerCase()
+    ).length;
     return NextResponse.json({
       // Usuário comum não vê nada de auditoria, nem a contagem.
       auditoriaPendentes: usuario?.permissoes.verAuditoria ? kpis.auditoriaPendentes : 0,
       acoesAtrasadas: kpis.acoesAtrasadas,
       revisoesVencidas: kpis.revisoesVencidas,
       semTratamento: kpis.semTratamento,
+      aceitacoesPendentes,
     });
   } catch (err) {
     console.error(err);

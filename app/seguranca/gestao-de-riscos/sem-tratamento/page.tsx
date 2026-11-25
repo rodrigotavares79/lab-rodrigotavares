@@ -54,7 +54,7 @@ export default function SemTratamento() {
       <section className="content-block">
         <div className="container">
           <span className="eyebrow">Gestão de Riscos</span>
-          <h1>Sem tratamento definido</h1>
+          <h1>Riscos sem tratamento</h1>
           <p className="lede">
             Riscos Alto e Crítico ativos sem plano de ação depois do prazo da política
             {prazoDias !== null ? ` (${prazoDias} dias a partir do cadastro)` : ""}. A Política (item 4) exige plano de

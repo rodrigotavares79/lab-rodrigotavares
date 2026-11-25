@@ -35,7 +35,7 @@ Valor desconhecido = Leitura.
 
 ## Alçada de aceitação de risco (B16)
 
-Aceitar um risco exige uma Carta de Risco (PDF ou DOCX) e a aprovação de alguém com alçada para o nível **no momento do pedido**:
+Aceitar um risco exige uma Carta de Risco (PDF ou DOCX) e a aprovação de alguém com alçada para o nível **atual** do risco (se o risco mudar de nível depois do pedido, vale a alçada do nível novo):
 
 | Nível do risco | Quem pode aprovar |
 |---|---|

@@ -274,7 +274,7 @@ export default function AuditoriaDePlanos() {
         <div className={`container ${s.pagina}`}>
           <div>
             <span className="eyebrow">Gestão de Riscos</span>
-            <h1>Auditoria de Planos</h1>
+            <h1>Fila de auditoria</h1>
             <p className={s.subtituloPagina}>
               Classifique o encerramento de cada plano de ação como <strong>Conforme</strong> (evidências validadas de que o
               plano mitigou o risco) ou <strong>Não conforme</strong>.
