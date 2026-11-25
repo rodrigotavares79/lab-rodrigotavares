@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
       WHERE projeto_id = ${projetoId} AND lower(nome) = lower(${a.nome}) AND ativo
     `;
     if (duplicado) {
-      return NextResponse.json({ error: "Já existe um ativo ativo com esse nome neste projeto." }, { status: 409 });
+      return NextResponse.json({ error: "Já existe um item ativo com esse nome neste projeto." }, { status: 409 });
     }
     const [novo] = await sql`
       INSERT INTO sistemas_criticos

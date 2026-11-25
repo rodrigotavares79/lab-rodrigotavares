@@ -16,7 +16,7 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
     if (!/^\d+$/.test(id ?? "")) return NextResponse.json({ error: "Ativo inválido." }, { status: 400 });
     const body = await request.json().catch(() => ({}));
     const sql = sqlAuditado(guarda.usuario);
-    const [atual] = await sql`SELECT id, projeto_id, ativo FROM sistemas_criticos WHERE id = ${id}`;
+    const [atual] = await sql`SELECT id, projeto_id, nome, ativo FROM sistemas_criticos WHERE id = ${id}`;
     if (!atual) return NextResponse.json({ error: "Ativo não encontrado." }, { status: 404 });
 
     if (Object.keys(body ?? {}).length === 1 && typeof body.ativo === "boolean") {
@@ -27,12 +27,17 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
     const v = validarAtivo(body ?? {});
     if ("erro" in v) return NextResponse.json({ error: v.erro }, { status: 400 });
     const a = v.ativo;
-    const [duplicado] = await sql`
-      SELECT id FROM sistemas_criticos
-      WHERE projeto_id = ${atual.projeto_id} AND lower(nome) = lower(${a.nome}) AND ativo AND id <> ${id}
-    `;
+    // Nome repetido só é checado quando o nome muda: o inventário herdado tem
+    // cópias com o mesmo nome, que precisam continuar editáveis.
+    const nomeMudou = String(atual.nome).toLowerCase() !== a.nome.toLowerCase();
+    const [duplicado] = nomeMudou
+      ? await sql`
+          SELECT id FROM sistemas_criticos
+          WHERE projeto_id = ${atual.projeto_id} AND lower(nome) = lower(${a.nome}) AND ativo AND id <> ${id}
+        `
+      : [];
     if (duplicado) {
-      return NextResponse.json({ error: "Já existe um ativo ativo com esse nome neste projeto." }, { status: 409 });
+      return NextResponse.json({ error: "Já existe um item ativo com esse nome neste projeto." }, { status: 409 });
     }
     await sql`
       UPDATE sistemas_criticos
