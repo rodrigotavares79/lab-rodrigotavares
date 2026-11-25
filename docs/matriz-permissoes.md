@@ -40,6 +40,11 @@ Valor desconhecido = Leitura.
 - Contatos de negócio e o inventário de **ativos e processos críticos** é consultado por qualquer perfil com `ler` e cadastrado/editado por quem tem `editarRiscos`.
 - A lista de usuários (para escolher dono ou responsável por ação) é liberada para quem tem `editarRiscos` ou `editarPlanos`.
 
+## Catálogo de cenários e risco corporativo (B27)
+
+- O catálogo é consultado por qualquer perfil com `ler`; criar, editar, inativar cenários, ligar riscos a cenários e registrar risco corporativo exige `editarRiscos`.
+- O risco corporativo é um risco do projeto "Corporativo (transversal)" e segue as mesmas regras dos demais (dono, planos, aceitação com alçada, revisão).
+
 ## Alçada de aceitação de risco (B16)
 
 Aceitar um risco exige uma Carta de Risco (PDF ou DOCX) e a aprovação de alguém com alçada para o nível **atual** do risco (se o risco mudar de nível depois do pedido, vale a alçada do nível novo):

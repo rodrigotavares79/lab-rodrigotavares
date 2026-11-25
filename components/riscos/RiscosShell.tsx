@@ -54,6 +54,7 @@ const GRUPOS: GrupoMenu[] = [
       { href: `${BASE}/riscos`, label: "Lista de riscos" },
       { href: `${BASE}/cadastro-de-riscos`, label: "Cadastrar risco", exige: "editarRiscos" },
       { href: `${BASE}/ativos-criticos`, label: "Ativos e processos" },
+      { href: `${BASE}/cenarios`, label: "Catálogo de cenários" },
       { href: `${BASE}/contatos-risco`, label: "Contatos de negócio" },
       { href: `${BASE}/riscos-duplicados`, label: "Riscos repetidos", contador: "duplicados", exige: "editarRiscos" },
     ],
