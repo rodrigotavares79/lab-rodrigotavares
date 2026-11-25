@@ -3,13 +3,14 @@ import { sqlAuditado } from "@/lib/sqlAuditado";
 import { exigirPermissao } from "@/lib/riscosAuth";
 import { sincronizarStatusRisco } from "@/lib/sincronizarStatusRisco";
 import { motivoConflitoAuditoria } from "@/lib/segregacaoFuncoes";
+import { validarDecisaoAuditoria } from "@/lib/regrasAuditoria";
 
 export const dynamic = "force-dynamic";
 
 // POST { resultado: "Conforme" | "Não conforme", comentario?: string }
 // Classifica o encerramento de um plano de ação. Só coordenador, gerente ou
 // administrador (perfilRiscos no Clerk).
-// - Conforme: evidência validada; comentário opcional.
+// - Conforme: exige pelo menos uma evidência anexada (B08); comentário opcional.
 // - Não conforme: comentário obrigatório; o plano volta a ficar Aberto para
 //   correção e entra de novo na fila quando for concluído outra vez.
 export async function POST(request: NextRequest, props: { params: Promise<{ planoId: string }> }) {
@@ -28,12 +29,6 @@ export async function POST(request: NextRequest, props: { params: Promise<{ plan
 
     if (resultado !== "Conforme" && resultado !== "Não conforme") {
       return NextResponse.json({ error: "Resultado inválido." }, { status: 400 });
-    }
-    if (resultado === "Não conforme" && !comentario) {
-      return NextResponse.json(
-        { error: "Informe o motivo da não conformidade no comentário." },
-        { status: 400 }
-      );
     }
 
     const sql = sqlAuditado(guarda.usuario);
@@ -69,6 +64,15 @@ export async function POST(request: NextRequest, props: { params: Promise<{ plan
                 ${"planos_acao:" + planoId}, ${`${resultado}: ${conflito}`})
       `;
       return NextResponse.json({ error: conflito }, { status: 403 });
+    }
+
+    // B08: Conforme exige evidência; Não conforme exige motivo.
+    const [{ total: totalEvidencias }] = await sql`
+      SELECT COUNT(*)::int AS total FROM planos_acao_evidencias WHERE plano_acao_id = ${planoId}
+    `;
+    const invalida = validarDecisaoAuditoria({ resultado, comentario, totalEvidencias });
+    if (invalida) {
+      return NextResponse.json({ error: invalida }, { status: 400 });
     }
 
     const novoStatusPlano = resultado === "Conforme" ? "Concluído" : "Aberto";
