@@ -83,3 +83,59 @@ export function podeRegistrarOcorrencia(status: string | null | undefined): stri
   }
   return null;
 }
+
+// ---------------------------------------------------------------------------
+// Consolidação de riscos repetidos no mesmo projeto.
+
+export const LIMIAR_DUPLICADO = 0.85;
+
+export type RiscoParaAgrupar = CenarioComparavel & { id: number; projeto_id: number };
+
+// Agrupa riscos do mesmo projeto com cenário quase igual (nota ≥ limiar),
+// ligando em cadeia (se A~B e B~C, os três ficam no mesmo grupo). Só devolve
+// grupos com 2 ou mais riscos, cada um ordenado por id.
+export function agruparDuplicados<T extends RiscoParaAgrupar>(riscos: T[], limiar = LIMIAR_DUPLICADO): T[][] {
+  const pai = new Map<number, number>();
+  const raiz = (x: number): number => {
+    let r = x;
+    while (pai.get(r) !== r) r = pai.get(r)!;
+    pai.set(x, r);
+    return r;
+  };
+  for (const r of riscos) pai.set(r.id, r.id);
+  for (let i = 0; i < riscos.length; i++) {
+    for (let j = i + 1; j < riscos.length; j++) {
+      const a = riscos[i];
+      const b = riscos[j];
+      if (a.projeto_id !== b.projeto_id) continue;
+      if (notaSemelhanca(a, b) >= limiar && notaSemelhanca(b, a) >= limiar) pai.set(raiz(a.id), raiz(b.id));
+    }
+  }
+  const grupos = new Map<number, T[]>();
+  for (const r of riscos) {
+    const k = raiz(r.id);
+    grupos.set(k, [...(grupos.get(k) || []), r]);
+  }
+  return [...grupos.values()].filter((g) => g.length > 1).map((g) => g.sort((a, b) => a.id - b.id));
+}
+
+export type SituacaoConsolidacao = {
+  status: string | null;
+  fatores: number;
+  aceitacoes: number;
+};
+
+// Motivo pelo qual um risco não pode ser absorvido por outro (null = pode).
+// Planos de ação e ocorrências são transferidos; fatores e aceitações não,
+// porque mudam o nível e a decisão do risco principal.
+export function bloqueioComoDuplicado(r: SituacaoConsolidacao): string | null {
+  if (r.status === "Mitigado") return "está Mitigado";
+  if (r.aceitacoes > 0) return "tem pedido ou aceitação de risco";
+  if (r.fatores > 0) return "tem fatores de risco cadastrados";
+  return null;
+}
+
+export function bloqueioComoPrincipal(r: SituacaoConsolidacao): string | null {
+  if (r.status === "Mitigado") return "está Mitigado";
+  return null;
+}

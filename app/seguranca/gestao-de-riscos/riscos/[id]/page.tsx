@@ -1058,6 +1058,8 @@ export default function DetalheDoRisco() {
   const [erroSalvar, setErroSalvar] = useState<string | null>(null);
   const [sucessoSalvar, setSucessoSalvar] = useState(false);
 
+  const [consolidadoEm, setConsolidadoEm] = useState<number | null>(null);
+
   function carregarRisco() {
     if (!params?.id) return;
     setCarregando(true);
@@ -1065,6 +1067,7 @@ export default function DetalheDoRisco() {
     fetch(`/api/riscos/${params.id}`)
       .then((r) => r.json())
       .then((d) => {
+        setConsolidadoEm(d.consolidadoEm ?? null);
         if (d.error) throw new Error(d.error);
         setRisco(d.risco);
         setImpactoForm(d.risco.impacto ? String(d.risco.impacto) : "");
@@ -1291,8 +1294,16 @@ export default function DetalheDoRisco() {
           <div className="error-banner" style={{ marginTop: "1.5rem" }}>
             <span className="success-icon error-icon">!</span>
             <span className="success-text">
-              <strong>Não foi possível carregar este risco.</strong>
-              <span>{erro}</span>
+              <strong>{consolidadoEm ? "Risco consolidado." : "Não foi possível carregar este risco."}</strong>
+              <span>
+                {erro}
+                {consolidadoEm && (
+                  <>
+                    {" "}
+                    <a href={`/seguranca/gestao-de-riscos/riscos/${consolidadoEm}#ocorrencias`}>Abrir o risco #{consolidadoEm}</a>
+                  </>
+                )}
+              </span>
             </span>
           </div>
         )}
