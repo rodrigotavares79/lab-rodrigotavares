@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { getUsuarioRiscos } from "@/lib/riscosAuth";
+import { obterContadoresMenu } from "@/lib/indicadoresRiscos";
 
 export const dynamic = "force-dynamic";
 
@@ -9,20 +10,12 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
-    const [[auditoria], [acoes]] = await Promise.all([
-      sql`SELECT COUNT(*)::int AS pendentes FROM planos_acao WHERE auditoria_status = 'Pendente'`,
-      sql`
-        SELECT COUNT(*)::int AS atrasadas
-        FROM acoes
-        WHERE status IS DISTINCT FROM 'Concluído'
-          AND NULLIF(prazo::text, '')::date < CURRENT_DATE
-      `,
-    ]);
+    const kpis = await obterContadoresMenu(sql);
     const usuario = await getUsuarioRiscos();
     return NextResponse.json({
       // Usuário comum não vê nada de auditoria, nem a contagem.
-      auditoriaPendentes: usuario?.permissoes.verAuditoria ? auditoria.pendentes : 0,
-      acoesAtrasadas: acoes.atrasadas,
+      auditoriaPendentes: usuario?.permissoes.verAuditoria ? kpis.auditoriaPendentes : 0,
+      acoesAtrasadas: kpis.acoesAtrasadas,
     });
   } catch (err) {
     console.error(err);

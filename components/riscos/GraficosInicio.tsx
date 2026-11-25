@@ -271,7 +271,7 @@ function GaugeMitigacao({ trimestres }: { trimestres: Trimestre[] | undefined })
           aria-label={
             pct === null
               ? "Sem riscos críticos ou altos no trimestre atual"
-              : `${formatPct(pct)} dos riscos críticos e altos mitigados no trimestre ${atual?.trimestre}; meta de ${META}%`
+              : `${formatPct(pct)} dos riscos críticos e altos (nível inerente) mitigados no trimestre ${atual?.trimestre}; meta de ${META}%`
           }
         >
           {ZONAS.map((z) => (
@@ -316,7 +316,7 @@ function GaugeMitigacao({ trimestres }: { trimestres: Trimestre[] | undefined })
           {atual
             ? pct === null
               ? `Trimestre ${atual.trimestre} · sem riscos críticos ou altos no período`
-              : `Trimestre ${atual.trimestre} · ${atual.mitigados} de ${atual.total} críticos e altos mitigados · meta ${META}%`
+              : `Trimestre ${atual.trimestre} · ${atual.mitigados} de ${atual.total} críticos e altos (nível inerente) mitigados · meta ${META}%`
             : " "}
         </p>
       </div>
