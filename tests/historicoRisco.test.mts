@@ -58,3 +58,15 @@ test("eventos ordenados do mais recente para o mais antigo", () => {
   ]);
   assert.deepEqual(eventos.map((e) => e.titulo), ["Auditoria do plano: Conforme", "Risco cadastrado"]);
 });
+
+test("atualizações seguidas do mesmo registro e autor viram um evento", () => {
+  const eventos = montarEventos([
+    { ...base, id: 1, ocorrido_em: "2026-11-25T14:32:41.100Z", tabela: "riscos", registro_id: "58", operacao: "UPDATE", campo: "impacto", valor_anterior: 5, valor_novo: 4, transacao: 200 },
+    { ...base, id: 2, ocorrido_em: "2026-11-25T14:32:41.100Z", tabela: "riscos", registro_id: "58", operacao: "UPDATE", campo: "nivel_inicial", valor_anterior: "Crítico", valor_novo: "Alto", transacao: 200 },
+    { ...base, id: 3, ocorrido_em: "2026-11-25T14:32:41.400Z", tabela: "riscos", registro_id: "58", operacao: "UPDATE", campo: "impacto_qualitativo", valor_anterior: "Crítico", valor_novo: "Alto", transacao: 201 },
+    // Outra edição, um minuto depois: evento separado.
+    { ...base, id: 4, ocorrido_em: "2026-11-25T14:33:45.000Z", tabela: "riscos", registro_id: "58", operacao: "UPDATE", campo: "impacto", valor_anterior: 4, valor_novo: 5, transacao: 202 },
+  ]);
+  assert.equal(eventos.length, 2);
+  assert.deepEqual(eventos[1].mudancas.map((m) => m.campo), ["Impacto inerente", "Nível inerente", "Nível atual"]);
+});
