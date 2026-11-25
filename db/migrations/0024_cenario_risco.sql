@@ -1,7 +1,7 @@
 -- B13 · Cenário de risco estruturado (causa → evento → consequência).
 --
 -- - riscos.causa, riscos.evento, riscos.consequencia: o cenário.
--- - riscos.titulo: "Risco de [evento] devido a [causa], resultando em
+-- - riscos.titulo: "Risco de [evento] em razão de [causa], resultando em
 --   [consequência]", mantido pelo banco (trigger) em qualquer caminho de
 --   gravação; NULL enquanto o cenário estiver incompleto. A mesma regra está
 --   em lib/cenarioRisco.ts.
@@ -45,7 +45,7 @@ BEGIN
     NEW.titulo := NULL;
   ELSE
     NEW.titulo := 'Risco de ' || fn_trecho_titulo(NEW.evento)
-      || ' devido a ' || fn_trecho_titulo(NEW.causa)
+      || ' em razão de ' || fn_trecho_titulo(NEW.causa)
       || ', resultando em ' || fn_trecho_titulo(NEW.consequencia);
   END IF;
   RETURN NEW;

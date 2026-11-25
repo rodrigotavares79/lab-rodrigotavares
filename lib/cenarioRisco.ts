@@ -1,7 +1,10 @@
 // B13 · Cenário de risco estruturado: causa → evento → consequência.
 //
 // O título do risco é montado a partir dos três campos, no padrão
-//   "Risco de [evento] devido a [causa], resultando em [consequência]".
+// (o backlog previa "devido a [causa]", mas isso exige crase com causa
+// feminina — "devido à falta" —, que o sistema não tem como saber; "em razão
+// de" funciona com qualquer causa)
+//   "Risco de [evento] em razão de [causa], resultando em [consequência]".
 // O ponto de gatilho deixa de ser o nome do risco: é o sinal observável que
 // indica que o risco está se materializando (base dos KRIs, B21).
 //
@@ -44,7 +47,7 @@ export function cenarioCompleto(c: Cenario): boolean {
 // Título no padrão da metodologia; null se faltar alguma das três partes.
 export function montarTituloRisco(c: Cenario): string | null {
   if (!cenarioCompleto(c)) return null;
-  return `Risco de ${trechoParaTitulo(c.evento)} devido a ${trechoParaTitulo(c.causa)}, resultando em ${trechoParaTitulo(c.consequencia)}`;
+  return `Risco de ${trechoParaTitulo(c.evento)} em razão de ${trechoParaTitulo(c.causa)}, resultando em ${trechoParaTitulo(c.consequencia)}`;
 }
 
 // Nome para exibir em listas: o título montado; para risco ainda sem

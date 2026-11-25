@@ -32,7 +32,7 @@ test("montarTituloRisco segue o padrão da metodologia", () => {
       evento: "Falha na execução do backup",
       consequencia: "Dados recentes sem cópia válida para recuperação.",
     }),
-    "Risco de falha na execução do backup devido a rotina de backup sem verificação de execução, resultando em dados recentes sem cópia válida para recuperação"
+    "Risco de falha na execução do backup em razão de rotina de backup sem verificação de execução, resultando em dados recentes sem cópia válida para recuperação"
   );
 });
 
