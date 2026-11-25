@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { exigirPermissao } from "@/lib/riscosAuth";
+import { sincronizarStatusRisco } from "@/lib/sincronizarStatusRisco";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ plan
 
     const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
     const rows = await sql`
-      SELECT pa.status, pa.auditoria_status, r.status AS risco_status
+      SELECT pa.status, pa.auditoria_status, pa.risco_id, r.status AS risco_status
       FROM planos_acao pa JOIN riscos r ON r.id = pa.risco_id
       WHERE pa.id = ${planoId}
     `;
@@ -76,6 +77,10 @@ export async function POST(request: NextRequest, props: { params: Promise<{ plan
       INSERT INTO planos_acao_auditorias (plano_acao_id, resultado, comentario, auditor_nome, auditor_email)
       VALUES (${planoId}, ${resultado}, ${comentario}, ${usuario.nome}, ${usuario.email})
     `;
+
+    // Garante que o risco está Em Tratamento (ex.: plano reprovado e reaberto).
+    // Nunca promove para Mitigado sozinho: isso é decisão de quem reavalia.
+    await sincronizarStatusRisco(sql, plano.risco_id);
 
     return NextResponse.json({ plano: atualizados[0] });
   } catch (err) {

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import s from "@/components/riscos/riscos.module.css";
 import EvidenciasPlano, { type Evidencia } from "@/components/riscos/EvidenciasPlano";
+import { STATUS_RISCO, statusPermitidos, validarTransicaoStatus, type StatusRisco } from "@/lib/statusRisco";
 import { usePerfilRiscos } from "@/components/riscos/PermissoesRiscos";
 
 type FatorRisco = {
@@ -131,7 +132,6 @@ const OPCOES_STATUS_IMPLEMENTACAO = [
   "Implementado e validado",
 ];
 const OPCOES_VETOR = ["Probabilidade", "Impacto", "Ambos"];
-const STATUS_OPCOES = ["Identificado", "Em Tratamento", "Mitigado"];
 
 function classeStatus(status: string | null): string {
   if (status === "Mitigado") return "status-resolved";
@@ -1002,6 +1002,8 @@ export default function DetalheDoRisco() {
       setTituloPlano("");
       setNovoPlanoAberto(false);
       carregarPlanos();
+      // O servidor passa o risco para Em Tratamento ao criar o primeiro plano.
+      carregarRisco();
     } catch (err) {
       setErroPlano(err instanceof Error ? err.message : "Erro ao cadastrar o plano de ação.");
     } finally {
@@ -1010,6 +1012,19 @@ export default function DetalheDoRisco() {
   }
 
   const riscoMitigado = risco?.status === "Mitigado";
+  // Regras de transição (lib/statusRisco): as opções que o servidor
+  // recusaria aparecem desabilitadas, com o motivo logo abaixo.
+  const resumoPlanos = {
+    total: planos.length,
+    conformes: planos.filter((p) => p.auditoria_status === "Conforme").length,
+  };
+  const statusAtual = (risco?.status || "Identificado") as StatusRisco;
+  const permitidos = carregandoPlanos ? [statusAtual] : statusPermitidos(statusAtual, resumoPlanos);
+  const motivosBloqueio = carregandoPlanos
+    ? []
+    : STATUS_RISCO.filter((st) => !permitidos.includes(st))
+        .map((st) => validarTransicaoStatus(statusAtual, st, resumoPlanos))
+        .filter((m): m is string => !!m);
   const perfil = usePerfilRiscos();
   const podeEditarRisco = perfil.permissoes.editarRiscos;
   const podeEditarPlanos = perfil.permissoes.editarPlanos;
@@ -1051,8 +1066,15 @@ export default function DetalheDoRisco() {
         <div className="form-field form-field-wide">
           <label htmlFor="statusForm">Status</label>
           <select id="statusForm" value={statusForm} onChange={(e) => setStatusForm(e.target.value)}>
-            {STATUS_OPCOES.map((st) => <option key={st} value={st}>{st}</option>)}
+            {STATUS_RISCO.map((st) => (
+              <option key={st} value={st} disabled={!permitidos.includes(st)}>{st}</option>
+            ))}
           </select>
+          {motivosBloqueio.length > 0 && (
+            <ul className="field-helper" style={{ margin: "0.5rem 0 0", paddingLeft: "1.1rem" }}>
+              {motivosBloqueio.map((m) => <li key={m}>{m}</li>)}
+            </ul>
+          )}
         </div>
         <div className="form-field-wide form-actions">
           <button type="submit" className="btn-primary" disabled={salvando}>

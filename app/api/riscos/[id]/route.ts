@@ -3,10 +3,10 @@ import { neon } from "@neondatabase/serverless";
 import { nivelRisco } from "@/lib/metodologiaRisco";
 import { recomputeRisco } from "@/lib/recomputeRisco";
 import { exigirPermissao } from "@/lib/riscosAuth";
+import { STATUS_RISCO, statusValido, validarTransicaoStatus, type StatusRisco } from "@/lib/statusRisco";
+import { resumoPlanos } from "@/lib/sincronizarStatusRisco";
 
 export const dynamic = "force-dynamic";
-
-const STATUS_VALIDOS = ["Identificado", "Em Tratamento", "Mitigado"];
 
 export async function GET(request: NextRequest, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
@@ -79,9 +79,9 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
     const body = await request.json();
     const { impacto, probabilidade, status } = body ?? {};
 
-    if (status !== undefined && !STATUS_VALIDOS.includes(status)) {
+    if (status !== undefined && !statusValido(status)) {
       return NextResponse.json(
-        { error: `Status inválido. Use um de: ${STATUS_VALIDOS.join(", ")}.` },
+        { error: `Status inválido. Use um de: ${STATUS_RISCO.join(", ")}.` },
         { status: 400 }
       );
     }
@@ -109,43 +109,18 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
     }
     const atual = atualRows[0];
 
-    // Congelamento: uma vez Mitigado, o risco nunca mais pode ser reavaliado
-    // (nem nível inerente, nem status) — é um estado terminal.
-    if (atual.status === "Mitigado") {
-      return NextResponse.json(
-        { error: "Este risco já foi mitigado e não pode mais ser alterado." },
-        { status: 409 }
-      );
-    }
-
-    // Mitigado exige auditoria: todos os planos de ação do risco (pelo menos
-    // um) precisam estar classificados como "Conforme".
-    if (status === "Mitigado") {
-      const [planos] = await sql`
-        SELECT
-          COUNT(*)::int AS total,
-          COUNT(*) FILTER (WHERE auditoria_status = 'Conforme')::int AS conformes
-        FROM planos_acao WHERE risco_id = ${id}
-      `;
-      if (planos.total === 0) {
-        return NextResponse.json(
-          { error: "Para marcar como Mitigado, o risco precisa de pelo menos um plano de ação auditado como Conforme." },
-          { status: 409 }
-        );
-      }
-      if (planos.conformes < planos.total) {
-        return NextResponse.json(
-          {
-            error: `Para marcar como Mitigado, todos os planos de ação precisam estar auditados como Conforme (${planos.conformes} de ${planos.total}).`,
-          },
-          { status: 409 }
-        );
-      }
+    // Regras de transição (lib/statusRisco): Mitigado é terminal; Em
+    // Tratamento exige plano; Mitigado exige todos os planos Conforme; risco
+    // com plano não volta para Identificado.
+    const novoStatus: StatusRisco = status ?? atual.status ?? "Identificado";
+    const planos = await resumoPlanos(sql, id);
+    const erroTransicao = validarTransicaoStatus(atual.status, novoStatus, planos);
+    if (erroTransicao) {
+      return NextResponse.json({ error: erroTransicao }, { status: 409 });
     }
 
     const novoImpacto = impactoNum ?? atual.impacto;
     const novaProbabilidade = probabilidadeNum ?? atual.probabilidade;
-    const novoStatus = status ?? atual.status;
     const novoMatrixScore = novoImpacto && novaProbabilidade ? novoImpacto * novaProbabilidade : null;
     const novoNivelInerente = novoImpacto && novaProbabilidade ? nivelRisco(novaProbabilidade, novoImpacto) : null;
 
@@ -157,7 +132,7 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
           nivel_inicial = ${novoNivelInerente},
           status = ${novoStatus},
           mitigado_em = ${novoStatus === "Mitigado" ? new Date().toISOString() : null}
-      WHERE id = ${id}
+      WHERE id = ${id} AND status IS DISTINCT FROM 'Mitigado'
     `;
 
     // O nível inerente pode ter mudado — recalcula Atual e Projetado a partir
