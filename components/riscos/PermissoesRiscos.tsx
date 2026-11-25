@@ -6,6 +6,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 // tudo fica bloqueado (carregado = false) — as rotas de API validam de novo.
 
 export type PermissoesRiscos = {
+  ler: boolean;
   editarRiscos: boolean;
   editarPlanos: boolean;
   verAuditoria: boolean;
@@ -20,8 +21,8 @@ export type PerfilRiscosCliente = {
   permissoes: PermissoesRiscos;
 };
 
-const NADA: PermissoesRiscos = { editarRiscos: false, editarPlanos: false, verAuditoria: false, auditar: false };
-const INICIAL: PerfilRiscosCliente = { carregado: false, nome: "", perfil: "usuario", rotulo: "", permissoes: NADA };
+const NADA: PermissoesRiscos = { ler: false, editarRiscos: false, editarPlanos: false, verAuditoria: false, auditar: false };
+const INICIAL: PerfilRiscosCliente = { carregado: false, nome: "", perfil: "sem_acesso", rotulo: "", permissoes: NADA };
 
 const Contexto = createContext<PerfilRiscosCliente>(INICIAL);
 

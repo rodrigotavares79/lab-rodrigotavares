@@ -1,59 +1,21 @@
 import { NextResponse } from "next/server";
 import { currentUser } from "@clerk/nextjs/server";
 
-// Perfis de acesso do Gestão de Riscos, guardados no publicMetadata do Clerk
-// (Dashboard > Users > usuário > Metadata > Public), chave `perfilRiscos`:
-//
-//   "usuario"        Usuário comum — lê e emite relatórios; não cadastra nada e
-//                    não vê nenhuma informação de auditoria. (padrão: quem não
-//                    tem a chave cai aqui)
-//   "analista_grc"   Analista GRC — lê tudo, cadastra e edita riscos e planos
-//                    de ação, vê a auditoria (não audita).
-//   "coordenador"    Coordenador / Gerente — lê tudo, cadastra e edita riscos
-//   "gerente"        e aplica as validações de conformidade (Conforme / Não
-//                    conforme). Não edita planos de ação: quem valida não
-//                    executa (segregação de funções).
-//   "administrador"  Pode fazer qualquer coisa.
-//
-// Valores antigos continuam aceitos: "gestor" = gerente,
-// "analista_senior" = analista_grc.
+// Perfis e matriz de permissões: lib/perfisRiscos.ts (B11), documentados em
+// docs/matriz-permissoes.md. Aqui ficam só a leitura do usuário no Clerk e a
+// checagem nas rotas de API.
 
-export type PerfilRiscos = "usuario" | "analista_grc" | "coordenador" | "gerente" | "administrador";
+import {
+  MENSAGEM_SEM_PERMISSAO,
+  parsePerfilRiscos,
+  permissoesDoPerfil,
+  ROTULO_PERFIL_RISCOS,
+  type PerfilRiscos,
+  type PermissoesRiscos,
+} from "@/lib/perfisRiscos";
 
-export const ROTULO_PERFIL_RISCOS: Record<PerfilRiscos, string> = {
-  usuario: "Usuário comum",
-  analista_grc: "Analista GRC",
-  coordenador: "Coordenador",
-  gerente: "Gerente",
-  administrador: "Administrador",
-};
-
-export type PermissoesRiscos = {
-  editarRiscos: boolean;
-  editarPlanos: boolean;
-  verAuditoria: boolean;
-  auditar: boolean;
-};
-
-const PERMISSOES: Record<PerfilRiscos, PermissoesRiscos> = {
-  usuario: { editarRiscos: false, editarPlanos: false, verAuditoria: false, auditar: false },
-  analista_grc: { editarRiscos: true, editarPlanos: true, verAuditoria: true, auditar: false },
-  coordenador: { editarRiscos: true, editarPlanos: false, verAuditoria: true, auditar: true },
-  gerente: { editarRiscos: true, editarPlanos: false, verAuditoria: true, auditar: true },
-  administrador: { editarRiscos: true, editarPlanos: true, verAuditoria: true, auditar: true },
-};
-
-export function parsePerfilRiscos(metadata: Record<string, unknown>): PerfilRiscos {
-  const v = metadata.perfilRiscos;
-  if (v === "analista_grc" || v === "coordenador" || v === "gerente" || v === "administrador") return v;
-  if (v === "gestor") return "gerente";
-  if (v === "analista_senior") return "analista_grc";
-  return "usuario";
-}
-
-export function permissoesDoPerfil(perfil: PerfilRiscos): PermissoesRiscos {
-  return PERMISSOES[perfil];
-}
+export { parsePerfilRiscos, permissoesDoPerfil, ROTULO_PERFIL_RISCOS };
+export type { PerfilRiscos, PermissoesRiscos };
 
 export type UsuarioRiscos = {
   email: string;
@@ -76,12 +38,6 @@ export async function getUsuarioRiscos(): Promise<UsuarioRiscos | null> {
   return { email, nome: user.fullName || email || "Usuário", perfil, permissoes, podeAuditar: permissoes.auditar };
 }
 
-const MENSAGEM_SEM_PERMISSAO: Record<keyof PermissoesRiscos, string> = {
-  editarRiscos: "Seu perfil não permite cadastrar ou editar riscos.",
-  editarPlanos: "Seu perfil não permite cadastrar ou editar planos de ação.",
-  verAuditoria: "Seu perfil não tem acesso às informações de auditoria.",
-  auditar: "Somente coordenador, gerente ou administrador podem aplicar validações de conformidade.",
-};
 
 /**
  * Confere login e permissão numa rota de API. Devolve o usuário, ou uma

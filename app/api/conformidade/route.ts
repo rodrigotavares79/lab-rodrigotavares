@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
-import { getUsuarioRiscos } from "@/lib/riscosAuth";
+import { exigirPermissao } from "@/lib/riscosAuth";
 import { mapearRisco } from "@/lib/conformidadeFrameworks";
 
 export const dynamic = "force-dynamic";
@@ -8,9 +8,10 @@ export const dynamic = "force-dynamic";
 // GET: mapeamento automático de todos os riscos para CIS Controls v8.1,
 // NIST CSF 2.0 e ISO/IEC 27001:2022. Somente leitura, para qualquer perfil.
 export async function GET() {
+  const guarda = await exigirPermissao("ler");
+  if (guarda.resposta) return guarda.resposta;
   try {
-    const usuario = await getUsuarioRiscos();
-    if (!usuario) return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+    const usuario = guarda.usuario;
 
     const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
     const riscos = await sql`

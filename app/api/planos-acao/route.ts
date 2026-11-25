@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { sqlAuditado } from "@/lib/sqlAuditado";
-import { exigirPermissao, getUsuarioRiscos } from "@/lib/riscosAuth";
+import { exigirPermissao } from "@/lib/riscosAuth";
 import { sincronizarStatusRisco } from "@/lib/sincronizarStatusRisco";
 
 // GET: lista os Planos de Ação (container) de um risco, cada um já com a
 // lista de Ações que tem dentro dele.
 export async function GET(request: NextRequest) {
+  const guarda = await exigirPermissao("ler");
+  if (guarda.resposta) return guarda.resposta;
   try {
     const riscoId = request.nextUrl.searchParams.get("riscoId");
     if (!riscoId || !/^\d+$/.test(riscoId)) {
@@ -56,7 +58,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Usuário comum não vê nenhuma informação de auditoria.
-    const usuario = await getUsuarioRiscos();
+    const usuario = guarda.usuario;
     const verAuditoria = !!usuario?.permissoes.verAuditoria;
 
     const planosComAcoes = planos.map((p: any) => ({

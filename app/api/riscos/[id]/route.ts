@@ -10,6 +10,8 @@ import { resumoPlanos } from "@/lib/sincronizarStatusRisco";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const guarda = await exigirPermissao("ler");
+  if (guarda.resposta) return guarda.resposta;
   const params = await props.params;
   try {
     const { id } = params;

@@ -1,8 +1,11 @@
+import { exigirPermissao } from "@/lib/riscosAuth";
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { obterIndicadores } from "@/lib/indicadoresRiscos";
 
 export async function GET(request: NextRequest) {
+  const guarda = await exigirPermissao("ler");
+  if (guarda.resposta) return guarda.resposta;
   try {
     const projetoId = request.nextUrl.searchParams.get("projetoId");
     if (!projetoId || !/^\d+$/.test(projetoId)) {
