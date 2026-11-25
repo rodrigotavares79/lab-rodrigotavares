@@ -1,11 +1,11 @@
-import { MATRIZ_5X5, NIVEL_RISCO_LABEL } from "@/lib/metodologiaRisco";
+import { MATRIZ_5X5, NIVEL_RISCO_LABEL, ROTULOS_ESCALA_5 } from "@/lib/metodologiaRisco";
 import s from "./MatrizRiscos.module.css";
 
 // Desenho da matriz 5×5 (Probabilidade × Impacto) usada na classificação.
 // Lê a mesma tabela do motor de cálculo (lib/metodologiaRisco.ts), então o
 // desenho nunca fica diferente da regra aplicada no cadastro.
 
-const ROTULOS_ESCALA = ["Muito Baixo", "Baixo", "Médio", "Alto", "Muito Alto"];
+const ROTULOS_ESCALA = ROTULOS_ESCALA_5;
 
 const CLASSE_NIVEL: Record<number, string> = {
   1: s.nivel1,

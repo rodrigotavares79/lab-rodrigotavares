@@ -208,6 +208,28 @@
   gap: 4px;
 }
 
+.gradeComEixos {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.linhaMatriz {
+  display: grid;
+  grid-template-columns: 1.2rem repeat(5, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.rotuloLinha,
+.rotuloColuna {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
 .celula {
   height: 2.6rem;
   border-radius: 6px;
