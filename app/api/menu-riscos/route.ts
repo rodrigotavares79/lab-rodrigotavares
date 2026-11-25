@@ -6,7 +6,7 @@ import { obterContadoresMenu } from "@/lib/indicadoresRiscos";
 export const dynamic = "force-dynamic";
 
 // Contadores do menu lateral do Gestão de Riscos: planos aguardando
-// auditoria e ações com prazo vencido.
+// auditoria, ações com prazo vencido e riscos com revisão vencida.
 export async function GET() {
   try {
     const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
@@ -16,6 +16,7 @@ export async function GET() {
       // Usuário comum não vê nada de auditoria, nem a contagem.
       auditoriaPendentes: usuario?.permissoes.verAuditoria ? kpis.auditoriaPendentes : 0,
       acoesAtrasadas: kpis.acoesAtrasadas,
+      revisoesVencidas: kpis.revisoesVencidas,
     });
   } catch (err) {
     console.error(err);

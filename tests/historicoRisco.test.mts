@@ -88,3 +88,23 @@ test("duas edições seguidas do mesmo campo não se misturam", () => {
     { campo: "Nível atual", de: "Crítico", para: "Alto" },
   ]);
 });
+
+test("salvar a reavaliação sem mudar nada aparece como revisão (B17)", () => {
+  const eventos = montarEventos([
+    { ...base, id: 1, ocorrido_em: "2026-11-25T18:00:00Z", tabela: "riscos", registro_id: "58", operacao: "UPDATE", campo: "revisado_em", valor_anterior: "2026-09-20T12:00:00", valor_novo: "2026-11-25T18:00:00", transacao: 400 },
+  ]);
+  assert.equal(eventos.length, 1);
+  assert.equal(eventos[0].titulo, "Risco revisado sem alterações");
+  assert.deepEqual(eventos[0].mudancas, []);
+});
+
+test("reavaliação com mudança de valor junta a revisão e o recálculo", () => {
+  const eventos = montarEventos([
+    { ...base, id: 1, ocorrido_em: "2026-11-25T18:00:00.000Z", tabela: "riscos", registro_id: "58", operacao: "UPDATE", campo: "impacto", valor_anterior: 5, valor_novo: 4, transacao: 500 },
+    { ...base, id: 2, ocorrido_em: "2026-11-25T18:00:00.000Z", tabela: "riscos", registro_id: "58", operacao: "UPDATE", campo: "revisado_em", valor_anterior: "2026-09-20T12:00:00", valor_novo: "2026-11-25T18:00:00", transacao: 500 },
+    { ...base, id: 3, ocorrido_em: "2026-11-25T18:00:00.300Z", tabela: "riscos", registro_id: "58", operacao: "UPDATE", campo: "impacto_qualitativo", valor_anterior: "Crítico", valor_novo: "Alto", transacao: 501 },
+  ]);
+  assert.equal(eventos.length, 1);
+  assert.equal(eventos[0].titulo, "Risco reavaliado (revisão periódica)");
+  assert.deepEqual(eventos[0].mudancas.map((m) => m.campo), ["Impacto inerente", "Nível atual"]);
+});

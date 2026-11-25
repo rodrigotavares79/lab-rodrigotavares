@@ -35,10 +35,12 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
         r.restauracao_horas, r.restauracao_horas_min, r.restauracao_horas_max,
         r.impacto_critico_total, r.impacto_critico_p10, r.impacto_critico_p90,
         r.impacto_alto_total, r.impacto_alto_p10, r.impacto_alto_p90,
-        r.criado_em
+        r.criado_em,
+        rv.revisado_em, rv.dias_revisao, to_char(rv.proxima_revisao, 'YYYY-MM-DD') AS proxima_revisao
       FROM riscos r
       JOIN projetos p ON p.id = r.projeto_id
       LEFT JOIN sistemas_criticos s ON s.id = r.sistema_critico_id
+      LEFT JOIN riscos_revisao rv ON rv.risco_id = r.id
       WHERE r.id = ${id}
     `;
 
@@ -132,7 +134,9 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
           matrix_score = ${novoMatrixScore},
           nivel_inicial = ${novoNivelInerente},
           status = ${novoStatus},
-          mitigado_em = ${novoStatus === "Mitigado" ? new Date().toISOString() : null}
+          mitigado_em = ${novoStatus === "Mitigado" ? new Date().toISOString() : null},
+          -- B17: salvar a reavaliação registra a revisão periódica do risco.
+          revisado_em = now()
       WHERE id = ${id} AND status IS DISTINCT FROM 'Mitigado'
     `;
 
