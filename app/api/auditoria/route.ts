@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
         pa.id, pa.titulo, pa.status, pa.concluido_em, pa.auditoria_status,
         pa.criado_por_email, pa.criado_por_nome,
         pa.auditado_em, pa.auditado_por_nome, pa.auditoria_comentario,
-        r.id AS risco_id, r.gatilho, r.categoria, r.impacto_qualitativo, r.status AS risco_status,
+        r.id AS risco_id, r.gatilho, r.titulo AS risco_titulo, r.categoria, r.impacto_qualitativo, r.status AS risco_status,
         p.nome AS projeto
       FROM planos_acao pa
       JOIN riscos r ON r.id = pa.risco_id

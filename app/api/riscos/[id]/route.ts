@@ -26,6 +26,7 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
       SELECT
         r.id, r.projeto_id, p.nome AS projeto,
         r.categoria, r.gatilho, r.resultado_potencial, r.levantado_por,
+        r.causa, r.evento, r.consequencia, r.titulo,
         r.data_levantamento, r.fonte, r.impacto, r.probabilidade,
         r.matrix_score, r.nivel_inicial, r.impacto_qualitativo, r.nivel_projetado,
         r.prob_nivel_atual, r.imp_nivel_atual, r.prob_nivel_projetado, r.imp_nivel_projetado,

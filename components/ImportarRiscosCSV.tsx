@@ -6,6 +6,9 @@ import Papa from "papaparse";
 type LinhaMapeada = {
   projeto: string;
   categoria: string;
+  causa: string;
+  evento: string;
+  consequencia: string;
   gatilho: string;
   resultado: string;
   levantadoPor: string;
@@ -24,8 +27,12 @@ type LinhaMapeada = {
 const MAPA_CABECALHOS: [string, keyof LinhaMapeada][] = [
   ["projeto", "projeto"],
   ["categoria do risco", "categoria"],
+  ["causa", "causa"],
+  ["evento", "evento"],
+  ["consequência", "consequencia"],
   ["ponto de gatilho", "gatilho"],
   ["resultado potencial", "resultado"],
+  ["detalhamento do impacto", "resultado"],
   ["levantado por", "levantadoPor"],
   ["data de levantamento", "dataLevantamento"],
   ["fonte", "fonte"],
@@ -104,6 +111,9 @@ export default function ImportarRiscosCSV() {
           return {
             projeto: linha.projeto || "",
             categoria: linha.categoria || "",
+            causa: linha.causa || "",
+            evento: linha.evento || "",
+            consequencia: linha.consequencia || "",
             gatilho: linha.gatilho || "",
             resultado: linha.resultado || "",
             levantadoPor: linha.levantadoPor || "",

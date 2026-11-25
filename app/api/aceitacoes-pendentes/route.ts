@@ -16,7 +16,7 @@ export async function GET() {
     const linhas = await sql`
       SELECT a.id, a.risco_id, a.justificativa, a.validade_meses, a.nivel_no_pedido,
              a.carta_nome, a.solicitado_por_nome, a.solicitado_por_email, a.solicitado_em,
-             r.gatilho, r.categoria, r.impacto_qualitativo,
+             r.gatilho, r.titulo, r.categoria, r.impacto_qualitativo,
              ((now() AT TIME ZONE 'America/Sao_Paulo')::date
                - (a.solicitado_em AT TIME ZONE 'America/Sao_Paulo')::date)::int AS dias_aguardando
       FROM aceitacoes_risco a

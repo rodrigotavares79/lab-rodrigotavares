@@ -11,6 +11,7 @@ type RiscoLinha = {
   projeto: string;
   categoria: string | null;
   gatilho: string | null;
+  titulo?: string | null;
   levantado_por: string;
   data_levantamento: string | null;
   impacto_qualitativo: string | null;
@@ -147,7 +148,7 @@ export default function ListaDeRiscos() {
                         <th>ID</th>
                         <th>Projeto</th>
                         <th>Categoria</th>
-                        <th>Ponto de Gatilho</th>
+                        <th>Risco</th>
                         <th>Nível</th>
                         <th>Status</th>
                         <th>Levantado Por</th>
@@ -167,7 +168,7 @@ export default function ListaDeRiscos() {
                           </td>
                           <td>{r.projeto}</td>
                           <td>{r.categoria || "—"}</td>
-                          <td style={{ whiteSpace: "normal", minWidth: "14rem" }}>{r.gatilho || "—"}</td>
+                          <td style={{ whiteSpace: "normal", minWidth: "18rem" }}>{r.titulo || r.gatilho || "—"}</td>
                           <td>
                             {r.impacto_qualitativo ? (
                               <span className={`badge ${BADGE_POR_NIVEL[r.impacto_qualitativo] || ""}`}>

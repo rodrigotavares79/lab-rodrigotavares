@@ -16,7 +16,7 @@ export async function GET() {
     const planos = await sql`
       SELECT
         pa.id, pa.titulo, pa.status, pa.criado_em, pa.concluido_em, pa.auditoria_status,
-        r.id AS risco_id, r.gatilho, r.categoria, r.impacto_qualitativo, r.status AS risco_status,
+        r.id AS risco_id, r.gatilho, r.titulo AS risco_titulo, r.categoria, r.impacto_qualitativo, r.status AS risco_status,
         COUNT(a.id)::int AS acoes_total,
         COUNT(a.id) FILTER (WHERE a.status = 'Concluído')::int AS acoes_concluidas,
         COUNT(a.id) FILTER (

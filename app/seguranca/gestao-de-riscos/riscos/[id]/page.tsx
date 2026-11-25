@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import s from "@/components/riscos/riscos.module.css";
 import EvidenciasPlano, { type Evidencia } from "@/components/riscos/EvidenciasPlano";
 import AceitacaoRisco from "@/components/riscos/AceitacaoRisco";
+import CenarioRisco from "@/components/riscos/CenarioRisco";
 import { OPCOES_TRATAMENTO } from "@/lib/aceitacaoRisco";
 import { hojeSaoPaulo, situacaoRevisao, textoSituacaoRevisao } from "@/lib/revisaoRisco";
 import { montarEventos, type RegistroLog, type TipoEvento } from "@/lib/historicoRisco";
@@ -40,6 +41,10 @@ type RiscoDetalhe = {
   categoria: string | null;
   gatilho: string | null;
   resultado_potencial: string | null;
+  causa: string | null;
+  evento: string | null;
+  consequencia: string | null;
+  titulo: string | null;
   levantado_por: string;
   data_levantamento: string | null;
   fonte: string | null;
@@ -1286,7 +1291,12 @@ export default function DetalheDoRisco() {
             <div className={s.cabecalho}>
               <div>
                 <h1 className={s.titulo}>Risco #{risco.id}</h1>
-                {risco.gatilho && <p className={s.subtitulo}>{risco.gatilho}</p>}
+                {(risco.titulo || risco.gatilho) && <p className={s.subtitulo}>{risco.titulo || risco.gatilho}</p>}
+                {!risco.titulo && (
+                  <p className="field-helper" style={{ marginTop: "0.25rem" }}>
+                    <a href="#cenario">Cenário incompleto</a>: o título é gerado a partir de causa, evento e consequência.
+                  </p>
+                )}
                 <div className={s.chips}>
                   {risco.impacto_qualitativo && (
                     <span className={`badge ${BADGE_POR_NIVEL[risco.impacto_qualitativo] || ""}`}>
@@ -1313,12 +1323,23 @@ export default function DetalheDoRisco() {
 
             <div className={s.grade}>
               <div className={s.coluna}>
+                <CenarioRisco
+                  key={`${risco.id}-${risco.titulo}-${risco.gatilho}-${risco.resultado_potencial}`}
+                  riscoId={risco.id}
+                  causa={risco.causa}
+                  evento={risco.evento}
+                  consequencia={risco.consequencia}
+                  gatilho={risco.gatilho}
+                  detalhamento={risco.resultado_potencial}
+                  podeEditar={podeEditarRisco}
+                  bloqueado={riscoMitigado}
+                  onAtualizado={carregarRisco}
+                />
+
                 <div className="dash-panel">
                   <div className="dash-panel-header">Identificação</div>
                   <div className="dash-panel-body">
                     <dl className={s.campos}>
-                      <Campo label="Ponto de gatilho" value={risco.gatilho || "—"} largo />
-                      <Campo label="Resultado potencial" value={risco.resultado_potencial || "—"} largo />
                       <Campo label="Levantado por" value={risco.levantado_por} />
                       <Campo label="Data de levantamento" value={formatData(risco.data_levantamento)} />
                       <Campo label="Fonte" value={risco.fonte || "—"} />

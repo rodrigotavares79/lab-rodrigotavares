@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
 
     // Riscos Críticos e Altos ainda em aberto (não Mitigado), mais graves primeiro.
     const riscosAbertos = await sql`
-      SELECT id, categoria, gatilho, impacto_qualitativo, status
+      SELECT id, categoria, gatilho, titulo, impacto_qualitativo, status
       FROM riscos
       WHERE projeto_id = ${projetoId} AND status <> 'Mitigado' AND impacto_qualitativo IN ('Alto', 'Crítico')
       ORDER BY (impacto_qualitativo = 'Crítico') DESC, matrix_score DESC

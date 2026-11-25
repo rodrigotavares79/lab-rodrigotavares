@@ -16,7 +16,7 @@ export async function GET() {
     const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
     const riscos = await sql`
       SELECT
-        r.id, r.categoria, r.gatilho, r.resultado_potencial, r.impacto_qualitativo, r.status,
+        r.id, r.categoria, r.gatilho, r.titulo, r.causa, r.evento, r.consequencia, r.resultado_potencial, r.impacto_qualitativo, r.status,
         p.id AS projeto_id, p.nome AS projeto,
         COALESCE(STRING_AGG(CONCAT_WS(' ', f.descricao, f.explicacao, f.controle_descricao), ' ') , '') AS texto_fatores
       FROM riscos r
@@ -27,10 +27,11 @@ export async function GET() {
     `;
 
     const itens = riscos.map((r: any) => {
-      const m = mapearRisco([r.gatilho, r.resultado_potencial, r.categoria, r.texto_fatores].filter(Boolean).join(". "));
+      const m = mapearRisco([r.causa, r.evento, r.consequencia, r.gatilho, r.resultado_potencial, r.categoria, r.texto_fatores].filter(Boolean).join(". "));
       return {
         id: r.id,
         gatilho: r.gatilho,
+        titulo: r.titulo,
         categoria: r.categoria,
         nivel: r.impacto_qualitativo,
         status: r.status,

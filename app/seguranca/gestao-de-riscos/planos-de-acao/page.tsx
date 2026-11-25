@@ -18,6 +18,7 @@ type Plano = {
   auditoria_status: string | null;
   risco_id: number;
   gatilho: string | null;
+  risco_titulo?: string | null;
   categoria: string | null;
   impacto_qualitativo: string | null;
   risco_status: string | null;
@@ -85,7 +86,7 @@ export default function TodosOsPlanos() {
       if (auditoria && p.auditoria_status !== auditoria) return false;
       if (soAtrasados && p.acoes_atrasadas === 0) return false;
       if (termo) {
-        const texto = `${p.titulo} #${p.risco_id} ${p.gatilho || ""} ${p.categoria || ""}`.toLowerCase();
+        const texto = `${p.titulo} #${p.risco_id} ${p.risco_titulo || ""} ${p.gatilho || ""} ${p.categoria || ""}`.toLowerCase();
         if (!texto.includes(termo)) return false;
       }
       return true;
@@ -142,7 +143,7 @@ export default function TodosOsPlanos() {
                     id="buscaPlanos"
                     type="search"
                     value={busca}
-                    placeholder="Título do plano, nº ou gatilho do risco"
+                    placeholder="Título do plano, nº ou nome do risco"
                     onChange={(e) => setBusca(e.target.value)}
                   />
                 </div>
@@ -240,7 +241,7 @@ export default function TodosOsPlanos() {
                                 </div>
                               </td>
                               <td style={{ whiteSpace: "normal", minWidth: "12rem" }}>
-                                #{p.risco_id} · {p.gatilho || p.categoria || "—"}
+                                #{p.risco_id} · {p.risco_titulo || p.gatilho || p.categoria || "—"}
                               </td>
                               <td>
                                 {p.impacto_qualitativo ? (

@@ -16,6 +16,7 @@ type Controle = { id: string; titulo: string };
 type Item = {
   id: number;
   gatilho: string | null;
+  titulo?: string | null;
   categoria: string | null;
   nivel: string | null;
   status: string | null;
@@ -115,7 +116,7 @@ export default function Conformidade() {
       if (tema && tema !== "__generico" && !i.temas.some((t) => t.id === tema)) return false;
       if (q) {
         const alvo = normalizar(
-          [i.id, i.gatilho, i.categoria, i.projeto, ...i.cis.map((c) => c.id), ...i.nist.map((c) => c.id), ...i.iso.map((c) => c.id)].join(" ")
+          [i.id, i.titulo || i.gatilho, i.categoria, i.projeto, ...i.cis.map((c) => c.id), ...i.nist.map((c) => c.id), ...i.iso.map((c) => c.id)].join(" ")
         );
         if (!alvo.includes(q)) return false;
       }
@@ -271,7 +272,7 @@ export default function Conformidade() {
                     <header className={s.cardTopo}>
                       <div className={s.cardTitulos}>
                         <Link href={`${BASE}/riscos/${i.id}`} className={s.riscoTitulo}>
-                          #{i.id} · {i.gatilho || "Risco sem descrição"}
+                          #{i.id} · {i.titulo || i.gatilho || "Risco sem descrição"}
                         </Link>
                         <span className={s.meta}>
                           {[i.projeto, i.categoria, i.status].filter(Boolean).join(" · ")}

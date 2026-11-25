@@ -15,6 +15,7 @@ type RiscoAberto = {
   id: number;
   categoria: string | null;
   gatilho: string | null;
+  titulo?: string | null;
   impacto_qualitativo: string;
   status: string;
 };
@@ -160,14 +161,14 @@ function RelatorioConteudo() {
             ) : (
               <table className="report-table">
                 <thead>
-                  <tr><th>ID</th><th>Categoria</th><th>Ponto de Gatilho</th><th>Nível</th><th>Status</th></tr>
+                  <tr><th>ID</th><th>Categoria</th><th>Risco</th><th>Nível</th><th>Status</th></tr>
                 </thead>
                 <tbody>
                   {dados.riscosAbertos.map((r) => (
                     <tr key={r.id}>
                       <td>#{r.id}</td>
                       <td>{r.categoria || "—"}</td>
-                      <td>{r.gatilho || "—"}</td>
+                      <td>{r.titulo || r.gatilho || "—"}</td>
                       <td><span className={`badge ${BADGE_POR_NIVEL[r.impacto_qualitativo] || ""}`}>{r.impacto_qualitativo}</span></td>
                       <td className={classeStatusTexto(r.status)}>{r.status}</td>
                     </tr>

@@ -36,6 +36,7 @@ type Resumo = {
   atencao: {
     id: number;
     gatilho: string | null;
+    titulo?: string | null;
     categoria: string | null;
     impacto_qualitativo: string | null;
     proximo_prazo: string | null;
@@ -261,8 +262,8 @@ export default function GestaoDeRiscos() {
                       <Link href={`${BASE}/riscos/${r.id}`} className={s.item}>
                         <span className={s.itemId}>#{r.id}</span>
                         <span className={s.itemTexto}>
-                          <span className={s.itemTitulo}>{r.gatilho || r.categoria || "Risco sem descrição"}</span>
-                          {r.gatilho && r.categoria && <span className={s.itemSub}>{r.categoria}</span>}
+                          <span className={s.itemTitulo}>{r.titulo || r.gatilho || r.categoria || "Risco sem descrição"}</span>
+                          {(r.titulo || r.gatilho) && r.categoria && <span className={s.itemSub}>{r.categoria}</span>}
                         </span>
                         {r.impacto_qualitativo && (
                           <span className={`badge ${BADGE_POR_NIVEL[r.impacto_qualitativo] || ""}`}>

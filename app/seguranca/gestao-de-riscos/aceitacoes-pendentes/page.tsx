@@ -19,6 +19,7 @@ type Aceitacao = {
   solicitado_por_nome: string | null;
   solicitado_em: string;
   gatilho: string | null;
+  titulo?: string | null;
   categoria: string | null;
   impacto_qualitativo: string | null;
   dias_aguardando: number;
@@ -110,7 +111,7 @@ export default function AceitacoesPendentes() {
                               href={`${BASE}/riscos/${a.risco_id}#aceitacao`}
                               style={{ color: "var(--accent)", fontWeight: 600 }}
                             >
-                              #{a.risco_id} · {a.gatilho || a.categoria || "—"}
+                              #{a.risco_id} · {a.titulo || a.gatilho || a.categoria || "—"}
                             </Link>
                             <div className="text-muted" style={{ fontSize: "0.75rem" }}>
                               {a.carta_nome} · validade pedida {a.validade_meses} meses

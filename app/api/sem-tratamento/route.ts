@@ -16,7 +16,7 @@ export async function GET() {
     const [riscos, [param]] = await Promise.all([
       sql`
         SELECT
-          r.id, r.gatilho, r.categoria, r.impacto_qualitativo, r.status,
+          r.id, r.gatilho, r.titulo, r.categoria, r.impacto_qualitativo, r.status,
           p.nome AS projeto,
           to_char(r.criado_em AT TIME ZONE 'America/Sao_Paulo', 'YYYY-MM-DD') AS cadastrado_em,
           to_char(t.prazo_tratamento, 'YYYY-MM-DD') AS prazo_tratamento,

@@ -18,7 +18,7 @@ export async function GET() {
 
     const atencao = await sql`
       SELECT
-        r.id, r.gatilho, r.categoria, r.impacto_qualitativo,
+        r.id, r.gatilho, r.titulo, r.categoria, r.impacto_qualitativo,
         MIN(a.prazo) FILTER (WHERE a.status IS DISTINCT FROM 'Concluído') AS proximo_prazo
       FROM riscos r
       LEFT JOIN planos_acao pa ON pa.risco_id = r.id
