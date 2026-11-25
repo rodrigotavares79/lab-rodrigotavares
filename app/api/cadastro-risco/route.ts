@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { simularImpactoFinanceiro, type FaixaEstimativa } from "@/lib/riscoUtils";
 import { nivelRisco } from "@/lib/metodologiaRisco";
 import { sqlAuditado } from "@/lib/sqlAuditado";
+import { LIMITE_EMAILS_POR_HORA, podeEnviarConfirmacao } from "@/lib/levantadoPor";
 import { exigirPermissao } from "@/lib/riscosAuth";
 
 export const dynamic = "force-dynamic";
@@ -44,7 +45,6 @@ export async function POST(request: NextRequest) {
       categoria,
       gatilho,
       resultado,
-      levantadoPor,
       dataLevantamento,
       fonte,
       impacto,
@@ -60,8 +60,11 @@ export async function POST(request: NextRequest) {
       restauracaoHoras,
     } = data ?? {};
 
-    if (!levantadoPor || typeof levantadoPor !== "string" || !levantadoPor.includes("@")) {
-      return NextResponse.json({ error: "E-mail de 'Levantado Por' inválido." }, { status: 400 });
+    // B10: "Levantado por" é sempre o usuário logado; o que vier do navegador
+    // é ignorado. O e-mail de confirmação vai só para ele.
+    const levantadoPor = guarda.usuario.email;
+    if (!levantadoPor) {
+      return NextResponse.json({ error: "Seu usuário não tem e-mail cadastrado." }, { status: 400 });
     }
     if (!projetoId) {
       return NextResponse.json({ error: "Projeto é obrigatório." }, { status: 400 });
@@ -153,85 +156,108 @@ export async function POST(request: NextRequest) {
       )
     `;
 
-    const apiKey = process.env.RESEND_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({ error: "RESEND_API_KEY não configurada." }, { status: 500 });
-    }
+    async function enviarConfirmacao(): Promise<{ enviado: boolean; para: string; aviso?: string }> {
+      const linhas: [string, string][] = [
+        ["Projeto", projetoNome],
+        ["Categoria do Risco", categoria || "—"],
+        ["Ponto de Gatilho", gatilho || "—"],
+        ["Resultado Potencial", resultado || "—"],
+        ["Levantado Por", levantadoPor],
+        ["Data de Levantamento", dataLevantamento || "—"],
+        ["Fonte", fonte || "—"],
+        ["Impacto", impactoLabel || "—"],
+        ["Probabilidade", probabilidadeLabel || "—"],
+        ["Pontuação da Matriz", matrixScore ? String(matrixScore) : "—"],
+        ["Impacto Qualitativo", nivelInerente || "—"],
+      ];
 
-    const linhas: [string, string][] = [
-      ["Projeto", projetoNome],
-      ["Categoria do Risco", categoria || "—"],
-      ["Ponto de Gatilho", gatilho || "—"],
-      ["Resultado Potencial", resultado || "—"],
-      ["Levantado Por", levantadoPor],
-      ["Data de Levantamento", dataLevantamento || "—"],
-      ["Fonte", fonte || "—"],
-      ["Impacto", impactoLabel || "—"],
-      ["Probabilidade", probabilidadeLabel || "—"],
-      ["Pontuação da Matriz", matrixScore ? String(matrixScore) : "—"],
-      ["Impacto Qualitativo", nivelInerente || "—"],
-    ];
+      if (sistemaNome) {
+        linhas.push(["Sistema Crítico", sistemaNome]);
+      }
 
-    if (sistemaNome) {
-      linhas.push(["Sistema Crítico", sistemaNome]);
-    }
+      const linhasHtml = linhas
+        .map(
+          ([k, v]) => `
+            <tr>
+              <td style="padding:8px 0;border-bottom:1px solid #e4e2dd;color:#6b6b66;width:40%;font-size:13px;">${escapeHtml(k)}</td>
+              <td style="padding:8px 0;border-bottom:1px solid #e4e2dd;color:#1a1a18;font-size:13px;font-weight:500;">${escapeHtml(v)}</td>
+            </tr>`
+        )
+        .join("");
 
-    const linhasHtml = linhas
-      .map(
-        ([k, v]) => `
-          <tr>
-            <td style="padding:8px 0;border-bottom:1px solid #e4e2dd;color:#6b6b66;width:40%;font-size:13px;">${escapeHtml(k)}</td>
-            <td style="padding:8px 0;border-bottom:1px solid #e4e2dd;color:#1a1a18;font-size:13px;font-weight:500;">${escapeHtml(v)}</td>
-          </tr>`
-      )
-      .join("");
-
-    const html = `
-      <div style="background:#fafaf9;padding:24px;font-family:Arial,Helvetica,sans-serif;">
-        <div style="max-width:560px;margin:0 auto;border:1px solid #e4e2dd;border-radius:6px;overflow:hidden;">
-          <div style="background:#2b3a4a;color:#ffffff;padding:18px 24px;">
-            <div style="font-weight:700;font-size:16px;">MONSTROS S.A.</div>
-            <div style="font-size:12px;opacity:0.85;margin-top:2px;">Gestão de Riscos de TI</div>
-          </div>
-          <div style="background:#ffffff;padding:24px;">
-            <h2 style="font-size:17px;margin:0 0 12px;color:#1a1a18;">Risco cadastrado com sucesso</h2>
-            <p style="font-size:14px;line-height:1.6;color:#1a1a18;margin:0 0 18px;">
-              Confirmamos o cadastro de um novo risco de TI com os dados abaixo.
-              Guarde este e-mail como comprovante do registro.
-            </p>
-            <table style="width:100%;border-collapse:collapse;">
-              ${linhasHtml}
-            </table>
-          </div>
-          <div style="background:#fafaf9;padding:14px 24px;font-size:11px;color:#6b6b66;border-top:1px solid #e4e2dd;">
-            Este é um e-mail automático do sistema de Gestão de Riscos da Monstros S.A. — não responda a esta mensagem.
+      const html = `
+        <div style="background:#fafaf9;padding:24px;font-family:Arial,Helvetica,sans-serif;">
+          <div style="max-width:560px;margin:0 auto;border:1px solid #e4e2dd;border-radius:6px;overflow:hidden;">
+            <div style="background:#2b3a4a;color:#ffffff;padding:18px 24px;">
+              <div style="font-weight:700;font-size:16px;">MONSTROS S.A.</div>
+              <div style="font-size:12px;opacity:0.85;margin-top:2px;">Gestão de Riscos de TI</div>
+            </div>
+            <div style="background:#ffffff;padding:24px;">
+              <h2 style="font-size:17px;margin:0 0 12px;color:#1a1a18;">Risco cadastrado com sucesso</h2>
+              <p style="font-size:14px;line-height:1.6;color:#1a1a18;margin:0 0 18px;">
+                Confirmamos o cadastro de um novo risco de TI com os dados abaixo.
+                Guarde este e-mail como comprovante do registro.
+              </p>
+              <table style="width:100%;border-collapse:collapse;">
+                ${linhasHtml}
+              </table>
+            </div>
+            <div style="background:#fafaf9;padding:14px 24px;font-size:11px;color:#6b6b66;border-top:1px solid #e4e2dd;">
+              Este é um e-mail automático do sistema de Gestão de Riscos da Monstros S.A. — não responda a esta mensagem.
+            </div>
           </div>
         </div>
-      </div>
+      `;
+
+      const resendResponse = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: "Gestão de Riscos <riscos@rodrigotavares.com.br>",
+          to: [levantadoPor],
+          subject: `${prefixoAmbiente}Confirmação de Cadastro de Risco`,
+          html,
+        }),
+      });
+
+      if (!resendResponse.ok) {
+        const errText = await resendResponse.text();
+        console.error("Resend error:", errText);
+        return { enviado: false, para: levantadoPor, aviso: "O risco foi cadastrado, mas o e-mail de confirmação falhou." };
+      }
+      return { enviado: true, para: levantadoPor };
+    }
+
+    // A partir daqui o risco JÁ ESTÁ gravado: falha no e-mail não pode virar
+    // erro (a pessoa cadastraria de novo e duplicaria o risco). O resultado do
+    // envio volta em `email`.
+    const [{ total: enviadosNaHora }] = await sql`
+      SELECT COUNT(*)::int AS total FROM riscos
+      WHERE lower(levantado_por) = lower(${levantadoPor}) AND criado_em > now() - interval '1 hour'
     `;
-
-    const resendResponse = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: "Gestão de Riscos <riscos@rodrigotavares.com.br>",
-        to: [levantadoPor],
-        subject: `${prefixoAmbiente}Confirmação de Cadastro de Risco`,
-        html,
-      }),
-    });
-
-    if (!resendResponse.ok) {
-      const errText = await resendResponse.text();
-      console.error("Resend error:", errText);
-      return NextResponse.json({ error: "Falha ao enviar o e-mail." }, { status: 502 });
+    const apiKey = process.env.RESEND_API_KEY;
+    let email: { enviado: boolean; para: string; aviso?: string };
+    if (!apiKey) {
+      email = { enviado: false, para: levantadoPor, aviso: "Envio de e-mail não configurado (RESEND_API_KEY)." };
+    } else if (!podeEnviarConfirmacao(enviadosNaHora - 1)) {
+      email = {
+        enviado: false,
+        para: levantadoPor,
+        aviso: `Limite de ${LIMITE_EMAILS_POR_HORA} e-mails de confirmação por hora atingido; o risco foi cadastrado sem e-mail.`,
+      };
+    } else {
+      email = await enviarConfirmacao().catch((e) => {
+        console.error("Resend error:", e);
+        return { enviado: false, para: levantadoPor, aviso: "O risco foi cadastrado, mas o e-mail de confirmação falhou." };
+      });
     }
 
     return NextResponse.json({
       ok: true,
+      email,
       impactoCritico: {
         indisponibilidade: impactoCriticoIndisponibilidade,
         restauracao: impactoCriticoRestauracao,
