@@ -176,29 +176,28 @@ export function montarEventos(registros: RegistroLog[]): EventoHistorico[] {
 
 // Uma edição na tela pode gravar em mais de uma transação (ex.: o PATCH do
 // risco e o recálculo do nível atual logo em seguida). Atualizações do mesmo
-// registro, pelo mesmo autor, com até JANELA_MS de diferença viram um evento.
+// registro, pelo mesmo autor, com até JANELA_MS de diferença e que mexem em
+// campos DIFERENTES viram um evento. Se o mesmo campo aparece nas duas, são
+// edições distintas e ficam separadas.
 const JANELA_MS = 5000;
 
 function juntarAtualizacoesSeguidas(eventos: EventoHistorico[]): EventoHistorico[] {
   const resultado: EventoHistorico[] = [];
   for (const e of eventos) {
     const anterior = resultado[resultado.length - 1];
+    const camposAnterior = new Set(anterior?.mudancas.map((m) => m.campo) ?? []);
     if (
       anterior &&
       anterior.operacao === "UPDATE" &&
       e.operacao === "UPDATE" &&
       anterior.chave === e.chave &&
       anterior.autor === e.autor &&
-      Math.abs(new Date(anterior.data).getTime() - new Date(e.data).getTime()) <= JANELA_MS
+      Math.abs(new Date(anterior.data).getTime() - new Date(e.data).getTime()) <= JANELA_MS &&
+      e.mudancas.every((m) => !camposAnterior.has(m.campo))
     ) {
       // "anterior" é o mais recente (lista em ordem decrescente): as mudanças
-      // mais antigas vêm primeiro; um campo alterado duas vezes vira de → para.
-      const porCampo = new Map<string, { campo: string; de: string; para: string }>();
-      for (const m of [...e.mudancas, ...anterior.mudancas]) {
-        const existente = porCampo.get(m.campo);
-        porCampo.set(m.campo, existente ? { campo: m.campo, de: existente.de, para: m.para } : m);
-      }
-      anterior.mudancas = [...porCampo.values()];
+      // mais antigas vêm primeiro.
+      anterior.mudancas = [...e.mudancas, ...anterior.mudancas];
       continue;
     }
     resultado.push({ ...e, mudancas: [...e.mudancas] });

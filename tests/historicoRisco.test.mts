@@ -70,3 +70,21 @@ test("atualizações seguidas do mesmo registro e autor viram um evento", () => 
   assert.equal(eventos.length, 2);
   assert.deepEqual(eventos[1].mudancas.map((m) => m.campo), ["Impacto inerente", "Nível inerente", "Nível atual"]);
 });
+
+test("duas edições seguidas do mesmo campo não se misturam", () => {
+  const eventos = montarEventos([
+    { ...base, id: 1, ocorrido_em: "2026-11-25T14:32:40.000Z", tabela: "riscos", registro_id: "58", operacao: "UPDATE", campo: "impacto", valor_anterior: 5, valor_novo: 4, transacao: 300 },
+    { ...base, id: 2, ocorrido_em: "2026-11-25T14:32:40.300Z", tabela: "riscos", registro_id: "58", operacao: "UPDATE", campo: "impacto_qualitativo", valor_anterior: "Crítico", valor_novo: "Alto", transacao: 301 },
+    { ...base, id: 3, ocorrido_em: "2026-11-25T14:32:41.000Z", tabela: "riscos", registro_id: "58", operacao: "UPDATE", campo: "impacto", valor_anterior: 4, valor_novo: 5, transacao: 302 },
+    { ...base, id: 4, ocorrido_em: "2026-11-25T14:32:41.300Z", tabela: "riscos", registro_id: "58", operacao: "UPDATE", campo: "impacto_qualitativo", valor_anterior: "Alto", valor_novo: "Crítico", transacao: 303 },
+  ]);
+  assert.equal(eventos.length, 2);
+  assert.deepEqual(eventos[0].mudancas, [
+    { campo: "Impacto inerente", de: "4", para: "5" },
+    { campo: "Nível atual", de: "Alto", para: "Crítico" },
+  ]);
+  assert.deepEqual(eventos[1].mudancas, [
+    { campo: "Impacto inerente", de: "5", para: "4" },
+    { campo: "Nível atual", de: "Crítico", para: "Alto" },
+  ]);
+});
