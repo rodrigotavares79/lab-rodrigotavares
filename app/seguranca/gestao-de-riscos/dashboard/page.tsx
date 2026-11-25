@@ -14,7 +14,7 @@ type Kpis = {
 type NivelRisco = { nivel: string; total: number };
 type Mitigacao = { melhorou: number; manteve: number; piorou: number };
 type Categoria = { categoria: string; total: number };
-type Evolucao = { mes: string; total: number };
+type Evolucao = { mes: string; levantamento: number; cadastro: number };
 type ConsolidadoItem = { projeto: string; total: number; criticos: number };
 
 type DashboardData = {
@@ -25,6 +25,7 @@ type DashboardData = {
   mitigacao: Mitigacao;
   categorias: Categoria[];
   evolucao: Evolucao[];
+  semDataLevantamento: number;
   consolidado: ConsolidadoItem[];
 };
 
@@ -35,12 +36,21 @@ const CORES_NIVEL: Record<string, string> = {
   "Crítico": "var(--danger)",
 };
 
+const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+function rotuloMes(mes: string): string {
+  const [ano, m] = mes.split("-");
+  return `${MESES[Number(m) - 1]}/${ano.slice(2)}`;
+}
+
 export default function Dashboard() {
   const [projetos, setProjetos] = useState<Projeto[]>([]);
   const [projetoId, setProjetoId] = useState("");
   const [data, setData] = useState<DashboardData | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
+  // B05: o gráfico mensal usa a data de levantamento; a de cadastro fica
+  // como alternativa (mostra quando o risco entrou no sistema).
+  const [baseMensal, setBaseMensal] = useState<"levantamento" | "cadastro">("levantamento");
 
   useEffect(() => {
     fetch("/api/projetos")
@@ -88,8 +98,8 @@ export default function Dashboard() {
   const donut = donutSegments(niveis, 70);
 
   const evoW = 600, evoH = 160;
-  const evoMax = Math.max(1, ...evolucao.map((e) => e.total));
-  const evoValores = evolucao.map((e) => e.total);
+  const evoValores = evolucao.map((e) => (baseMensal === "levantamento" ? e.levantamento : e.cadastro));
+  const evoMax = Math.max(1, ...evoValores);
 
   const barW = 600, barH = 160;
   const barTopPad = 18;
@@ -188,28 +198,56 @@ export default function Dashboard() {
               {/* Gráficos */}
               <div className="dash-row-charts" style={{ gridTemplateColumns: "1fr 1fr" }}>
                 <div className="dash-panel">
-                  <div className="dash-panel-header">Riscos Cadastrados por Mês</div>
+                  <div className="dash-panel-header">
+                    Riscos por Mês ({baseMensal === "levantamento" ? "data de levantamento" : "data de cadastro"})
+                  </div>
                   <div className="dash-panel-body">
+                    <div role="group" aria-label="Data usada no gráfico" style={{ display: "flex", gap: "0.4rem", marginBottom: "0.75rem" }}>
+                      {(["levantamento", "cadastro"] as const).map((b) => (
+                        <button
+                          key={b}
+                          type="button"
+                          aria-pressed={baseMensal === b}
+                          onClick={() => setBaseMensal(b)}
+                          className={baseMensal === b ? "btn-primary" : "btn-secondary"}
+                          style={{ fontSize: "0.75rem", padding: "0.25rem 0.6rem" }}
+                        >
+                          {b === "levantamento" ? "Levantamento" : "Cadastro"}
+                        </button>
+                      ))}
+                    </div>
                     {evolucao.length === 0 ? (
                       <p className="text-muted" style={{ margin: 0, fontSize: "0.85rem" }}>Sem dados suficientes.</p>
                     ) : (
-                      <svg viewBox={`0 0 ${evoW} ${evoH + 24}`} width="100%" role="img" aria-label="Riscos cadastrados por mês">
-                        <path d={areaPath(evoValores, evoW, evoH, evoMax)} fill="var(--accent)" opacity="0.12" />
-                        <path d={linePath(evoValores, evoW, evoH, evoMax)} fill="none" stroke="var(--accent)" strokeWidth="2" />
-                        {evolucao.map((e, i) => {
-                          const x = evolucao.length > 1 ? (i / (evolucao.length - 1)) * evoW : evoW / 2;
-                          const y = evoH - (e.total / evoMax) * evoH;
-                          return <circle key={e.mes} cx={x} cy={y} r="3" fill="var(--accent)" />;
-                        })}
-                        {evolucao.map((e, i) => {
-                          const x = evolucao.length > 1 ? (i / (evolucao.length - 1)) * evoW : evoW / 2;
-                          return (
-                            <text key={e.mes} x={x} y={evoH + 16} fontSize="9" fill="var(--text-muted)" textAnchor="middle">
-                              {e.mes}
-                            </text>
-                          );
-                        })}
+                      <svg viewBox={`-22 0 ${evoW + 44} ${evoH + 40}`} width="100%" role="img" aria-label={`Riscos por mês pela data de ${baseMensal}`}>
+                        <g transform="translate(0, 14)">
+                          <path d={areaPath(evoValores, evoW, evoH, evoMax)} fill="var(--accent)" opacity="0.12" />
+                          <path d={linePath(evoValores, evoW, evoH, evoMax)} fill="none" stroke="var(--accent)" strokeWidth="2" />
+                          {evolucao.map((e, i) => {
+                            const v = evoValores[i];
+                            const x = evolucao.length > 1 ? (i / (evolucao.length - 1)) * evoW : evoW / 2;
+                            const y = evoH - (v / evoMax) * evoH;
+                            return (
+                              <g key={e.mes}>
+                                <circle cx={x} cy={y} r="3" fill="var(--accent)">
+                                  <title>{`${rotuloMes(e.mes)}: ${v} risco(s)`}</title>
+                                </circle>
+                                {v > 0 && (
+                                  <text x={x} y={y - 7} fontSize="9" fill="var(--text)" textAnchor="middle">{v}</text>
+                                )}
+                                <text x={x} y={evoH + 16} fontSize="9" fill="var(--text-muted)" textAnchor="middle">
+                                  {rotuloMes(e.mes)}
+                                </text>
+                              </g>
+                            );
+                          })}
+                        </g>
                       </svg>
+                    )}
+                    {baseMensal === "levantamento" && (data?.semDataLevantamento ?? 0) > 0 && (
+                      <p className="text-muted" style={{ margin: "0.5rem 0 0", fontSize: "0.78rem" }}>
+                        {data!.semDataLevantamento} risco(s) sem data de levantamento não aparecem neste gráfico.
+                      </p>
                     )}
                   </div>
                 </div>
