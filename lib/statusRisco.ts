@@ -8,8 +8,12 @@
 //   Em Tratamento → pelo menos um plano de ação cadastrado.
 //   Mitigado      → todos os planos (pelo menos um) auditados como Conforme.
 //                   Estado terminal: depois dele nada mais muda.
+//   Aceito        → (B16) só pela aprovação de uma aceitação com Carta de
+//                   Risco (rota de decisão da aceitação), nunca pela
+//                   reavaliação. Sair de Aceito segue as regras acima e
+//                   revoga a aceitação vigente.
 
-export const STATUS_RISCO = ["Identificado", "Em Tratamento", "Mitigado"] as const;
+export const STATUS_RISCO = ["Identificado", "Em Tratamento", "Mitigado", "Aceito"] as const;
 export type StatusRisco = (typeof STATUS_RISCO)[number];
 
 export type ResumoPlanos = {
@@ -40,6 +44,10 @@ export function validarTransicaoStatus(
     return "Este risco já foi mitigado e não pode mais ser alterado.";
   }
   if (novo === de) return null;
+
+  if (novo === "Aceito") {
+    return "Para aceitar o risco, solicite a aceitação com a Carta de Risco. O status muda para Aceito quando quem tem alçada aprovar.";
+  }
 
   if (novo === "Identificado" && planos.total > 0) {
     return "Um risco com plano de ação não pode voltar para Identificado. Ele permanece Em Tratamento até que todos os planos sejam auditados como Conforme.";
@@ -80,6 +88,7 @@ export function statusAutomatico(
   planos: ResumoPlanos
 ): StatusRisco {
   const de = atual ?? "Identificado";
-  if (de === "Mitigado") return de;
+  // Mitigado é terminal; Aceito só muda por decisão explícita (B16).
+  if (de === "Mitigado" || de === "Aceito") return de;
   return planos.total > 0 ? "Em Tratamento" : "Identificado";
 }

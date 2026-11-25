@@ -16,6 +16,7 @@ Gestão de Condomínio).
 | `auditor` | Auditor | ✓ | — | — | ✓ | ✓ |
 | `coordenador` | Coordenador | ✓ | ✓ | — | ✓ | ✓ |
 | `gerente` | Gerente | ✓ | ✓ | — | ✓ | ✓ |
+| `ciso` | CISO | ✓ | ✓ | — | ✓ | ✓ |
 | `administrador` | Administrador | ✓ | ✓ | ✓ | ✓ | ✓ |
 
 Valores antigos aceitos: `gestor` = `gerente`, `analista_senior` = `analista_grc`.
@@ -31,6 +32,21 @@ Valor desconhecido = Leitura.
 - **Ver auditoria**: Auditoria de Planos, Relatório de Auditoria, log de
   alterações (CSV) e registros de auditoria na linha do tempo.
 - **Auditar**: classificar planos como Conforme / Não conforme.
+
+## Alçada de aceitação de risco (B16)
+
+Aceitar um risco exige uma Carta de Risco (PDF ou DOCX) e a aprovação de alguém com alçada para o nível **no momento do pedido**:
+
+| Nível do risco | Quem pode aprovar |
+|---|---|
+| Baixo / Médio | Coordenador, Gerente, CISO |
+| Alto | Gerente, CISO |
+| Crítico | CISO |
+
+- O solicitante nunca aprova a própria aceitação (segregação de funções); tentativas bloqueadas são registradas em `eventos_seguranca` (`aceitacao_bloqueada`).
+- O perfil Administrador **não** tem alçada de aceitação: administra o sistema, não assume risco de negócio.
+- A aceitação vale de 1 a 24 meses (padrão 12). Ao vencer, o risco aparece em "Revisões vencidas".
+- Trocar a opção de tratamento para algo diferente de "Aceitar" revoga a aceitação pendente ou vigente.
 
 ## Regras adicionais
 

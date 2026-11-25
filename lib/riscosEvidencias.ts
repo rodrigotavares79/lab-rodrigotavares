@@ -60,6 +60,18 @@ export async function enviarEvidencia(planoId: number | string, dados: Uint8Arra
   });
 }
 
+// B16: Carta de Risco da aceitação, no mesmo store privado, em outra pasta.
+export async function enviarCartaRisco(riscoId: number | string, dados: Uint8Array, tipo: string) {
+  const c = credenciais();
+  if (!c) throw new Error("ARMAZENAMENTO_NAO_CONFIGURADO");
+  return put(`riscos/cartas/risco-${riscoId}/${randomUUID()}`, Buffer.from(dados), {
+    access: "private",
+    addRandomSuffix: false,
+    contentType: tipo,
+    ...c,
+  });
+}
+
 export async function lerEvidencia(url: string) {
   const c = credenciais();
   if (!c) throw new Error("ARMAZENAMENTO_NAO_CONFIGURADO");

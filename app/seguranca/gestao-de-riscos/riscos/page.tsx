@@ -28,6 +28,7 @@ const BADGE_POR_NIVEL: Record<string, string> = {
 
 function classeStatus(status: string | null): string {
   if (status === "Mitigado") return "status-resolved";
+  if (status === "Aceito") return "status-accepted";
   if (status === "Identificado") return "status-identified";
   return "status-pending";
 }

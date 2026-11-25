@@ -24,7 +24,7 @@ export async function GET() {
         FROM riscos_tratamento t
         JOIN riscos r ON r.id = t.risco_id
         JOIN projetos p ON p.id = r.projeto_id
-        WHERE t.planos = 0
+        WHERE t.planos = 0 AND NOT t.aceito_valido
           AND t.prazo_tratamento < (now() AT TIME ZONE 'America/Sao_Paulo')::date
         ORDER BY (r.impacto_qualitativo = 'Crítico') DESC, t.prazo_tratamento ASC, r.id
       `,
