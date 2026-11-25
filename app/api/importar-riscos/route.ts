@@ -6,6 +6,7 @@ import { resolverLevantadoPorImportacao } from "@/lib/levantadoPor";
 import { listarUsuariosRiscos } from "@/lib/usuariosRiscos";
 import { exigirPermissao } from "@/lib/riscosAuth";
 import { validarCenario } from "@/lib/cenarioRisco";
+import { MSG_SEM_DONO, ativoTemCusto } from "@/lib/ativosCriticos";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,7 @@ type LinhaCsv = {
   causa?: string;
   evento?: string;
   consequencia?: string;
+  dono?: string;
   gatilho?: string;
   resultado?: string;
   levantadoPor?: string;
@@ -95,6 +97,7 @@ export async function POST(request: NextRequest) {
     const sistemaRows = await sql`
       SELECT id, projeto_id, nome, custo_indisponibilidade_hora, custo_restauracao_hora_homem
       FROM sistemas_criticos
+      WHERE ativo
     `;
     const sistemaPorProjetoNome = new Map<string, any>(
       sistemaRows.map((s: any) => [`${s.projeto_id}::${normalizarTexto(String(s.nome))}`, s])
@@ -120,7 +123,9 @@ export async function POST(request: NextRequest) {
 
     // B10: "Levantado Por" precisa ser um usuário do sistema; em branco, vale
     // quem está importando.
-    const emailsDoSistema = (await listarUsuariosRiscos()).map((u) => u.email);
+    const usuariosDoSistema = await listarUsuariosRiscos();
+    const emailsDoSistema = usuariosDoSistema.map((u) => u.email);
+    const usuarioPorEmail = new Map(usuariosDoSistema.map((u) => [u.email.toLowerCase(), u]));
 
     linhas.forEach((linha, idx) => {
       const numeroLinha = idx + 2; // +2 = considerando linha de cabeçalho (linha 1)
@@ -143,6 +148,18 @@ export async function POST(request: NextRequest) {
       const cenarioInvalido = validarCenario(cenario);
       if (cenarioInvalido) {
         erros.push({ linha: numeroLinha, motivo: cenarioInvalido });
+        return;
+      }
+
+      // B14: dono do risco obrigatório (e-mail de um usuário do módulo).
+      const donoEmail = (linha.dono || "").trim().toLowerCase();
+      if (!donoEmail) {
+        erros.push({ linha: numeroLinha, motivo: MSG_SEM_DONO });
+        return;
+      }
+      const dono = usuarioPorEmail.get(donoEmail);
+      if (!dono) {
+        erros.push({ linha: numeroLinha, motivo: `Dono do Risco "${linha.dono}" não é usuário do Gestão de Riscos.` });
         return;
       }
 
@@ -180,17 +197,19 @@ export async function POST(request: NextRequest) {
         if (!sistema) {
           avisos.push({
             linha: numeroLinha,
-            motivo: `Sistema Crítico "${sistemaNome}" não encontrado no projeto — risco importado sem cálculo financeiro.`,
+            motivo: `Ativo ou processo "${sistemaNome}" não encontrado no inventário do projeto — risco importado sem ativo e sem cálculo financeiro.`,
           });
         }
       }
 
       const duracaoHoras = parseNumero(linha.duracaoHoras);
-      const percentualDegradacao = parseNumero(linha.percentualDegradacao) ?? (sistema ? 30 : null);
+      const percentualDegradacao = parseNumero(linha.percentualDegradacao) ?? (sistema && ativoTemCusto(sistema) ? 30 : null);
       const restauracaoPessoas = parseNumero(linha.restauracaoPessoas);
       const restauracaoHoras = parseNumero(linha.restauracaoHoras);
 
-      const financeiro = calcularImpactoFinanceiro(sistema, {
+      // B14: ativo sem custos fica vinculado, mas não entra no cálculo financeiro.
+      const sistemaComCusto = sistema && ativoTemCusto(sistema) ? sistema : null;
+      const financeiro = calcularImpactoFinanceiro(sistemaComCusto, {
         duracaoHoras,
         percentualDegradacao,
         restauracaoPessoas,
@@ -228,6 +247,8 @@ export async function POST(request: NextRequest) {
         causa: cenario.causa,
         evento: cenario.evento,
         consequencia: cenario.consequencia,
+        donoEmail: dono.email,
+        donoNome: dono.nome,
         gatilho: linha.gatilho || null,
         resultado: linha.resultado || null,
         levantadoPor,
@@ -249,7 +270,7 @@ export async function POST(request: NextRequest) {
     for (const r of paraInserir) {
       await sql`
         INSERT INTO riscos (
-          projeto_id, categoria, causa, evento, consequencia, gatilho, resultado_potencial, levantado_por,
+          projeto_id, categoria, causa, evento, consequencia, dono_email, dono_nome, gatilho, resultado_potencial, levantado_por,
           data_levantamento, fonte, impacto, probabilidade, matrix_score,
           nivel_inicial, impacto_qualitativo, nivel_projetado,
           prob_nivel_atual, imp_nivel_atual, prob_nivel_projetado, imp_nivel_projetado,
@@ -257,7 +278,7 @@ export async function POST(request: NextRequest) {
           impacto_critico_indisponibilidade, impacto_critico_restauracao, impacto_critico_total,
           impacto_alto_indisponibilidade, impacto_alto_restauracao, impacto_alto_total
         ) VALUES (
-          ${r.projetoId}, ${r.categoria}, ${r.causa}, ${r.evento}, ${r.consequencia}, ${r.gatilho}, ${r.resultado}, ${r.levantadoPor},
+          ${r.projetoId}, ${r.categoria}, ${r.causa}, ${r.evento}, ${r.consequencia}, ${r.donoEmail}, ${r.donoNome}, ${r.gatilho}, ${r.resultado}, ${r.levantadoPor},
           ${r.dataLevantamento}, ${r.fonte}, ${r.impacto}, ${r.probabilidade}, ${r.matrixScore},
           ${r.classificacao}, ${r.classificacao}, ${r.classificacao},
           ${r.probabilidade}, ${r.impacto}, ${r.probabilidade}, ${r.impacto},

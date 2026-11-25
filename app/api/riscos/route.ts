@@ -14,9 +14,11 @@ export async function GET(request: NextRequest) {
           SELECT
             r.id, p.nome AS projeto, r.categoria, r.gatilho, r.titulo, r.levantado_por,
             r.data_levantamento, r.impacto_qualitativo, r.matrix_score,
-            r.status, r.criado_em
+            r.status, r.criado_em, r.dono_email, r.dono_nome,
+            sc.nome AS ativo, sc.tipo AS ativo_tipo, sc.area_responsavel AS area
           FROM riscos r
           JOIN projetos p ON p.id = r.projeto_id
+          LEFT JOIN sistemas_criticos sc ON sc.id = r.sistema_critico_id
           WHERE r.projeto_id = ${projetoId}
           ORDER BY r.criado_em DESC
         `
@@ -24,9 +26,11 @@ export async function GET(request: NextRequest) {
           SELECT
             r.id, p.nome AS projeto, r.categoria, r.gatilho, r.titulo, r.levantado_por,
             r.data_levantamento, r.impacto_qualitativo, r.matrix_score,
-            r.status, r.criado_em
+            r.status, r.criado_em, r.dono_email, r.dono_nome,
+            sc.nome AS ativo, sc.tipo AS ativo_tipo, sc.area_responsavel AS area
           FROM riscos r
           JOIN projetos p ON p.id = r.projeto_id
+          LEFT JOIN sistemas_criticos sc ON sc.id = r.sistema_critico_id
           ORDER BY r.criado_em DESC
         `;
 

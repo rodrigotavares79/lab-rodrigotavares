@@ -1,4 +1,6 @@
 import { validarCenario, montarTituloRisco } from "@/lib/cenarioRisco";
+import { MSG_SEM_DONO, ativoTemCusto } from "@/lib/ativosCriticos";
+import { buscarUsuarioRiscos } from "@/lib/usuariosRiscos";
 import { NextRequest, NextResponse } from "next/server";
 import { simularImpactoFinanceiro, type FaixaEstimativa } from "@/lib/riscoUtils";
 import { nivelRisco } from "@/lib/metodologiaRisco";
@@ -47,6 +49,7 @@ export async function POST(request: NextRequest) {
       causa,
       evento,
       consequencia,
+      donoEmail,
       gatilho,
       resultado,
       dataLevantamento,
@@ -80,6 +83,13 @@ export async function POST(request: NextRequest) {
     if (cenarioInvalido) {
       return NextResponse.json({ error: cenarioInvalido }, { status: 400 });
     }
+    // B14: dono do risco obrigatório, entre os usuários do módulo.
+    if (!donoEmail) return NextResponse.json({ error: MSG_SEM_DONO }, { status: 400 });
+    const dono = await buscarUsuarioRiscos(donoEmail);
+    if (!dono) {
+      return NextResponse.json({ error: "O dono precisa ser um usuário do Gestão de Riscos." }, { status: 400 });
+    }
+    const donoTexto = `${dono.nome} <${dono.email}>`;
 
     const sql = sqlAuditado(guarda.usuario);
 
@@ -90,11 +100,16 @@ export async function POST(request: NextRequest) {
 
     if (sistemaCriticoId) {
       const sistemaRows = await sql`
-        SELECT nome, custo_indisponibilidade_hora, custo_restauracao_hora_homem
+        SELECT nome, projeto_id, ativo, custo_indisponibilidade_hora, custo_restauracao_hora_homem
         FROM sistemas_criticos WHERE id = ${sistemaCriticoId}
       `;
-      sistema = (sistemaRows[0] as SistemaRow) ?? null;
-      if (sistema) sistemaNome = sistema.nome;
+      const linhaAtivo: any = sistemaRows[0];
+      if (!linhaAtivo || Number(linhaAtivo.projeto_id) !== Number(projetoId) || !linhaAtivo.ativo) {
+        return NextResponse.json({ error: "Ativo ou processo inválido para este projeto." }, { status: 400 });
+      }
+      sistemaNome = linhaAtivo.nome;
+      // B14: só ativo com custos entra no cálculo financeiro.
+      sistema = ativoTemCusto(linhaAtivo) ? (linhaAtivo as SistemaRow) : null;
     }
 
     const faixaDuracaoHoras = paraFaixaOuNull(duracaoHoras);
@@ -137,7 +152,7 @@ export async function POST(request: NextRequest) {
 
     await sql`
       INSERT INTO riscos (
-        projeto_id, categoria, causa, evento, consequencia, gatilho, resultado_potencial, levantado_por,
+        projeto_id, categoria, causa, evento, consequencia, dono_email, dono_nome, gatilho, resultado_potencial, levantado_por,
         data_levantamento, fonte, impacto, probabilidade, matrix_score,
         nivel_inicial, impacto_qualitativo, nivel_projetado,
         prob_nivel_atual, imp_nivel_atual, prob_nivel_projetado, imp_nivel_projetado,
@@ -151,7 +166,7 @@ export async function POST(request: NextRequest) {
         impacto_alto_indisponibilidade, impacto_alto_restauracao, impacto_alto_total,
         impacto_alto_p10, impacto_alto_p90
       ) VALUES (
-        ${projetoId}, ${categoria || null}, ${cenario.causa}, ${cenario.evento}, ${cenario.consequencia}, ${gatilho || null}, ${resultado || null}, ${levantadoPor},
+        ${projetoId}, ${categoria || null}, ${cenario.causa}, ${cenario.evento}, ${cenario.consequencia}, ${dono.email}, ${dono.nome}, ${gatilho || null}, ${resultado || null}, ${levantadoPor},
         ${dataLevantamento || null}, ${fonte || null}, ${impacto || null}, ${probabilidade || null},
         ${matrixScore || null}, ${nivelInerente}, ${nivelInerente}, ${nivelInerente},
         ${probabilidade || null}, ${impacto || null}, ${probabilidade || null}, ${impacto || null},
@@ -175,6 +190,7 @@ export async function POST(request: NextRequest) {
         ["Causa", cenario.causa],
         ["Evento", cenario.evento],
         ["Consequência", cenario.consequencia],
+        ["Dono do risco", donoTexto],
         ["Ponto de Gatilho", gatilho || "—"],
         ["Detalhamento do impacto", resultado || "—"],
         ["Levantado Por", levantadoPor],
@@ -187,7 +203,7 @@ export async function POST(request: NextRequest) {
       ];
 
       if (sistemaNome) {
-        linhas.push(["Sistema Crítico", sistemaNome]);
+        linhas.push(["Ativo ou processo", sistemaNome]);
       }
 
       const linhasHtml = linhas
