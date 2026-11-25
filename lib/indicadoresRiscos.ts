@@ -22,6 +22,11 @@
 // - Plano aberto: plano com status diferente de "Concluído".
 // - Ação atrasada: ação não concluída, com prazo anterior a hoje no fuso de
 //   São Paulo, de risco ainda ativo.
+// - Sem tratamento definido (B02): risco ativo Alto ou Crítico, sem plano de
+//   ação, com o prazo da política (parametros_politica.prazo_tratamento_dias,
+//   contado do cadastro) já vencido. View riscos_tratamento.
+// - Conformidade com a política (B02): % dos riscos ativos Alto e Crítico que
+//   têm tratamento definido (pelo menos um plano).
 // - Revisão vencida (B17): risco ativo cuja próxima revisão (view
 //   riscos_revisao: última revisão + prazo do nível atual) é anterior a hoje
 //   no fuso de São Paulo.
@@ -45,6 +50,9 @@ export type IndicadoresRiscos = {
     acoesAtrasadas: number;
     auditoriaPendentes: number;
     revisoesVencidas: number;
+    semTratamento: number;
+    altoCriticoComTratamento: number;
+    altoCriticoTotal: number;
   };
   categorias: { categoria: string; total: number }[];
   niveis: { nivel: string; total: number }[];
@@ -109,16 +117,38 @@ async function contarRevisoesVencidas(sql: any, p: number | null): Promise<numbe
   return linha?.vencidas ?? 0;
 }
 
+// Sem tratamento definido e conformidade com a política (B02). A lista em
+// app/api/sem-tratamento usa o mesmo critério.
+async function resumoTratamento(sql: any, p: number | null) {
+  const [linha] = await sql`
+      SELECT
+        COUNT(*)::int AS total,
+        COUNT(*) FILTER (WHERE planos > 0)::int AS com_tratamento,
+        COUNT(*) FILTER (
+          WHERE planos = 0 AND prazo_tratamento < (now() AT TIME ZONE 'America/Sao_Paulo')::date
+        )::int AS sem_tratamento
+      FROM riscos_tratamento
+      WHERE (${p}::int IS NULL OR projeto_id = ${p}::int)
+    `;
+  return linha ?? { total: 0, com_tratamento: 0, sem_tratamento: 0 };
+}
+
 /** Contadores do menu lateral, com as mesmas definições do conjunto completo. */
 export async function obterContadoresMenu(
   sql: any
-): Promise<{ acoesAtrasadas: number; auditoriaPendentes: number; revisoesVencidas: number }> {
-  const [planos, acoes, revisoesVencidas] = await Promise.all([
+): Promise<{ acoesAtrasadas: number; auditoriaPendentes: number; revisoesVencidas: number; semTratamento: number }> {
+  const [planos, acoes, revisoesVencidas, tratamento] = await Promise.all([
     resumoPlanos(sql, null),
     resumoAcoes(sql, null),
     contarRevisoesVencidas(sql, null),
+    resumoTratamento(sql, null),
   ]);
-  return { acoesAtrasadas: acoes.atrasadas, auditoriaPendentes: planos.auditoria_pendentes, revisoesVencidas };
+  return {
+    acoesAtrasadas: acoes.atrasadas,
+    auditoriaPendentes: planos.auditoria_pendentes,
+    revisoesVencidas,
+    semTratamento: tratamento.sem_tratamento,
+  };
 }
 
 export async function obterIndicadores(sql: any, projetoId: number | null = null): Promise<IndicadoresRiscos> {
@@ -129,6 +159,7 @@ export async function obterIndicadores(sql: any, projetoId: number | null = null
     planos,
     acoes,
     revisoesVencidas,
+    tratamento,
     categorias,
     niveis,
     niveisIniciais,
@@ -153,6 +184,7 @@ export async function obterIndicadores(sql: any, projetoId: number | null = null
     resumoPlanos(sql, p),
     resumoAcoes(sql, p),
     contarRevisoesVencidas(sql, p),
+    resumoTratamento(sql, p),
     sql`
       SELECT categoria, COUNT(*)::int AS total
       FROM riscos
@@ -263,6 +295,9 @@ export async function obterIndicadores(sql: any, projetoId: number | null = null
       acoesAtrasadas: acoes.atrasadas,
       auditoriaPendentes: planos.auditoria_pendentes,
       revisoesVencidas,
+      semTratamento: tratamento.sem_tratamento,
+      altoCriticoComTratamento: tratamento.com_tratamento,
+      altoCriticoTotal: tratamento.total,
     },
     categorias,
     niveis,

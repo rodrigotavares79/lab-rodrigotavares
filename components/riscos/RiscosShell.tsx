@@ -13,7 +13,7 @@ import { ProvedorPermissoesRiscos, usePerfilRiscos, type PermissoesRiscos } from
 
 const BASE = "/seguranca/gestao-de-riscos";
 
-type Contador = "auditoriaPendentes" | "acoesAtrasadas" | "revisoesVencidas";
+type Contador = "auditoriaPendentes" | "acoesAtrasadas" | "revisoesVencidas" | "semTratamento";
 type ItemMenu = {
   href: string;
   label: string;
@@ -43,6 +43,7 @@ const GRUPOS: GrupoMenu[] = [
       { href: `${BASE}/riscos`, label: "Riscos", tambem: [`${BASE}/cadastro-de-riscos`] },
       { href: `${BASE}/acoes-atrasadas`, label: "Ações atrasadas", contador: "acoesAtrasadas", alerta: true },
       { href: `${BASE}/revisoes-vencidas`, label: "Revisões vencidas", contador: "revisoesVencidas", alerta: true },
+      { href: `${BASE}/sem-tratamento`, label: "Sem tratamento definido", contador: "semTratamento", alerta: true },
     ],
   },
   {

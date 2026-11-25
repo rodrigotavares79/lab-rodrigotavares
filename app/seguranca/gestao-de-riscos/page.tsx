@@ -25,6 +25,9 @@ type Resumo = {
     acoesConcluidas: number;
     acoesAtrasadas: number;
     revisoesVencidas: number;
+    semTratamento: number;
+    altoCriticoComTratamento: number;
+    altoCriticoTotal: number;
   };
   matriz: { prob: number; imp: number; total: number }[];
   categorias: { categoria: string; total: number }[];
@@ -86,6 +89,8 @@ export default function GestaoDeRiscos() {
   const pctAcoes = k && k.acoesTotal ? Math.round((k.acoesConcluidas / k.acoesTotal) * 100) : 0;
   const atrasadas = k?.acoesAtrasadas ?? 0;
   const revisoesVencidas = k?.revisoesVencidas ?? 0;
+  const semTratamento = k?.semTratamento ?? 0;
+  const pctTratamento = k && k.altoCriticoTotal ? Math.round((k.altoCriticoComTratamento / k.altoCriticoTotal) * 100) : null;
 
   const contagem = new Map((dados?.matriz || []).map((m) => [`${m.prob}-${m.imp}`, m.total]));
 
@@ -164,6 +169,21 @@ export default function GestaoDeRiscos() {
               <span className={s.kpiValor}><Valor v={k?.revisoesVencidas} /></span>
               <span className={s.kpiNota}>
                 {k ? (revisoesVencidas > 0 ? "Ver riscos a reavaliar →" : "Revisões em dia") : " "}
+              </span>
+            </Link>
+            <Link
+              href={`${BASE}/sem-tratamento`}
+              className={`${s.kpi} ${s.kpiLink} ${semTratamento > 0 ? s.kpiAlerta : ""}`}
+            >
+              <span className={s.kpiRotulo}>Sem tratamento definido</span>
+              <span className={s.kpiValor}><Valor v={k?.semTratamento} /></span>
+              <div className={s.barra} aria-hidden="true">
+                <div style={{ width: `${pctTratamento ?? 0}%`, background: "var(--accent)" }} />
+              </div>
+              <span className={s.kpiNota}>
+                {k
+                  ? `${pctTratamento ?? 100}% dos críticos e altos com tratamento (política)`
+                  : " "}
               </span>
             </Link>
           </section>
