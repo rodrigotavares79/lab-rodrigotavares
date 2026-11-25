@@ -27,6 +27,7 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
         r.id, r.projeto_id, p.nome AS projeto,
         r.categoria, r.gatilho, r.resultado_potencial, r.levantado_por,
         r.causa, r.evento, r.consequencia, r.titulo,
+        r.sem_controles, r.sem_controles_justificativa, r.sem_controles_por_email, r.sem_controles_em,
         r.cenario_id, (SELECT codigo || ' · ' || nome FROM cenarios_risco WHERE id = r.cenario_id) AS cenario_catalogo,
         r.dono_email, r.dono_nome, r.dono_contato_id, r.ponto_focal_email, r.ponto_focal_nome,
         s.tipo AS ativo_tipo, s.area_responsavel AS ativo_area,

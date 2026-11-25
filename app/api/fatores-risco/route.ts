@@ -1,40 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  OPCOES_NATUREZA_FATOR,
-  OPCOES_CRITICIDADE,
-  OPCOES_TIPO_CONTROLE,
-  OPCOES_NATUREZA_CONTROLE,
-  OPCOES_EFICACIA_POTENCIAL,
-  OPCOES_STATUS_IMPLEMENTACAO,
-  OPCOES_VETOR,
-} from "@/lib/metodologiaRisco";
 import { recomputeRisco } from "@/lib/recomputeRisco";
 import { sqlAuditado } from "@/lib/sqlAuditado";
 import { exigirPermissao } from "@/lib/riscosAuth";
+import { validarFator } from "@/lib/validarFator";
 
 export const dynamic = "force-dynamic";
 
-function validar(body: any): string | null {
-  if (!body?.riscoId) return "riscoId é obrigatório.";
-  if (!body?.descricao?.trim()) return "Descrição do fator é obrigatória.";
-  if (!OPCOES_NATUREZA_FATOR.includes(body?.natureza)) return `Natureza inválida. Use um de: ${OPCOES_NATUREZA_FATOR.join(", ")}.`;
-  if (!OPCOES_CRITICIDADE.includes(body?.criticidade)) return `Criticidade inválida. Use um de: ${OPCOES_CRITICIDADE.join(", ")}.`;
-  if (!body?.controleDescricao?.trim()) return "Descrição do controle é obrigatória.";
-  if (!OPCOES_TIPO_CONTROLE.includes(body?.tipoControle)) return `Tipo de controle inválido. Use um de: ${OPCOES_TIPO_CONTROLE.join(", ")}.`;
-  if (!OPCOES_NATUREZA_CONTROLE.includes(body?.naturezaControle)) return `Natureza do controle inválida. Use um de: ${OPCOES_NATUREZA_CONTROLE.join(", ")}.`;
-  if (!OPCOES_EFICACIA_POTENCIAL.includes(body?.eficaciaPotencial)) return `Eficácia potencial inválida. Use um de: ${OPCOES_EFICACIA_POTENCIAL.join(", ")}.`;
-  if (body?.statusImplementacao && !OPCOES_STATUS_IMPLEMENTACAO.includes(body.statusImplementacao)) return `Status de implementação inválido.`;
-  if (body?.vetorOverride && !OPCOES_VETOR.includes(body.vetorOverride)) return `Vetor de override inválido.`;
-  if (body?.vetorOverride && !body?.justificativaOverride?.trim()) return "Justificativa do override é obrigatória quando o vetor sugerido é sobrescrito.";
-  return null;
-}
 
 export async function POST(request: NextRequest) {
   const guarda = await exigirPermissao("editarRiscos");
   if (guarda.resposta) return guarda.resposta;
   try {
     const body = await request.json();
-    const erro = validar(body);
+    const erro = validarFator(body);
     if (erro) return NextResponse.json({ error: erro }, { status: 400 });
 
     const sql = sqlAuditado(guarda.usuario);
@@ -69,6 +47,12 @@ export async function POST(request: NextRequest) {
                 status_implementacao, vetor_override, justificativa_override, criado_em
     `;
 
+    // B15: com um controle cadastrado, a declaração "sem controles" deixa de valer.
+    await sql`
+      UPDATE riscos SET sem_controles = false, sem_controles_justificativa = NULL,
+                        sem_controles_por_email = NULL, sem_controles_em = NULL
+      WHERE id = ${body.riscoId} AND sem_controles
+    `;
     await recomputeRisco(sql, body.riscoId);
 
     return NextResponse.json({ fator: rows[0] });

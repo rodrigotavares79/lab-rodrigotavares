@@ -45,6 +45,11 @@ Valor desconhecido = Leitura.
 - O catálogo é consultado por qualquer perfil com `ler`; criar, editar, inativar cenários, ligar riscos a cenários e registrar risco corporativo exige `editarRiscos`.
 - O risco corporativo é um risco do projeto "Corporativo (transversal)" e segue as mesmas regras dos demais (dono, planos, aceitação com alçada, revisão).
 
+## Controles existentes (B15)
+
+- O cadastro exige ao menos um controle existente (fator de risco com controle) ou a declaração "sem controles" com justificativa. Declarar ou desfazer exige `editarRiscos`.
+- Plano de ação pode indicar o controle que implementa; quando o plano é auditado como Conforme (perfil com `auditar`), o controle passa a "Implementado e validado" e o nível atual é recalculado.
+
 ## Alçada de aceitação de risco (B16)
 
 Aceitar um risco exige uma Carta de Risco (PDF ou DOCX) e a aprovação de alguém com alçada para o nível **atual** do risco (se o risco mudar de nível depois do pedido, vale a alçada do nível novo):

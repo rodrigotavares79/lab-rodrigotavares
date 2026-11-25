@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sqlAuditado } from "@/lib/sqlAuditado";
+import { recomputeRisco } from "@/lib/recomputeRisco";
+import { STATUS_CONTROLE_VALIDADO } from "@/lib/controlesRisco";
 import { exigirPermissao } from "@/lib/riscosAuth";
 import { sincronizarStatusRisco } from "@/lib/sincronizarStatusRisco";
 import { motivoConflitoAuditoria } from "@/lib/segregacaoFuncoes";
@@ -99,6 +101,18 @@ export async function POST(request: NextRequest, props: { params: Promise<{ plan
       INSERT INTO planos_acao_auditorias (plano_acao_id, resultado, comentario, auditor_nome, auditor_email)
       VALUES (${planoId}, ${resultado}, ${comentario}, ${usuario.nome}, ${usuario.email})
     `;
+
+    // B15: plano Conforme que implementa um controle → controle validado e
+    // nível atual do risco recalculado.
+    if (resultado === "Conforme") {
+      const validados = await sql`
+        UPDATE fatores_risco f SET status_implementacao = ${STATUS_CONTROLE_VALIDADO}
+        FROM planos_acao pa
+        WHERE pa.id = ${planoId} AND f.id = pa.fator_id AND f.status_implementacao IS DISTINCT FROM ${STATUS_CONTROLE_VALIDADO}
+        RETURNING f.id
+      `;
+      if (validados.length > 0) await recomputeRisco(sql, plano.risco_id);
+    }
 
     // Garante que o risco está Em Tratamento (ex.: plano reprovado e reaberto).
     // Nunca promove para Mitigado sozinho: isso é decisão de quem reavalia.

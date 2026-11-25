@@ -61,6 +61,8 @@ export const ROTULOS_CAMPOS: Record<string, Record<string, string>> = {
     ponto_focal_nome: "Ponto focal",
     sistema_critico_id: "Ativo ou processo (nº do inventário)",
     cenario_id: "Cenário do catálogo (nº)",
+    sem_controles: "Sem controles (declarado)",
+    sem_controles_justificativa: "Justificativa de não haver controles",
     causa: "Causa",
     evento: "Evento",
     consequencia: "Consequência",
@@ -84,6 +86,7 @@ export const ROTULOS_CAMPOS: Record<string, Record<string, string>> = {
     status: "Status",
     auditoria_status: "Auditoria",
     auditoria_comentario: "Comentário da auditoria",
+    fator_id: "Controle implementado (nº do fator)",
   },
   acoes: {
     descricao: "Descrição",
