@@ -19,6 +19,9 @@ type Situacao = "Pendente" | "Conforme" | "Não conforme";
 type Acao = { id: number; descricao: string; responsavel: string | null; prazo: string | null; status: string };
 type Historico = { id: number; resultado: Situacao; comentario: string | null; auditor_nome: string | null; criado_em: string };
 type PlanoAuditoria = {
+  // B07: motivo que impede o usuário logado de auditar (segregação de funções).
+  conflito: string | null;
+  criado_por_nome: string | null;
   id: number;
   titulo: string;
   status: string;
@@ -200,7 +203,18 @@ function CardPlano({ plano, podeAuditar, onDecidido }: { plano: PlanoAuditoria; 
         </details>
       )}
 
-      {plano.auditoria_status === "Pendente" && podeAuditar && <Decisao plano={plano} onDecidido={onDecidido} />}
+      {plano.auditoria_status === "Pendente" && podeAuditar && !plano.conflito && (
+        <Decisao plano={plano} onDecidido={onDecidido} />
+      )}
+      {plano.auditoria_status === "Pendente" && podeAuditar && plano.conflito && (
+        <div className="error-banner" role="note" style={{ marginTop: "1rem" }}>
+          <span className="success-icon error-icon">!</span>
+          <span className="success-text">
+            <strong>Você não pode auditar este plano.</strong>
+            <span>{plano.conflito}</span>
+          </span>
+        </div>
+      )}
     </article>
   );
 }

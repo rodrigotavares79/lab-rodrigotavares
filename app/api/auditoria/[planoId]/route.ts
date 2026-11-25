@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sqlAuditado } from "@/lib/sqlAuditado";
 import { exigirPermissao } from "@/lib/riscosAuth";
 import { sincronizarStatusRisco } from "@/lib/sincronizarStatusRisco";
+import { motivoConflitoAuditoria } from "@/lib/segregacaoFuncoes";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest, props: { params: Promise<{ plan
 
     const sql = sqlAuditado(guarda.usuario);
     const rows = await sql`
-      SELECT pa.status, pa.auditoria_status, pa.risco_id, r.status AS risco_status
+      SELECT pa.status, pa.auditoria_status, pa.risco_id, pa.criado_por_email, r.status AS risco_status
       FROM planos_acao pa JOIN riscos r ON r.id = pa.risco_id
       WHERE pa.id = ${planoId}
     `;
@@ -51,6 +52,23 @@ export async function POST(request: NextRequest, props: { params: Promise<{ plan
     }
     if (plano.risco_status === "Mitigado") {
       return NextResponse.json({ error: "O risco deste plano já foi mitigado." }, { status: 409 });
+    }
+
+    // B07: segregação de funções — vale para todos os perfis, inclusive
+    // Administrador. A tentativa bloqueada fica em eventos_seguranca.
+    const acoesPlano = await sql`SELECT responsavel_email, responsavel FROM acoes WHERE plano_acao_id = ${planoId}`;
+    const conflito = motivoConflitoAuditoria({
+      auditorEmail: usuario.email,
+      criadoPorEmail: plano.criado_por_email,
+      acoes: acoesPlano as any[],
+    });
+    if (conflito) {
+      await sql`
+        INSERT INTO eventos_seguranca (tipo, usuario_email, usuario_nome, risco_id, registro, detalhe)
+        VALUES ('auditoria_bloqueada_segregacao', ${usuario.email}, ${usuario.nome}, ${plano.risco_id},
+                ${"planos_acao:" + planoId}, ${`${resultado}: ${conflito}`})
+      `;
+      return NextResponse.json({ error: conflito }, { status: 403 });
     }
 
     const novoStatusPlano = resultado === "Conforme" ? "Concluído" : "Aberto";

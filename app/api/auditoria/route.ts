@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { exigirPermissao, ROTULO_PERFIL_RISCOS } from "@/lib/riscosAuth";
 import { urlDaEvidencia } from "@/lib/riscosEvidencias";
+import { motivoConflitoAuditoria } from "@/lib/segregacaoFuncoes";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +36,7 @@ export async function GET(request: NextRequest) {
     const planos = await sql`
       SELECT
         pa.id, pa.titulo, pa.status, pa.concluido_em, pa.auditoria_status,
+        pa.criado_por_email, pa.criado_por_nome,
         pa.auditado_em, pa.auditado_por_nome, pa.auditoria_comentario,
         r.id AS risco_id, r.gatilho, r.categoria, r.impacto_qualitativo, r.status AS risco_status,
         p.nome AS projeto
@@ -52,7 +54,7 @@ export async function GET(request: NextRequest) {
     const ids = planos.map((p: any) => p.id);
     const [acoes, evidencias, historico] = ids.length
       ? await Promise.all([
-          sql`SELECT id, plano_acao_id, descricao, responsavel, prazo, status
+          sql`SELECT id, plano_acao_id, descricao, responsavel, responsavel_email, prazo, status
               FROM acoes WHERE plano_acao_id = ANY(${ids}) ORDER BY criado_em ASC`,
           sql`SELECT id, plano_acao_id, descricao, nome_arquivo, tipo_arquivo, tamanho_bytes, enviado_por_nome, criado_em
               FROM planos_acao_evidencias WHERE plano_acao_id = ANY(${ids}) ORDER BY criado_em ASC`,
@@ -81,8 +83,17 @@ export async function GET(request: NextRequest) {
         perfil: ROTULO_PERFIL_RISCOS[usuario.perfil],
       },
       contagem,
-      planos: planos.map((p: any) => ({
+      planos: planos.map(({ criado_por_email, ...p }: any) => ({
         ...p,
+        // B07: motivo que impede o usuário logado de auditar este plano.
+        conflito:
+          p.auditoria_status === "Pendente"
+            ? motivoConflitoAuditoria({
+                auditorEmail: usuario.email,
+                criadoPorEmail: criado_por_email,
+                acoes: acoesPor.get(p.id) || [],
+              })
+            : null,
         acoes: acoesPor.get(p.id) || [],
         evidencias: evidPor.get(p.id) || [],
         historico: histPor.get(p.id) || [],
