@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import SeletorDono, { donoPreenchido, type ValorDono } from "@/components/riscos/SeletorDono";
 
 // B14 · Painel "Responsabilidade" na tela do risco: dono do risco (usuário
 // do módulo) e ativo ou processo afetado (inventário), com a área
 // responsável. Quem edita riscos define ou troca; o ativo só pode ser trocado
 // enquanto o risco não tem estimativa financeira.
 
-type Usuario = { email: string; nome: string };
 type Ativo = { id: number; nome: string; tipo: string | null; area_responsavel: string | null };
 
 type Props = {
@@ -15,6 +15,9 @@ type Props = {
   projetoId: number;
   donoEmail: string | null;
   donoNome: string | null;
+  donoContatoId: number | null;
+  pontoFocalEmail: string | null;
+  pontoFocalNome: string | null;
   levantadoPor: string;
   ativoId: number | null;
   ativoNome: string | null;
@@ -36,19 +39,19 @@ const rotulo: React.CSSProperties = {
 
 export default function ResponsabilidadeRisco(p: Props) {
   const [editando, setEditando] = useState(false);
-  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [ativos, setAtivos] = useState<Ativo[]>([]);
-  const [dono, setDono] = useState(p.donoEmail || "");
+  const valorInicial = (): ValorDono => ({
+    donoEmail: p.donoContatoId ? "" : p.donoEmail || "",
+    donoContatoId: p.donoContatoId,
+    pontoFocalEmail: p.pontoFocalEmail || "",
+  });
+  const [dono, setDono] = useState<ValorDono>(valorInicial);
   const [ativoId, setAtivoId] = useState(p.ativoId ? String(p.ativoId) : "");
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
   useEffect(() => {
     if (!editando) return;
-    fetch("/api/usuarios-riscos")
-      .then((r) => r.json())
-      .then((d) => setUsuarios(d.usuarios || []))
-      .catch(() => setUsuarios([]));
     fetch(`/api/sistemas-criticos?projetoId=${p.projetoId}`)
       .then((r) => r.json())
       .then((d) => setAtivos(d.sistemas || []))
@@ -56,21 +59,25 @@ export default function ResponsabilidadeRisco(p: Props) {
   }, [editando, p.projetoId]);
 
   function abrir() {
-    setDono(p.donoEmail || "");
+    setDono(valorInicial());
     setAtivoId(p.ativoId ? String(p.ativoId) : "");
     setErro(null);
     setEditando(true);
   }
 
   async function salvar() {
-    if (!dono) {
-      setErro("Escolha o dono do risco.");
+    if (!donoPreenchido(dono)) {
+      setErro(dono.donoContatoId !== null ? "Escolha o ponto focal (Analista GRC)." : "Escolha o dono do risco.");
       return;
     }
     setSalvando(true);
     setErro(null);
     try {
-      const corpo: Record<string, unknown> = { donoEmail: dono };
+      const corpo: Record<string, unknown> = {
+        donoEmail: dono.donoEmail || null,
+        donoContatoId: dono.donoContatoId,
+        pontoFocalEmail: dono.pontoFocalEmail || null,
+      };
       if (p.podeTrocarAtivo) corpo.ativoId = ativoId ? Number(ativoId) : null;
       const r = await fetch(`/api/riscos/${p.riscoId}/responsabilidade`, {
         method: "PUT",
@@ -116,12 +123,24 @@ export default function ResponsabilidadeRisco(p: Props) {
               {p.donoEmail ? (
                 <p style={{ margin: "0.2rem 0 0" }}>
                   {p.donoNome || p.donoEmail}
-                  <span className="text-muted" style={{ display: "block", fontSize: "0.78rem" }}>{p.donoEmail}</span>
+                  <span className="text-muted" style={{ display: "block", fontSize: "0.78rem" }}>
+                    {p.donoEmail}
+                    {p.donoContatoId ? " · contato de negócio, sem acesso" : ""}
+                  </span>
                 </p>
               ) : (
                 <p style={{ margin: "0.2rem 0 0", color: "var(--danger)", fontWeight: 600 }}>Sem dono definido</p>
               )}
             </div>
+            {p.donoContatoId && (
+              <div>
+                <p style={rotulo}>Ponto focal (Analista GRC)</p>
+                <p style={{ margin: "0.2rem 0 0" }}>
+                  {p.pontoFocalNome || p.pontoFocalEmail}
+                  <span className="text-muted" style={{ display: "block", fontSize: "0.78rem" }}>{p.pontoFocalEmail}</span>
+                </p>
+              </div>
+            )}
             <div>
               <p style={rotulo}>Levantado por</p>
               <p style={{ margin: "0.2rem 0 0" }}>{p.levantadoPor || "—"}</p>
@@ -142,17 +161,7 @@ export default function ResponsabilidadeRisco(p: Props) {
 
         {editando && (
           <div>
-            <div className="form-field">
-              <label htmlFor="donoResp">Dono do risco *</label>
-              <select id="donoResp" value={dono} onChange={(e) => setDono(e.target.value)}>
-                <option value="">Selecione</option>
-                {usuarios.map((u) => (
-                  <option key={u.email} value={u.email}>
-                    {u.nome} ({u.email})
-                  </option>
-                ))}
-              </select>
-            </div>
+            <SeletorDono valor={dono} onChange={setDono} idPrefixo="donoResp" />
             <div className="form-field">
               <label htmlFor="ativoResp">Ativo ou processo afetado</label>
               <select

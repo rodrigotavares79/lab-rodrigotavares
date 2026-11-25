@@ -49,6 +49,9 @@ type RiscoDetalhe = {
   titulo: string | null;
   dono_email: string | null;
   dono_nome: string | null;
+  dono_contato_id: number | null;
+  ponto_focal_email: string | null;
+  ponto_focal_nome: string | null;
   ativo_tipo: string | null;
   ativo_area: string | null;
   levantado_por: string;
@@ -1334,11 +1337,14 @@ export default function DetalheDoRisco() {
             <div className={s.grade}>
               <div className={s.coluna}>
                 <ResponsabilidadeRisco
-                  key={`resp-${risco.id}-${risco.dono_email}-${risco.sistema_critico_id}`}
+                  key={`resp-${risco.id}-${risco.dono_email}-${risco.ponto_focal_email}-${risco.sistema_critico_id}`}
                   riscoId={risco.id}
                   projetoId={risco.projeto_id}
                   donoEmail={risco.dono_email}
                   donoNome={risco.dono_nome}
+                  donoContatoId={risco.dono_contato_id}
+                  pontoFocalEmail={risco.ponto_focal_email}
+                  pontoFocalNome={risco.ponto_focal_nome}
                   levantadoPor={risco.levantado_por}
                   ativoId={risco.sistema_critico_id}
                   ativoNome={risco.sistema_critico}

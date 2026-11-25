@@ -20,6 +20,8 @@ type RiscoLinha = {
   criado_em: string;
   dono_email?: string | null;
   dono_nome?: string | null;
+  dono_contato_id?: number | null;
+  ponto_focal_nome?: string | null;
   ativo?: string | null;
   area?: string | null;
 };
@@ -66,7 +68,16 @@ export default function ListaDeRiscos() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("dono") === "sem") setFiltroDono(SEM_DONO);
+    // ?contato=ID (link da tela Contatos de negócio): filtra pelo dono externo.
+    const contato = Number(params.get("contato"));
+    if (Number.isInteger(contato) && contato > 0) setContatoParam(contato);
   }, []);
+  const [contatoParam, setContatoParam] = useState<number | null>(null);
+  useEffect(() => {
+    if (contatoParam === null) return;
+    const r = riscos.find((x) => x.dono_contato_id === contatoParam);
+    if (r?.dono_email) setFiltroDono(r.dono_email);
+  }, [contatoParam, riscos]);
 
   const donos = useMemo(() => {
     const m = new Map<string, string>();
@@ -242,6 +253,9 @@ export default function ListaDeRiscos() {
                           <td>
                             {r.dono_nome || r.dono_email || (
                               <span style={{ color: "var(--danger)", fontWeight: 600 }}>sem dono</span>
+                            )}
+                            {r.dono_contato_id && r.ponto_focal_nome && (
+                              <div className="text-muted" style={{ fontSize: "0.75rem" }}>ponto focal: {r.ponto_focal_nome}</div>
                             )}
                           </td>
                           <td style={{ whiteSpace: "normal", minWidth: "10rem" }}>

@@ -7,6 +7,7 @@ import { listarUsuariosRiscos } from "@/lib/usuariosRiscos";
 import { exigirPermissao } from "@/lib/riscosAuth";
 import { validarCenario } from "@/lib/cenarioRisco";
 import { MSG_SEM_DONO, ativoTemCusto } from "@/lib/ativosCriticos";
+import { resolverPontoFocal } from "@/lib/donoRisco";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,7 @@ type LinhaCsv = {
   evento?: string;
   consequencia?: string;
   dono?: string;
+  pontoFocal?: string;
   gatilho?: string;
   resultado?: string;
   levantadoPor?: string;
@@ -126,6 +128,8 @@ export async function POST(request: NextRequest) {
     const usuariosDoSistema = await listarUsuariosRiscos();
     const emailsDoSistema = usuariosDoSistema.map((u) => u.email);
     const usuarioPorEmail = new Map(usuariosDoSistema.map((u) => [u.email.toLowerCase(), u]));
+    const contatosRows = await sql`SELECT id, nome, email FROM contatos_risco WHERE ativo`;
+    const contatoPorEmail = new Map<string, any>(contatosRows.map((c: any) => [String(c.email).toLowerCase(), c]));
 
     linhas.forEach((linha, idx) => {
       const numeroLinha = idx + 2; // +2 = considerando linha de cabeçalho (linha 1)
@@ -157,9 +161,24 @@ export async function POST(request: NextRequest) {
         erros.push({ linha: numeroLinha, motivo: MSG_SEM_DONO });
         return;
       }
-      const dono = usuarioPorEmail.get(donoEmail);
-      if (!dono) {
-        erros.push({ linha: numeroLinha, motivo: `Dono do Risco "${linha.dono}" não é usuário do Gestão de Riscos.` });
+      // Usuário do módulo, ou contato de negócio (com ponto focal Analista GRC).
+      let dono: { email: string; nome: string; contatoId: number | null; pfEmail: string | null; pfNome: string | null };
+      const usuarioDono = usuarioPorEmail.get(donoEmail);
+      const contatoDono = contatoPorEmail.get(donoEmail);
+      if (usuarioDono) {
+        dono = { email: usuarioDono.email, nome: usuarioDono.nome, contatoId: null, pfEmail: null, pfNome: null };
+      } else if (contatoDono) {
+        const pf = resolverPontoFocal(usuariosDoSistema, linha.pontoFocal);
+        if ("erro" in pf) {
+          erros.push({ linha: numeroLinha, motivo: pf.erro });
+          return;
+        }
+        dono = { email: contatoDono.email, nome: contatoDono.nome, contatoId: contatoDono.id, pfEmail: pf.pontoFocal.email, pfNome: pf.pontoFocal.nome };
+      } else {
+        erros.push({
+          linha: numeroLinha,
+          motivo: `Dono do Risco "${linha.dono}" não é usuário do sistema nem contato cadastrado em "Contatos de negócio".`,
+        });
         return;
       }
 
@@ -249,6 +268,9 @@ export async function POST(request: NextRequest) {
         consequencia: cenario.consequencia,
         donoEmail: dono.email,
         donoNome: dono.nome,
+        donoContatoId: dono.contatoId,
+        pontoFocalEmail: dono.pfEmail,
+        pontoFocalNome: dono.pfNome,
         gatilho: linha.gatilho || null,
         resultado: linha.resultado || null,
         levantadoPor,
@@ -270,7 +292,8 @@ export async function POST(request: NextRequest) {
     for (const r of paraInserir) {
       await sql`
         INSERT INTO riscos (
-          projeto_id, categoria, causa, evento, consequencia, dono_email, dono_nome, gatilho, resultado_potencial, levantado_por,
+          projeto_id, categoria, causa, evento, consequencia, dono_email, dono_nome, dono_contato_id, ponto_focal_email, ponto_focal_nome,
+          gatilho, resultado_potencial, levantado_por,
           data_levantamento, fonte, impacto, probabilidade, matrix_score,
           nivel_inicial, impacto_qualitativo, nivel_projetado,
           prob_nivel_atual, imp_nivel_atual, prob_nivel_projetado, imp_nivel_projetado,
@@ -278,7 +301,8 @@ export async function POST(request: NextRequest) {
           impacto_critico_indisponibilidade, impacto_critico_restauracao, impacto_critico_total,
           impacto_alto_indisponibilidade, impacto_alto_restauracao, impacto_alto_total
         ) VALUES (
-          ${r.projetoId}, ${r.categoria}, ${r.causa}, ${r.evento}, ${r.consequencia}, ${r.donoEmail}, ${r.donoNome}, ${r.gatilho}, ${r.resultado}, ${r.levantadoPor},
+          ${r.projetoId}, ${r.categoria}, ${r.causa}, ${r.evento}, ${r.consequencia}, ${r.donoEmail}, ${r.donoNome}, ${r.donoContatoId}, ${r.pontoFocalEmail}, ${r.pontoFocalNome},
+          ${r.gatilho}, ${r.resultado}, ${r.levantadoPor},
           ${r.dataLevantamento}, ${r.fonte}, ${r.impacto}, ${r.probabilidade}, ${r.matrixScore},
           ${r.classificacao}, ${r.classificacao}, ${r.classificacao},
           ${r.probabilidade}, ${r.impacto}, ${r.probabilidade}, ${r.impacto},

@@ -6,7 +6,8 @@ import { parsePerfilRiscos, permissoesDoPerfil, ROTULO_PERFIL_RISCOS } from "@/l
 // exceto "sem_acesso" — ver lib/perfisRiscos). Isso deixa de fora quem só usa
 // outros módulos do lab, como o Gestão de Condomínio.
 
-export type UsuarioResponsavel = { email: string; nome: string; perfil: string };
+// `perfil` é o rótulo para exibir; `chave` é o perfil técnico (ex.: "analista_grc").
+export type UsuarioResponsavel = { email: string; nome: string; perfil: string; chave: string };
 
 export async function listarUsuariosRiscos(): Promise<UsuarioResponsavel[]> {
   const client = await clerkClient();
@@ -23,7 +24,7 @@ export async function listarUsuariosRiscos(): Promise<UsuarioResponsavel[]> {
         u.emailAddresses[0]?.emailAddress ??
         "";
       const perfil = parsePerfilRiscos(u.publicMetadata as Record<string, unknown>);
-      return { email, nome: u.fullName || email, perfil: ROTULO_PERFIL_RISCOS[perfil] };
+      return { email, nome: u.fullName || email, perfil: ROTULO_PERFIL_RISCOS[perfil], chave: perfil as string };
     })
     .filter((u) => u.email)
     .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
