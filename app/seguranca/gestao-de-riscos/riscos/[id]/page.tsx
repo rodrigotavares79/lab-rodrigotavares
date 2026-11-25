@@ -48,6 +48,8 @@ type RiscoDetalhe = {
   evento: string | null;
   consequencia: string | null;
   titulo: string | null;
+  cenario_id: number | null;
+  cenario_catalogo: string | null;
   dono_email: string | null;
   dono_nome: string | null;
   dono_contato_id: number | null;
@@ -1370,13 +1372,15 @@ export default function DetalheDoRisco() {
                 />
 
                 <CenarioRisco
-                  key={`${risco.id}-${risco.titulo}-${risco.gatilho}-${risco.resultado_potencial}`}
+                  key={`${risco.id}-${risco.titulo}-${risco.gatilho}-${risco.resultado_potencial}-${risco.cenario_id}`}
                   riscoId={risco.id}
                   causa={risco.causa}
                   evento={risco.evento}
                   consequencia={risco.consequencia}
                   gatilho={risco.gatilho}
                   detalhamento={risco.resultado_potencial}
+                  cenarioId={risco.cenario_id}
+                  cenarioCatalogo={risco.cenario_catalogo}
                   podeEditar={podeEditarRisco}
                   bloqueado={riscoMitigado}
                   onAtualizado={carregarRisco}

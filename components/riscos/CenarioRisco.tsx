@@ -17,6 +17,9 @@ type Props = {
   podeEditar: boolean;
   bloqueado?: boolean;
   onAtualizado: () => void;
+  // B27: cenário do catálogo ligado ao risco.
+  cenarioId?: number | null;
+  cenarioCatalogo?: string | null;
 };
 
 const estiloRotulo: React.CSSProperties = {
@@ -35,6 +38,87 @@ function Bloco({ rotulo, texto, dica }: { rotulo: string; texto: string | null; 
         {dica && <span style={{ textTransform: "none", letterSpacing: 0 }}> · {dica}</span>}
       </p>
       <p style={{ margin: "0.2rem 0 0" }}>{texto || <span className="text-muted">—</span>}</p>
+    </div>
+  );
+}
+
+function VinculoCatalogo({
+  riscoId,
+  cenarioId,
+  rotulo,
+  podeEditar,
+  onAtualizado,
+}: {
+  riscoId: number;
+  cenarioId: number | null;
+  rotulo: string | null;
+  podeEditar: boolean;
+  onAtualizado: () => void;
+}) {
+  const [aberto, setAberto] = useState(false);
+  const [opcoes, setOpcoes] = useState<{ id: number; codigo: string; nome: string }[]>([]);
+  const [escolha, setEscolha] = useState(cenarioId ? String(cenarioId) : "");
+  const [erro, setErro] = useState<string | null>(null);
+
+  async function abrir() {
+    setAberto(true);
+    setErro(null);
+    const d = await fetch("/api/cenarios").then((r) => r.json()).catch(() => ({}));
+    setOpcoes(d.cenarios || []);
+  }
+  async function salvar() {
+    const r = await fetch(`/api/riscos/${riscoId}/cenario-catalogo`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cenarioId: escolha ? Number(escolha) : null }),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) return setErro(d.error || "Não foi possível salvar.");
+    setAberto(false);
+    onAtualizado();
+  }
+  const botao: React.CSSProperties = { background: "none", border: 0, padding: 0, color: "var(--accent)", cursor: "pointer", font: "inherit" };
+
+  return (
+    <div style={{ marginBottom: "0.9rem" }}>
+      <p style={estiloRotulo}>
+        Catálogo de cenários<span style={{ textTransform: "none", letterSpacing: 0 }}> · o mesmo cenário em outros projetos</span>
+      </p>
+      {!aberto ? (
+        <p style={{ margin: "0.2rem 0 0" }}>
+          {cenarioId ? (
+            <a href={`/seguranca/gestao-de-riscos/cenarios/${cenarioId}`}>{rotulo}</a>
+          ) : (
+            <span className="text-muted">não ligado</span>
+          )}
+          {podeEditar && (
+            <>
+              {" · "}
+              <button type="button" style={botao} onClick={abrir}>
+                {cenarioId ? "trocar" : "ligar"}
+              </button>
+            </>
+          )}
+        </p>
+      ) : (
+        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center", marginTop: "0.3rem" }}>
+          <select value={escolha} onChange={(e) => setEscolha(e.target.value)} aria-label="Cenário do catálogo">
+            <option value="">Não ligado</option>
+            {opcoes.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.codigo} · {o.nome}
+              </option>
+            ))}
+          </select>
+          <button type="button" className="btn-primary" onClick={salvar}>
+            Salvar
+          </button>
+          <button type="button" className="btn-secondary" onClick={() => setAberto(false)}>
+            Cancelar
+          </button>
+          {erro && <span style={{ color: "var(--danger)" }}>{erro}</span>}
+        </div>
+      )}
     </div>
   );
 }
@@ -114,6 +198,13 @@ export default function CenarioRisco(props: Props) {
             <Bloco rotulo="Consequência" dica="o que acontece se ocorrer" texto={props.consequencia} />
             <Bloco rotulo="Ponto de gatilho" dica="sinal observável de que o risco está se materializando" texto={props.gatilho} />
             <Bloco rotulo="Detalhamento do impacto" texto={props.detalhamento} />
+            <VinculoCatalogo
+              riscoId={props.riscoId}
+              cenarioId={props.cenarioId ?? null}
+              rotulo={props.cenarioCatalogo ?? null}
+              podeEditar={props.podeEditar && !props.bloqueado}
+              onAtualizado={props.onAtualizado}
+            />
           </>
         )}
 

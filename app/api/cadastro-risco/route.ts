@@ -52,6 +52,7 @@ export async function POST(request: NextRequest) {
       donoEmail,
       donoContatoId,
       pontoFocalEmail,
+      cenarioId,
       gatilho,
       resultado,
       dataLevantamento,
@@ -90,6 +91,13 @@ export async function POST(request: NextRequest) {
     const resolvidoDono = await resolverDonoRisco(sqlAuditado(guarda.usuario), { donoEmail, donoContatoId, pontoFocalEmail });
     if ("erro" in resolvidoDono) return NextResponse.json({ error: resolvidoDono.erro }, { status: 400 });
     const dono = resolvidoDono.dono;
+    // B27: cenário do catálogo (opcional), precisa existir e estar ativo.
+    let cenarioCatalogoId: number | null = null;
+    if (cenarioId !== undefined && cenarioId !== null && cenarioId !== "") {
+      const [c] = await sqlAuditado(guarda.usuario)`SELECT id, ativo FROM cenarios_risco WHERE id = ${Number(cenarioId)}`;
+      if (!c || !c.ativo) return NextResponse.json({ error: "Cenário do catálogo inválido ou inativo." }, { status: 400 });
+      cenarioCatalogoId = c.id;
+    }
     const donoTexto =
       `${dono.dono_nome} <${dono.dono_email}>` +
       (dono.ponto_focal_nome ? ` · ponto focal: ${dono.ponto_focal_nome}` : "");
@@ -155,7 +163,7 @@ export async function POST(request: NextRequest) {
 
     await sql`
       INSERT INTO riscos (
-        projeto_id, categoria, causa, evento, consequencia, dono_email, dono_nome, dono_contato_id,
+        projeto_id, categoria, causa, evento, consequencia, cenario_id, dono_email, dono_nome, dono_contato_id,
         ponto_focal_email, ponto_focal_nome, gatilho, resultado_potencial, levantado_por,
         data_levantamento, fonte, impacto, probabilidade, matrix_score,
         nivel_inicial, impacto_qualitativo, nivel_projetado,
@@ -170,7 +178,7 @@ export async function POST(request: NextRequest) {
         impacto_alto_indisponibilidade, impacto_alto_restauracao, impacto_alto_total,
         impacto_alto_p10, impacto_alto_p90
       ) VALUES (
-        ${projetoId}, ${categoria || null}, ${cenario.causa}, ${cenario.evento}, ${cenario.consequencia}, ${dono.dono_email}, ${dono.dono_nome}, ${dono.dono_contato_id},
+        ${projetoId}, ${categoria || null}, ${cenario.causa}, ${cenario.evento}, ${cenario.consequencia}, ${cenarioCatalogoId}, ${dono.dono_email}, ${dono.dono_nome}, ${dono.dono_contato_id},
         ${dono.ponto_focal_email}, ${dono.ponto_focal_nome}, ${gatilho || null}, ${resultado || null}, ${levantadoPor},
         ${dataLevantamento || null}, ${fonte || null}, ${impacto || null}, ${probabilidade || null},
         ${matrixScore || null}, ${nivelInerente}, ${nivelInerente}, ${nivelInerente},

@@ -9,6 +9,7 @@ import { MATRIZ_5X5 } from "@/lib/metodologiaRisco";
 import { usePerfilRiscos, SemPermissao } from "@/components/riscos/PermissoesRiscos";
 import { ativoTemCusto } from "@/lib/ativosCriticos";
 import RiscosSemelhantes from "@/components/riscos/RiscosSemelhantes";
+import CenariosSugeridos, { type CenarioCatalogo } from "@/components/riscos/CenariosSugeridos";
 import SeletorDono, { DONO_VAZIO, donoPreenchido, type ValorDono } from "@/components/riscos/SeletorDono";
 
 const NIVEIS = [
@@ -126,6 +127,8 @@ export default function CadastroDeRiscos() {
   const [causa, setCausa] = useState("");
   const [evento, setEvento] = useState("");
   const [consequencia, setConsequencia] = useState("");
+  // B27: cenário do catálogo ligado ao risco (opcional).
+  const [cenarioCatalogo, setCenarioCatalogo] = useState<CenarioCatalogo | null>(null);
   const [impacto, setImpacto] = useState(0);
   const [probabilidade, setProbabilidade] = useState(0);
   const [enviando, setEnviando] = useState(false);
@@ -200,6 +203,7 @@ export default function CadastroDeRiscos() {
       consequencia,
       donoEmail: dono.donoEmail || null,
       donoContatoId: dono.donoContatoId,
+      cenarioId: cenarioCatalogo?.id ?? null,
       pontoFocalEmail: dono.pontoFocalEmail || null,
       gatilho: formData.get("gatilho"),
       resultado: formData.get("resultado"),
@@ -238,6 +242,7 @@ export default function CadastroDeRiscos() {
       setEnviado(true);
       form.reset();
       setCausa("");
+      setCenarioCatalogo(null);
       setDono(DONO_VAZIO);
       setEvento("");
       setConsequencia("");
@@ -368,6 +373,20 @@ export default function CadastroDeRiscos() {
                     {montarTituloRisco({ causa, evento, consequencia }) || "preencha causa, evento e consequência"}
                   </p>
                 </div>
+
+                <CenariosSugeridos
+                  evento={evento}
+                  causa={causa}
+                  consequencia={consequencia}
+                  escolhido={cenarioCatalogo}
+                  onUsar={(c) => {
+                    setCenarioCatalogo(c);
+                    setCausa(c.causa);
+                    setEvento(c.evento);
+                    setConsequencia(c.consequencia);
+                  }}
+                  onDesligar={() => setCenarioCatalogo(null)}
+                />
 
                 <RiscosSemelhantes projetoId={projetoId} evento={evento} causa={causa} consequencia={consequencia} />
 
