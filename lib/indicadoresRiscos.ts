@@ -22,6 +22,9 @@
 // - Plano aberto: plano com status diferente de "Concluído".
 // - Ação atrasada: ação não concluída, com prazo anterior a hoje no fuso de
 //   São Paulo, de risco ainda ativo.
+// - Revisão vencida (B17): risco ativo cuja próxima revisão (view
+//   riscos_revisao: última revisão + prazo do nível atual) é anterior a hoje
+//   no fuso de São Paulo.
 //
 // `projetoId` null = todos os projetos.
 
@@ -41,6 +44,7 @@ export type IndicadoresRiscos = {
     acoesConcluidas: number;
     acoesAtrasadas: number;
     auditoriaPendentes: number;
+    revisoesVencidas: number;
   };
   categorias: { categoria: string; total: number }[];
   niveis: { nivel: string; total: number }[];
@@ -91,10 +95,30 @@ async function resumoAcoes(sql: any, p: number | null) {
   return linha;
 }
 
+// Revisão vencida: risco ativo com próxima revisão anterior a hoje (São
+// Paulo). A lista em app/api/revisoes-vencidas usa o mesmo critério.
+async function contarRevisoesVencidas(sql: any, p: number | null): Promise<number> {
+  const [linha] = await sql`
+      SELECT COUNT(*)::int AS vencidas
+      FROM riscos r
+      JOIN riscos_revisao rv ON rv.risco_id = r.id
+      WHERE r.status <> 'Mitigado'
+        AND rv.proxima_revisao < (now() AT TIME ZONE 'America/Sao_Paulo')::date
+        AND (${p}::int IS NULL OR r.projeto_id = ${p}::int)
+    `;
+  return linha?.vencidas ?? 0;
+}
+
 /** Contadores do menu lateral, com as mesmas definições do conjunto completo. */
-export async function obterContadoresMenu(sql: any): Promise<{ acoesAtrasadas: number; auditoriaPendentes: number }> {
-  const [planos, acoes] = await Promise.all([resumoPlanos(sql, null), resumoAcoes(sql, null)]);
-  return { acoesAtrasadas: acoes.atrasadas, auditoriaPendentes: planos.auditoria_pendentes };
+export async function obterContadoresMenu(
+  sql: any
+): Promise<{ acoesAtrasadas: number; auditoriaPendentes: number; revisoesVencidas: number }> {
+  const [planos, acoes, revisoesVencidas] = await Promise.all([
+    resumoPlanos(sql, null),
+    resumoAcoes(sql, null),
+    contarRevisoesVencidas(sql, null),
+  ]);
+  return { acoesAtrasadas: acoes.atrasadas, auditoriaPendentes: planos.auditoria_pendentes, revisoesVencidas };
 }
 
 export async function obterIndicadores(sql: any, projetoId: number | null = null): Promise<IndicadoresRiscos> {
@@ -104,6 +128,7 @@ export async function obterIndicadores(sql: any, projetoId: number | null = null
     [riscos],
     planos,
     acoes,
+    revisoesVencidas,
     categorias,
     niveis,
     niveisIniciais,
@@ -127,6 +152,7 @@ export async function obterIndicadores(sql: any, projetoId: number | null = null
     `,
     resumoPlanos(sql, p),
     resumoAcoes(sql, p),
+    contarRevisoesVencidas(sql, p),
     sql`
       SELECT categoria, COUNT(*)::int AS total
       FROM riscos
@@ -236,6 +262,7 @@ export async function obterIndicadores(sql: any, projetoId: number | null = null
       acoesConcluidas: acoes.concluidas,
       acoesAtrasadas: acoes.atrasadas,
       auditoriaPendentes: planos.auditoria_pendentes,
+      revisoesVencidas,
     },
     categorias,
     niveis,

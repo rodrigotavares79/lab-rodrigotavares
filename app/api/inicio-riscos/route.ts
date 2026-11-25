@@ -45,6 +45,7 @@ export async function GET() {
         acoesTotal: ind.kpis.acoesTotal,
         acoesConcluidas: ind.kpis.acoesConcluidas,
         acoesAtrasadas: ind.kpis.acoesAtrasadas,
+        revisoesVencidas: ind.kpis.revisoesVencidas,
       },
       matriz: ind.matriz,
       atencao,

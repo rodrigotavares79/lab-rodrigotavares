@@ -24,6 +24,7 @@ type Resumo = {
     acoesTotal: number;
     acoesConcluidas: number;
     acoesAtrasadas: number;
+    revisoesVencidas: number;
   };
   matriz: { prob: number; imp: number; total: number }[];
   categorias: { categoria: string; total: number }[];
@@ -84,6 +85,7 @@ export default function GestaoDeRiscos() {
   const pctAltos = k && k.ativos ? (k.altos / k.ativos) * 100 : 0;
   const pctAcoes = k && k.acoesTotal ? Math.round((k.acoesConcluidas / k.acoesTotal) * 100) : 0;
   const atrasadas = k?.acoesAtrasadas ?? 0;
+  const revisoesVencidas = k?.revisoesVencidas ?? 0;
 
   const contagem = new Map((dados?.matriz || []).map((m) => [`${m.prob}-${m.imp}`, m.total]));
 
@@ -152,6 +154,16 @@ export default function GestaoDeRiscos() {
               <span className={s.kpiValor}><Valor v={k?.acoesAtrasadas} /></span>
               <span className={s.kpiNota}>
                 {k ? (atrasadas > 0 ? "Ver ações com prazo vencido →" : "Tudo dentro do prazo") : " "}
+              </span>
+            </Link>
+            <Link
+              href={`${BASE}/revisoes-vencidas`}
+              className={`${s.kpi} ${s.kpiLink} ${revisoesVencidas > 0 ? s.kpiAlerta : ""}`}
+            >
+              <span className={s.kpiRotulo}>Revisões vencidas</span>
+              <span className={s.kpiValor}><Valor v={k?.revisoesVencidas} /></span>
+              <span className={s.kpiNota}>
+                {k ? (revisoesVencidas > 0 ? "Ver riscos a reavaliar →" : "Revisões em dia") : " "}
               </span>
             </Link>
           </section>

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import s from "@/components/riscos/riscos.module.css";
 import EvidenciasPlano, { type Evidencia } from "@/components/riscos/EvidenciasPlano";
+import { hojeSaoPaulo, situacaoRevisao, textoSituacaoRevisao } from "@/lib/revisaoRisco";
 import { montarEventos, type RegistroLog, type TipoEvento } from "@/lib/historicoRisco";
 import { STATUS_RISCO, statusPermitidos, validarTransicaoStatus, type StatusRisco } from "@/lib/statusRisco";
 import { usePerfilRiscos } from "@/components/riscos/PermissoesRiscos";
@@ -28,6 +29,9 @@ type FatorRisco = {
 
 type RiscoDetalhe = {
   id: number;
+  revisado_em: string | null;
+  dias_revisao: number | null;
+  proxima_revisao: string | null;
   projeto_id: number;
   projeto: string;
   categoria: string | null;
@@ -270,6 +274,34 @@ function ImpactoDecisao({ risco, totalPlanos }: { risco: RiscoDetalhe; totalPlan
           {totalPlanos > 0 ? ` · ${totalPlanos} plano${totalPlanos > 1 ? "s" : ""} de ação` : " · sem plano de ação"}
         </p>
       </div>
+    </div>
+  );
+}
+
+/* ---------- Revisão periódica (B17) ---------- */
+
+const COR_REVISAO: Record<string, string> = {
+  vencida: "var(--danger)",
+  vence_em_breve: "#b7791f",
+  em_dia: "var(--success)",
+  sem_prazo: "var(--text-muted)",
+};
+
+function BlocoRevisao({ risco }: { risco: RiscoDetalhe }) {
+  const sit = situacaoRevisao(risco.proxima_revisao, hojeSaoPaulo());
+  return (
+    <div
+      className="field-helper"
+      style={{ margin: "0 0 1rem", padding: "0.6rem 0.8rem", borderLeft: `3px solid ${COR_REVISAO[sit.estado]}`, background: "var(--surface)" }}
+    >
+      <strong>Revisão periódica:</strong> última em {risco.revisado_em ? formatDataHoraAud(risco.revisado_em) : "—"} · próxima em{" "}
+      {formatData(risco.proxima_revisao)}{" "}
+      <span style={{ color: COR_REVISAO[sit.estado], fontWeight: 600 }}>({textoSituacaoRevisao(sit)})</span>
+      {risco.dias_revisao ? (
+        <span>
+          {" "}· prazo do nível {risco.impacto_qualitativo}: {risco.dias_revisao} dias
+        </span>
+      ) : null}
     </div>
   );
 }
@@ -1097,6 +1129,8 @@ export default function DetalheDoRisco() {
         <strong>Mitigado</strong>, o risco é congelado por completo.
       </p>
 
+      {risco && <BlocoRevisao risco={risco} />}
+
       <form onSubmit={handleReavaliar} className="form-grid">
         <div className="form-field">
           <label htmlFor="impactoForm">Impacto Inerente (1–5)</label>
@@ -1129,6 +1163,9 @@ export default function DetalheDoRisco() {
           <button type="submit" className="btn-primary" disabled={salvando}>
             {salvando ? "Salvando..." : "Salvar reavaliação"}
           </button>
+          <span className="text-muted" style={{ fontSize: "0.8rem" }}>
+            Salvar registra a revisão periódica, mesmo sem mudar nenhum valor.
+          </span>
           {sucessoSalvar && <span className="text-muted" style={{ fontSize: "0.85rem" }}>Salvo.</span>}
         </div>
         {erroSalvar && (

@@ -33,6 +33,8 @@ export type EventoHistorico = {
   /** "tabela:registro" — usado para não repetir eventos de criação. */
   chave: string;
   operacao: RegistroLog["operacao"];
+  /** B17: a alteração registrou a revisão periódica (revisado_em). */
+  revisao?: boolean;
 };
 
 const TIPO_POR_TABELA: Record<string, TipoEvento> = {
@@ -148,12 +150,18 @@ export function montarEventos(registros: RegistroLog[]): EventoHistorico[] {
     const rotulos = ROTULOS_CAMPOS[primeira.tabela] || {};
 
     let mudancas: EventoHistorico["mudancas"] = [];
+    // Revisão = revisado_em substituído por uma data nova. O preenchimento
+    // inicial (de vazio para uma data, feito pela migração 0018) não é revisão.
+    const revisao =
+      primeira.tabela === "riscos" &&
+      linhas.some((l) => l.campo === "revisado_em" && l.valor_anterior !== null && l.valor_anterior !== undefined);
     if (primeira.operacao === "UPDATE") {
       mudancas = linhas
         .filter((l) => l.campo && rotulos[l.campo])
         .map((l) => ({ campo: rotulos[l.campo as string], de: texto(l.valor_anterior), para: texto(l.valor_novo) }));
-      // Só campos técnicos mudaram (ex.: recálculo interno): fora da linha do tempo.
-      if (mudancas.length === 0) continue;
+      // Só campos técnicos mudaram (ex.: recálculo interno): fora da linha do
+      // tempo — exceto a revisão periódica, que conta mesmo sem mudanças.
+      if (mudancas.length === 0 && !revisao) continue;
     }
 
     eventos.push({
@@ -167,6 +175,7 @@ export function montarEventos(registros: RegistroLog[]): EventoHistorico[] {
       mudancas,
       chave: `${primeira.tabela}:${primeira.registro_id}`,
       operacao: primeira.operacao,
+      revisao,
     });
   }
 
@@ -198,9 +207,13 @@ function juntarAtualizacoesSeguidas(eventos: EventoHistorico[]): EventoHistorico
       // "anterior" é o mais recente (lista em ordem decrescente): as mudanças
       // mais antigas vêm primeiro.
       anterior.mudancas = [...e.mudancas, ...anterior.mudancas];
+      anterior.revisao = anterior.revisao || e.revisao;
       continue;
     }
     resultado.push({ ...e, mudancas: [...e.mudancas] });
+  }
+  for (const e of resultado) {
+    if (e.revisao) e.titulo = e.mudancas.length ? "Risco reavaliado (revisão periódica)" : "Risco revisado sem alterações";
   }
   return resultado;
 }
