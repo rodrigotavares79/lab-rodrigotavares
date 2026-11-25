@@ -75,12 +75,18 @@ export const FAIXAS_NIVEL_RISCO = [
   { nivel: 4, rotulo: "Crítico", min: 20, max: 25 },
 ];
 
+// Derivado de FAIXAS_NIVEL_RISCO (fonte única): vale a faixa de maior "min"
+// que a pontuação atinge. Pontuações 17–19 não existem numa matriz 5×5.
 export function nivelPorPontuacao(pontuacao: number): number {
-  if (pontuacao >= 20) return 4;
-  if (pontuacao >= 10) return 3;
-  if (pontuacao >= 5) return 2;
-  return 1;
+  let nivel = FAIXAS_NIVEL_RISCO[0].nivel;
+  for (const f of FAIXAS_NIVEL_RISCO) {
+    if (pontuacao >= f.min) nivel = f.nivel;
+  }
+  return nivel;
 }
+
+// Rótulos da escala de Probabilidade e de Impacto (1–5).
+export const ROTULOS_ESCALA_5 = ["Muito Baixo", "Baixo", "Médio", "Alto", "Muito Alto"];
 
 // Matriz 5×5 — linha = Probabilidade (1–5), coluna = Impacto (1–5), gerada
 // pelas faixas acima (assim o desenho e o cálculo nunca divergem).

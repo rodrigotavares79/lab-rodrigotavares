@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Footer from "@/components/Footer";
-import { MATRIZ_5X5 } from "@/lib/metodologiaRisco";
+import { FAIXAS_NIVEL_RISCO, MATRIZ_5X5, ROTULOS_ESCALA_5 } from "@/lib/metodologiaRisco";
 import GraficosInicio from "@/components/riscos/GraficosInicio";
 import s from "./inicio.module.css";
 import { usePerfilRiscos } from "@/components/riscos/PermissoesRiscos";
@@ -172,32 +172,41 @@ export default function GestaoDeRiscos() {
               <div className={s.matriz}>
                 <span className={s.eixoY}>Probabilidade</span>
                 <div>
-                  <div className={s.grade} role="table" aria-label="Riscos ativos por probabilidade e impacto">
-                    {[5, 4, 3, 2, 1].map((p) =>
-                      [1, 2, 3, 4, 5].map((i) => {
-                        const nivel = MATRIZ_5X5[p - 1][i - 1];
-                        const n = contagem.get(`${p}-${i}`) || 0;
-                        return (
-                          <div
-                            key={`${p}-${i}`}
-                            role="cell"
-                            className={`${s.celula} ${NIVEL_CLASSE[nivel]}`}
-                            title={`Probabilidade ${p} × Impacto ${i}: ${n} risco(s)`}
-                          >
-                            {n > 0 ? n : ""}
-                          </div>
-                        );
-                      })
-                    )}
+                  <div className={s.gradeComEixos} role="table" aria-label="Riscos ativos por probabilidade e impacto">
+                    {[5, 4, 3, 2, 1].map((p) => (
+                      <div key={p} role="row" className={s.linhaMatriz}>
+                        <div role="rowheader" className={s.rotuloLinha} title={ROTULOS_ESCALA_5[p - 1]}>{p}</div>
+                        {[1, 2, 3, 4, 5].map((i) => {
+                          const nivel = MATRIZ_5X5[p - 1][i - 1];
+                          const n = contagem.get(`${p}-${i}`) || 0;
+                          return (
+                            <div
+                              key={`${p}-${i}`}
+                              role="cell"
+                              className={`${s.celula} ${NIVEL_CLASSE[nivel]}`}
+                              title={`Probabilidade ${p} × Impacto ${i} = ${p * i} (${NIVEL_NOMES[nivel]}): ${n} risco(s)`}
+                            >
+                              {n > 0 ? n : ""}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ))}
+                    <div role="row" className={s.linhaMatriz}>
+                      <div aria-hidden="true" />
+                      {[1, 2, 3, 4, 5].map((i) => (
+                        <div key={i} role="columnheader" className={s.rotuloColuna} title={ROTULOS_ESCALA_5[i - 1]}>{i}</div>
+                      ))}
+                    </div>
                   </div>
                   <div className={s.eixoX}>Impacto</div>
                 </div>
               </div>
               <div className={s.legenda}>
-                {[1, 2, 3, 4].map((n) => (
-                  <span key={n}>
-                    <i className={NIVEL_CLASSE[n]} aria-hidden="true" />
-                    {NIVEL_NOMES[n]}
+                {FAIXAS_NIVEL_RISCO.map((f) => (
+                  <span key={f.nivel}>
+                    <i className={NIVEL_CLASSE[f.nivel]} aria-hidden="true" />
+                    {f.rotulo} ({f.min}–{f.max})
                   </span>
                 ))}
               </div>
