@@ -25,7 +25,12 @@ export type ResumoCenario = {
   comPlano: number;
   aceitos: number;
   mitigados: number;
+  // Mesma definição do B02: Alto ou Crítico, não mitigado, sem plano e sem
+  // aceitação vigente.
   semTratamento: number;
+  // Baixo/Médio (ou sem nível) sem plano nem aceitação: não entram no
+  // indicador "sem tratamento", mas aparecem para quem acompanha o cenário.
+  outrosSemPlano: number;
   candidatoCorporativo: boolean;
 };
 
@@ -36,12 +41,14 @@ export function resumirCenario(riscos: RiscoDoCenario[]): ResumoCenario {
   let aceitos = 0;
   let mitigados = 0;
   let semTratamento = 0;
+  let outrosSemPlano = 0;
   for (const r of deProjeto) {
     if (r.nivel && r.nivel in porNivel) porNivel[r.nivel]++;
     if (r.status === "Mitigado") mitigados++;
     else if (r.aceito) aceitos++;
     else if (r.planos > 0) comPlano++;
-    else semTratamento++;
+    else if (r.nivel === "Alto" || r.nivel === "Crítico") semTratamento++;
+    else outrosSemPlano++;
   }
   const projetos = new Set(deProjeto.map((r) => r.projeto_id)).size;
   return {
@@ -53,6 +60,7 @@ export function resumirCenario(riscos: RiscoDoCenario[]): ResumoCenario {
     aceitos,
     mitigados,
     semTratamento,
+    outrosSemPlano,
     candidatoCorporativo: projetos >= PROJETOS_PARA_TRATAMENTO_CENTRAL,
   };
 }

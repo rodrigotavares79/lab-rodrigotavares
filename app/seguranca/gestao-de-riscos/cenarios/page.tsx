@@ -20,6 +20,7 @@ type Resumo = {
   aceitos: number;
   mitigados: number;
   semTratamento: number;
+  outrosSemPlano: number;
   candidatoCorporativo: boolean;
 };
 type Cenario = {
@@ -180,8 +181,11 @@ export default function CatalogoCenarios() {
                             </td>
                             <td style={{ fontSize: "0.8rem", whiteSpace: "normal", minWidth: "10rem" }}>
                               {c.resumo.semTratamento > 0 && (
-                                <div style={{ color: "var(--danger)", fontWeight: 600 }}>{c.resumo.semTratamento} sem tratamento</div>
+                                <div style={{ color: "var(--danger)", fontWeight: 600 }}>
+                                  {c.resumo.semTratamento} alto/crítico sem tratamento
+                                </div>
                               )}
+                              {c.resumo.outrosSemPlano > 0 && <div>{c.resumo.outrosSemPlano} baixo/médio sem plano</div>}
                               {c.resumo.comPlano > 0 && <div>{c.resumo.comPlano} com plano</div>}
                               {c.resumo.aceitos > 0 && <div>{c.resumo.aceitos} aceito(s)</div>}
                               {c.resumo.mitigados > 0 && <div>{c.resumo.mitigados} mitigado(s)</div>}

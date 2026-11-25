@@ -132,7 +132,8 @@ export default function CenarioDetalhe() {
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(9rem, 1fr))", gap: "0.75rem", marginTop: "1rem" }}>
                 <Indicador rotulo="Projetos afetados" valor={resumo.projetos} />
                 <Indicador rotulo="Altos ou críticos" valor={resumo.altosOuCriticos} alerta={resumo.altosOuCriticos > 0} />
-                <Indicador rotulo="Sem tratamento" valor={resumo.semTratamento} alerta={resumo.semTratamento > 0} />
+                <Indicador rotulo="Alto/crítico sem tratamento" valor={resumo.semTratamento} alerta={resumo.semTratamento > 0} />
+                <Indicador rotulo="Baixo/médio sem plano" valor={resumo.outrosSemPlano} />
                 <Indicador rotulo="Com plano" valor={resumo.comPlano} />
                 <Indicador rotulo="Aceitos" valor={resumo.aceitos} />
               </div>

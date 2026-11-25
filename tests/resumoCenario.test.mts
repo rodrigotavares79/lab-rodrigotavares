@@ -18,17 +18,29 @@ test("resumirCenario conta projetos, níveis e tratamento", () => {
   assert.equal(r.aceitos, 1);
   assert.equal(r.mitigados, 1);
   assert.equal(r.semTratamento, 1);
+  assert.equal(r.outrosSemPlano, 0);
   assert.equal(r.candidatoCorporativo, true);
 });
 
 test("resumirCenario com um projeto não é candidato a corporativo", () => {
   const r = resumirCenario([{ projeto_id: 1, nivel: null, status: null, planos: 0, aceito: false }]);
   assert.equal(r.candidatoCorporativo, false);
-  assert.equal(r.semTratamento, 1);
+  assert.equal(r.semTratamento, 0);
+  assert.equal(r.outrosSemPlano, 1);
 });
 
 test("proximoCodigoCenario", () => {
   assert.equal(proximoCodigoCenario([]), "CEN-001");
   assert.equal(proximoCodigoCenario(["CEN-004", "CEN-002", "outro"]), "CEN-005");
   assert.equal(proximoCodigoCenario(["CEN-099"]), "CEN-100");
+});
+
+test("resumirCenario: Baixo/Médio sem plano não conta como sem tratamento (B02)", () => {
+  const r = resumirCenario([
+    { projeto_id: 1, nivel: "Baixo", status: "Identificado", planos: 0, aceito: false },
+    { projeto_id: 2, nivel: "Médio", status: "Identificado", planos: 0, aceito: false },
+    { projeto_id: 3, nivel: "Alto", status: "Identificado", planos: 0, aceito: false },
+  ]);
+  assert.equal(r.semTratamento, 1);
+  assert.equal(r.outrosSemPlano, 2);
 });
