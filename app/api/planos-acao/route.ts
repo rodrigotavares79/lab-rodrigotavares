@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { exigirPermissao, getUsuarioRiscos } from "@/lib/riscosAuth";
+import { sincronizarStatusRisco } from "@/lib/sincronizarStatusRisco";
 
 // GET: lista os Planos de Ação (container) de um risco, cada um já com a
 // lista de Ações que tem dentro dele.
@@ -75,6 +76,7 @@ export async function GET(request: NextRequest) {
 
 // POST: cria um novo Plano de Ação (container) para um risco. Bloqueado se o
 // risco já estiver Mitigado — nesse estado, nada mais pode ser cadastrado.
+// Um risco Identificado passa automaticamente para Em Tratamento.
 export async function POST(request: NextRequest) {
   const guarda = await exigirPermissao("editarPlanos");
   if (guarda.resposta) return guarda.resposta;
@@ -108,7 +110,9 @@ export async function POST(request: NextRequest) {
       RETURNING id, risco_id, titulo, status, criado_em
     `;
 
-    return NextResponse.json({ plano: { ...rows[0], acoes: [] } });
+    const riscoStatus = await sincronizarStatusRisco(sql, riscoId);
+
+    return NextResponse.json({ plano: { ...rows[0], acoes: [] }, riscoStatus });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: "Erro interno ao cadastrar o plano de ação." }, { status: 500 });
