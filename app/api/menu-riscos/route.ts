@@ -17,6 +17,7 @@ export async function GET() {
       auditoriaPendentes: usuario?.permissoes.verAuditoria ? kpis.auditoriaPendentes : 0,
       acoesAtrasadas: kpis.acoesAtrasadas,
       revisoesVencidas: kpis.revisoesVencidas,
+      semTratamento: kpis.semTratamento,
     });
   } catch (err) {
     console.error(err);
