@@ -18,8 +18,11 @@ export async function GET() {
 
     const atencao = await sql`
       SELECT
-        r.id, r.gatilho, r.titulo, r.categoria, r.impacto_qualitativo,
-        MIN(a.prazo) FILTER (WHERE a.status IS DISTINCT FROM 'Concluído') AS proximo_prazo
+        r.id, r.gatilho, r.titulo, r.categoria, r.impacto_qualitativo, r.status,
+        to_char(MIN(NULLIF(a.prazo::text, '')::date) FILTER (
+          WHERE a.status IS DISTINCT FROM 'Concluído' AND pa.status IS DISTINCT FROM 'Concluído'
+        ), 'YYYY-MM-DD') AS proximo_prazo,
+        COUNT(DISTINCT pa.id) FILTER (WHERE pa.status IS DISTINCT FROM 'Concluído')::int AS planos_abertos
       FROM riscos r
       LEFT JOIN planos_acao pa ON pa.risco_id = r.id
       LEFT JOIN acoes a ON a.plano_acao_id = pa.id

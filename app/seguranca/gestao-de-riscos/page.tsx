@@ -1,5 +1,7 @@
 "use client";
 
+import { situacaoInicio } from "@/lib/situacaoInicio";
+import { hojeSaoPaulo } from "@/lib/revisaoRisco";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import Footer from "@/components/Footer";
@@ -40,6 +42,8 @@ type Resumo = {
     categoria: string | null;
     impacto_qualitativo: string | null;
     proximo_prazo: string | null;
+    status: string | null;
+    planos_abertos: number;
   }[];
 };
 
@@ -52,17 +56,12 @@ const BADGE_POR_NIVEL: Record<string, string> = {
   "Crítico": "badge-critico",
 };
 
-function formatPrazo(prazo: string | null): { texto: string; atrasado: boolean } {
-  if (!prazo) return { texto: "sem prazo", atrasado: false };
-  const data = new Date(String(prazo).slice(0, 10) + "T00:00:00");
-  const hoje = new Date();
-  hoje.setHours(0, 0, 0, 0);
-  if (data < hoje) return { texto: "atrasado", atrasado: true };
-  return {
-    texto: "vence " + data.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
-    atrasado: false,
-  };
-}
+// B25: o que cada destaque quer dizer (dica ao passar o mouse).
+const TITULO_ALERTA: Record<string, string> = {
+  sem_plano: "Risco crítico ou alto sem plano de ação aberto nem aceitação formal",
+  sem_prazo: "Há plano aberto, mas nenhuma ação pendente tem prazo definido",
+  atrasado: "A próxima ação do plano está com o prazo vencido",
+};
 
 function Valor({ v }: { v: number | undefined }) {
   return <>{v === undefined ? "—" : v}</>;
@@ -256,7 +255,7 @@ export default function GestaoDeRiscos() {
               {!dados && !erro && <p className="text-muted" style={{ margin: 0 }}>Carregando...</p>}
               <ul className={s.lista}>
                 {(dados?.atencao || []).map((r) => {
-                  const prazo = formatPrazo(r.proximo_prazo);
+                  const sit = situacaoInicio(r, hojeSaoPaulo());
                   return (
                     <li key={r.id}>
                       <Link href={`${BASE}/riscos/${r.id}`} className={s.item}>
@@ -270,7 +269,13 @@ export default function GestaoDeRiscos() {
                             {r.impacto_qualitativo}
                           </span>
                         )}
-                        <span className={`${s.itemPrazo} ${prazo.atrasado ? s.prazoAtrasado : ""}`}>{prazo.texto}</span>
+                        {sit.alerta ? (
+                          <span className={s.itemAlerta} title={TITULO_ALERTA[sit.tipo]}>
+                            <span aria-hidden="true">!</span> {sit.texto}
+                          </span>
+                        ) : (
+                          <span className={s.itemPrazo}>{sit.texto}</span>
+                        )}
                       </Link>
                     </li>
                   );

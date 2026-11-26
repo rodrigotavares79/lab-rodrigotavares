@@ -352,3 +352,29 @@
     display: none;
   }
 }
+
+/* B25: destaque "sem plano", "sem prazo" e "atrasado" na lista de críticos e
+   altos. Fica visível também em tela estreita (o prazo comum some). */
+.itemAlerta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--danger);
+  background: var(--danger-tint);
+  border-radius: 999px;
+  padding: 0.12rem 0.5rem;
+  white-space: nowrap;
+}
+.itemAlerta span {
+  display: inline-flex;
+  width: 0.9rem;
+  height: 0.9rem;
+  border-radius: 50%;
+  background: var(--danger);
+  color: #fff;
+  font-size: 0.6rem;
+  align-items: center;
+  justify-content: center;
+}
