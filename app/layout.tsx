@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { IBM_Plex_Mono, Inter } from "next/font/google";
 import { ClerkProvider, UserButton, SignedIn } from "@clerk/nextjs";
 import { ptBR } from "@clerk/localizations";
 import Nav from "@/components/Nav";
@@ -9,6 +9,15 @@ import "./globals.css";
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-body",
+  display: "swap",
+});
+
+// Monoespaçada carregada (antes era a do sistema, que muda de computador
+// para computador: Consolas no Windows, Menlo no Mac).
+const plexMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-mono",
   display: "swap",
 });
 
@@ -24,7 +33,7 @@ export default function RootLayout({
 }) {
   return (
     <ClerkProvider localization={ptBR}>
-      <html lang="pt-BR" className={inter.variable}>
+      <html lang="pt-BR" className={`${inter.variable} ${plexMono.variable}`}>
         <body>
           <EnvBanner />
           <header className="site-header">
