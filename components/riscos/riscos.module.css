@@ -445,9 +445,10 @@
 
 /* Botões e links dentro do cabeçalho não herdam o tamanho do título */
 .conteudo :global(.dash-panel-header) :is(button, a, select, span:not(:first-child)) {
-  font-size: 0.85rem;
-  font-weight: 600;
-  letter-spacing: 0;
+  /* !important: alguns botões usam style inline com font: inherit */
+  font-size: 0.85rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
 }
 
 .conteudo :global(.dash-panel-body) {
