@@ -216,11 +216,11 @@ export default function ApetiteTolerancia() {
                       <thead>
                         <tr>
                           <th>Categoria</th>
-                          <th>Apetite (até)</th>
-                          <th>Tolerância (até)</th>
-                          <th>Dentro do apetite</th>
+                          <th>Apetite</th>
+                          <th>Tolerância</th>
+                          <th>Dentro</th>
                           <th>▲ Acima do apetite</th>
-                          <th>▲▲ Acima da tolerância</th>
+                          <th>▲▲ Acima da toler.</th>
                         </tr>
                       </thead>
                       <tbody>
