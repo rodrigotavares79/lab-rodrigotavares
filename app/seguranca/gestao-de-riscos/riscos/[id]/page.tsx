@@ -1,5 +1,6 @@
 "use client";
 
+import ExposicaoRisco from "@/components/riscos/ExposicaoRisco";
 import KrisDoRisco from "@/components/riscos/KrisDoRisco";
 import BadgeApetite from "@/components/riscos/BadgeApetite";
 import type { SituacaoApetite } from "@/lib/apetiteRisco";
@@ -276,12 +277,12 @@ function ImpactoDecisao({ risco, totalPlanos }: { risco: RiscoDetalhe; totalPlan
       <div className="dash-panel-body">
         {critP50 === null ? (
           <p className={s.nota} style={{ marginTop: 0 }}>
-            Sem estimativa financeira para este risco. A simulação é feita no cadastro
-            individual, quando o risco é vinculado a um Sistema Crítico.
+            Sem simulação de impacto do cadastro. A perda anual esperada fica no painel
+            Exposição financeira, logo abaixo.
           </p>
         ) : (
           <>
-            <span className={s.rotuloMono}>Exposição estimada · indisponibilidade total</span>
+            <span className={s.rotuloMono}>Perda por evento · indisponibilidade total</span>
             <p className={s.valorGrande}>
               {temFaixa ? `${moeda(critP10)} – ${moeda(critP90)}` : moeda(critP50)}
             </p>
@@ -1618,6 +1619,7 @@ export default function DetalheDoRisco() {
                 </div>
 
                 <ImpactoDecisao risco={risco} totalPlanos={planos.length} />
+                <ExposicaoRisco risco={risco as any} podeEditar={podeEditarRisco && !riscoMitigado} onAtualizado={carregarRisco} />
                 <AceitacaoRisco
                   riscoId={risco.id}
                   statusRisco={risco.status || "Identificado"}

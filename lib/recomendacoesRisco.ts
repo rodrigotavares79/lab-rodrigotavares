@@ -43,6 +43,8 @@ export type FatosPortfolio = {
   /** Alto/Crítico atual hoje e três meses antes (fotos mensais), se houver. */
   altoCriticoAgora: number | null;
   altoCriticoTresMesesAntes: number | null;
+  /** B23: risco ativo de maior perda anual esperada que está sem plano nem aceitação. */
+  maiorExposicaoSemPlano?: { id: number; ale: number } | null;
 };
 
 function plural(n: number, um: string, varios: string) {
@@ -107,6 +109,16 @@ export function recomendacoes(f: FatosPortfolio, limite = 8): Recomendacao[] {
       titulo: "Investigar a alta de riscos Altos e Críticos",
       porque: `Passaram de ${f.altoCriticoTresMesesAntes} para ${f.altoCriticoAgora} nos últimos três meses.`,
       riscos: [],
+    });
+  }
+
+  if (f.maiorExposicaoSemPlano && f.maiorExposicaoSemPlano.ale > 0) {
+    const valor = f.maiorExposicaoSemPlano.ale.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+    out.push({
+      prioridade: 2,
+      titulo: "Tratar a maior exposição financeira sem plano",
+      porque: `Perda anual esperada de ${valor}, sem plano de ação nem aceitação formal.`,
+      riscos: [f.maiorExposicaoSemPlano.id],
     });
   }
 
