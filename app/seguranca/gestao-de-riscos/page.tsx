@@ -153,7 +153,7 @@ export default function GestaoDeRiscos() {
             </div>
             <Link
               href={`${BASE}/acoes-atrasadas`}
-              className={`${s.kpi} ${s.kpiLink} ${atrasadas > 0 ? s.kpiAlerta : ""}`}
+              className={`${s.kpi} ${s.kpiLink} ${atrasadas > 0 ? s.kpiAviso : ""}`}
             >
               <span className={s.kpiRotulo}>Ações atrasadas</span>
               <span className={s.kpiValor}><Valor v={k?.acoesAtrasadas} /></span>
@@ -163,7 +163,7 @@ export default function GestaoDeRiscos() {
             </Link>
             <Link
               href={`${BASE}/revisoes-vencidas`}
-              className={`${s.kpi} ${s.kpiLink} ${revisoesVencidas > 0 ? s.kpiAlerta : ""}`}
+              className={`${s.kpi} ${s.kpiLink} ${revisoesVencidas > 0 ? s.kpiAviso : ""}`}
             >
               <span className={s.kpiRotulo}>Revisões vencidas</span>
               <span className={s.kpiValor}><Valor v={k?.revisoesVencidas} /></span>

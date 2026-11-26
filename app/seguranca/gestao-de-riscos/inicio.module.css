@@ -347,6 +347,23 @@
   border-color: var(--danger);
 }
 
+/* Atenção (amarelo da paleta): atrasos de prazo, ainda não fora do limite
+   da política. O vermelho fica para o que já descumpre a política. */
+.kpiAviso {
+  background: var(--rs-alerta-tint, #fbf1dc);
+  border-color: #ead49b;
+}
+
+.kpiAviso .kpiRotulo,
+.kpiAviso .kpiValor,
+.kpiAviso .kpiNota {
+  color: var(--rs-alerta, #946200);
+}
+
+.kpiAviso.kpiLink:hover {
+  border-color: var(--rs-alerta, #946200);
+}
+
 @media (max-width: 560px) {
   .itemPrazo {
     display: none;
