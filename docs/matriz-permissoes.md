@@ -92,3 +92,9 @@ Aceitar um risco exige uma Carta de Risco (PDF ou DOCX) e a aprovação de algu�
 - Qualquer perfil com `ler` consulta os KRIs, as medições e a tendência.
 - Cadastrar, ajustar limiares, inativar, registrar medição e importar CSV exigem `editarRiscos`.
 - Medição no vermelho (a mais recente do KRI) antecipa a revisão do risco vinculado: ele entra na fila "Revisões vencidas" até ser reavaliado.
+
+## Exposição financeira (B23)
+
+- Qualquer perfil com `ler` vê a estimativa na tela do risco e o ranking no Relatório Executivo.
+- Estimar, revisar ou remover exige `editarRiscos` (risco mitigado não pode ser alterado).
+- Frequência anual e perda por evento em faixas (mín, provável, máx); a perda pode ser calculada pelo custo de indisponibilidade por hora do ativo crítico × horas de parada.

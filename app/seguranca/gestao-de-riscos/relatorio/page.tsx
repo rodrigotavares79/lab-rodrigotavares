@@ -8,6 +8,7 @@ import { MATRIZ_5X5, FAIXAS_NIVEL_RISCO, ROTULOS_ESCALA_5 } from "@/lib/metodolo
 import { altosOuCriticos, conformidadeTratamento, rotuloMes, serie, type FotoIndicadores } from "@/lib/fotosIndicadores";
 import { ROTULO_PRIORIDADE, type Recomendacao } from "@/lib/recomendacoesRisco";
 import { fmt, textoLimites, type FaixaKri } from "@/lib/kriRisco";
+import { moeda, textoFrequencia } from "@/lib/exposicaoRisco";
 
 // B26 · Relatório Executivo completo, pronto para imprimir ou salvar em PDF:
 // resumo, recomendações priorizadas, matriz, tendências de 12 meses, riscos
@@ -91,6 +92,21 @@ type RelatorioData = {
   };
   planos: PlanoLinha[];
   recomendacoes: Recomendacao[];
+  exposicao?: {
+    total: number;
+    totalMin: number;
+    totalMax: number;
+    comEstimativa: number;
+    ativos: number;
+    ranking: (RiscoLinha & {
+      exposicao_ale: string;
+      exposicao_min: string;
+      exposicao_max: string;
+      freq_anual_provavel: string;
+      perda_evento_provavel: string;
+      perda_origem: string | null;
+    })[];
+  };
 };
 
 const BADGE_POR_NIVEL: Record<string, string> = {
@@ -269,6 +285,12 @@ function RelatorioConteudo() {
                 <div className="report-kpi-label">Alto/Crítico com Tratamento</div>
                 <div className="report-kpi-value">{dados.kpis.conformidade === null ? "—" : `${dados.kpis.conformidade}%`}</div>
               </div>
+              {dados.exposicao && dados.exposicao.comEstimativa > 0 && (
+                <div className="report-kpi-box">
+                  <div className="report-kpi-label">Perda Anual Esperada</div>
+                  <div className="report-kpi-value" style={{ fontSize: "1.35rem" }}>{moeda(dados.exposicao.total, true)}</div>
+                </div>
+              )}
               <div className={`report-kpi-box ${dados.kpis.acoesAtrasadas > 0 ? "report-alert" : "report-ok"}`}>
                 <div className="report-kpi-label">Ações Atrasadas</div>
                 <div className="report-kpi-value">{dados.kpis.acoesAtrasadas}</div>
@@ -340,6 +362,47 @@ function RelatorioConteudo() {
               </div>
             )}
           </div>
+
+          {dados.exposicao && (
+            <div className="report-section">
+              <h2>Exposição Financeira (Perda Anual Esperada)</h2>
+              {dados.exposicao.comEstimativa === 0 ? (
+                <p className="text-muted" style={{ fontSize: "0.85rem", margin: 0 }}>Nenhum risco ativo com estimativa de frequência e perda.</p>
+              ) : (
+                <>
+                  <p className="text-muted" style={{ fontSize: "0.82rem", margin: "0 0 0.5rem" }}>
+                    {dados.exposicao.comEstimativa} de {dados.exposicao.ativos} riscos ativos estimados. Exposição somada:{" "}
+                    <strong>{moeda(dados.exposicao.total)}</strong> por ano (faixa de {moeda(dados.exposicao.totalMin)} a {moeda(dados.exposicao.totalMax)}).
+                    Frequência anual × perda por evento, com média PERT das faixas.
+                  </p>
+                  <table className="report-table">
+                    <thead>
+                      <tr><th>#</th><th>Risco</th><th>Nível</th><th>Frequência</th><th>Perda por evento</th><th>Perda anual esperada</th><th>Plano</th></tr>
+                    </thead>
+                    <tbody>
+                      {dados.exposicao.ranking.map((r, i) => (
+                        <tr key={r.id}>
+                          <td>{i + 1}º</td>
+                          <td><strong>#{r.id}</strong> {nomeRisco(r)}</td>
+                          <td><span className={`badge ${BADGE_POR_NIVEL[r.impacto_qualitativo] || ""}`}>{r.impacto_qualitativo}</span></td>
+                          <td style={{ fontSize: "0.78rem" }}>{textoFrequencia(Number(r.freq_anual_provavel))}</td>
+                          <td style={{ whiteSpace: "nowrap" }}>
+                            {moeda(r.perda_evento_provavel)}
+                            {r.perda_origem === "ativo" && <div className="text-muted" style={{ fontSize: "0.7rem" }}>custo do ativo</div>}
+                          </td>
+                          <td style={{ whiteSpace: "nowrap" }}>
+                            <strong>{moeda(r.exposicao_ale)}</strong>
+                            <div className="text-muted" style={{ fontSize: "0.7rem" }}>{moeda(r.exposicao_min, true)} a {moeda(r.exposicao_max, true)}</div>
+                          </td>
+                          <td>{r.status === "Aceito" ? "Aceito" : r.tem_plano_aberto ? "Em andamento" : <span style={{ color: "var(--danger)", fontWeight: 600 }}>Sem plano</span>}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </>
+              )}
+            </div>
+          )}
 
           <div className="report-section">
             <h2>Riscos Acima do Apetite e da Tolerância</h2>

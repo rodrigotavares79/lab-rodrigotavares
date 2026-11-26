@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     const hoje = hojeSaoPaulo();
     const meses = mesesAte(hoje.slice(0, 7) + "-01", 12);
 
-    const [ind, vig, ativos, semTrat, acoesAtr, aceitPend, aceitVenc, [apetitePend], [semDono], [ctrlNao], todosKris, fotos, planos] =
+    const [ind, vig, ativos, semTrat, acoesAtr, aceitPend, aceitVenc, [apetitePend], [semDono], [ctrlNao], todosKris, fotos, planos, exposicao] =
       await Promise.all([
         obterIndicadores(sql, p),
         limitesVigentes(sql),
@@ -107,6 +107,16 @@ export async function GET(request: NextRequest) {
                    pa.criado_em DESC
           LIMIT 25
         `,
+        // B23: ranking por perda anual esperada (riscos ativos com estimativa).
+        sql`
+          SELECT r.id, r.categoria, r.gatilho, r.titulo, r.impacto_qualitativo, r.status,
+                 r.exposicao_ale, r.exposicao_min, r.exposicao_max, r.freq_anual_provavel, r.perda_evento_provavel, r.perda_origem,
+                 EXISTS (SELECT 1 FROM planos_acao pa WHERE pa.risco_id = r.id AND pa.status IS DISTINCT FROM 'Concluído') AS tem_plano_aberto
+          FROM riscos r
+          WHERE r.status <> 'Mitigado' AND r.exposicao_ale IS NOT NULL
+            AND (${p}::int IS NULL OR r.projeto_id = ${p}::int)
+          ORDER BY r.exposicao_ale DESC
+        `,
       ]);
 
     // Apetite e tolerância (B18)
@@ -152,6 +162,10 @@ export async function GET(request: NextRequest) {
       controlesNaoAvaliados: ctrlNao.n,
       altoCriticoAgora: agora ? altosOuCriticos(agora.atual) : null,
       altoCriticoTresMesesAntes: antes ? altosOuCriticos(antes.atual) : null,
+      maiorExposicaoSemPlano: (() => {
+        const r = (exposicao as any[]).find((x) => !x.tem_plano_aberto && x.status !== "Aceito");
+        return r ? { id: r.id, ale: Number(r.exposicao_ale) } : null;
+      })(),
     });
 
     const k = ind.kpis;
@@ -200,6 +214,14 @@ export async function GET(request: NextRequest) {
       },
       planos,
       recomendacoes: recs,
+      exposicao: {
+        total: (exposicao as any[]).reduce((t, r) => t + Number(r.exposicao_ale), 0),
+        totalMin: (exposicao as any[]).reduce((t, r) => t + Number(r.exposicao_min), 0),
+        totalMax: (exposicao as any[]).reduce((t, r) => t + Number(r.exposicao_max), 0),
+        comEstimativa: (exposicao as any[]).length,
+        ativos: (ativos as any[]).length,
+        ranking: (exposicao as any[]).slice(0, 10),
+      },
     });
   } catch (err) {
     console.error(err);
