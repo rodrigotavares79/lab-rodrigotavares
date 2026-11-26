@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
 import s from "./riscos.module.css";
@@ -29,55 +29,49 @@ type ItemMenu = {
 };
 type GrupoMenu = { titulo: string; itens: ItemMenu[] };
 
+// Início e Guia de uso ficam fora dos grupos (links diretos, no topo e no
+// rodapé do menu). Os grupos abrem como sanfona: só um aberto por vez.
+const INICIO: ItemMenu = { href: BASE, label: "Início", exato: true };
+const GUIA: ItemMenu = { href: `${BASE}/guia-de-uso`, label: "Guia de uso" };
+
 const GRUPOS: GrupoMenu[] = [
-  {
-    titulo: "Visão geral",
-    itens: [
-      { href: BASE, label: "Início", exato: true },
-      { href: `${BASE}/dashboard`, label: "Dashboard" },
-      { href: `${BASE}/tendencias`, label: "Tendências" },
-    ],
-  },
-  {
-    // Pendências do dia: tudo aqui tem contador.
-    titulo: "Acompanhamento",
-    itens: [
-      { href: `${BASE}/acoes-atrasadas`, label: "Ações atrasadas", contador: "acoesAtrasadas", alerta: true },
-      { href: `${BASE}/revisoes-vencidas`, label: "Revisões vencidas", contador: "revisoesVencidas", alerta: true },
-      { href: `${BASE}/sem-tratamento`, label: "Riscos sem tratamento", contador: "semTratamento", alerta: true },
-      { href: `${BASE}/kris?faixa=vermelho`, label: "KRIs no vermelho", contador: "krisVermelho", alerta: true },
-      { href: `${BASE}/riscos?apetite=acima-tolerancia`, label: "Acima da tolerância", contador: "acimaTolerancia", alerta: true },
-      { href: `${BASE}/riscos?dono=sem`, label: "Riscos sem dono", contador: "semDono", alerta: true },
-      { href: `${BASE}/riscos?controles=nao-avaliados`, label: "Controles não avaliados", contador: "controlesNaoAvaliados" },
-      { href: `${BASE}/aceitacoes-pendentes`, label: "Aceitações pendentes", contador: "aceitacoesPendentes" },
-    ],
-  },
   {
     titulo: "Riscos",
     itens: [
       { href: `${BASE}/riscos`, label: "Lista de riscos" },
       { href: `${BASE}/cadastro-de-riscos`, label: "Cadastrar risco", exige: "editarRiscos" },
-      { href: `${BASE}/ativos-criticos`, label: "Ativos e processos" },
       { href: `${BASE}/kris`, label: "Indicadores (KRIs)" },
       { href: `${BASE}/cenarios`, label: "Catálogo de cenários" },
+      { href: `${BASE}/ativos-criticos`, label: "Ativos e processos" },
       { href: `${BASE}/contatos-risco`, label: "Contatos de negócio" },
       { href: `${BASE}/riscos-duplicados`, label: "Riscos repetidos", contador: "duplicados", exige: "editarRiscos" },
     ],
   },
   {
+    // Pendências transversais: tudo aqui tem contador.
+    titulo: "Acompanhamento",
+    itens: [
+      { href: `${BASE}/kris?faixa=vermelho`, label: "KRIs no vermelho", contador: "krisVermelho", alerta: true },
+      { href: `${BASE}/riscos?apetite=acima-tolerancia`, label: "Acima da tolerância", contador: "acimaTolerancia", alerta: true },
+      { href: `${BASE}/revisoes-vencidas`, label: "Revisões vencidas", contador: "revisoesVencidas", alerta: true },
+      { href: `${BASE}/sem-tratamento`, label: "Riscos sem tratamento", contador: "semTratamento", alerta: true },
+      { href: `${BASE}/riscos?dono=sem`, label: "Riscos sem dono", contador: "semDono", alerta: true },
+      { href: `${BASE}/riscos?controles=nao-avaliados`, label: "Controles não avaliados", contador: "controlesNaoAvaliados" },
+    ],
+  },
+  {
     titulo: "Planos de Ação",
-    itens: [{ href: `${BASE}/planos-de-acao`, label: "Todos os planos" }],
+    itens: [
+      { href: `${BASE}/planos-de-acao`, label: "Todos os planos" },
+      { href: `${BASE}/acoes-atrasadas`, label: "Ações atrasadas", contador: "acoesAtrasadas", alerta: true },
+      { href: `${BASE}/aceitacoes-pendentes`, label: "Aceitações pendentes", contador: "aceitacoesPendentes" },
+    ],
   },
   {
     titulo: "Auditoria",
     itens: [
-      {
-        href: `${BASE}/auditoria`,
-        label: "Fila de auditoria",
-        exato: true,
-        contador: "auditoriaPendentes",
-        exige: "verAuditoria",
-      },
+      { href: `${BASE}/auditoria`, label: "Fila de auditoria", exato: true, contador: "auditoriaPendentes", exige: "verAuditoria" },
+      { href: `${BASE}/auditoria/relatorio`, label: "Relatório de auditoria", exige: "verAuditoria" },
     ],
   },
   {
@@ -85,22 +79,18 @@ const GRUPOS: GrupoMenu[] = [
     itens: [
       { href: `${BASE}/apetite`, label: "Apetite e tolerância", contador: "apetitePendente" },
       { href: `${BASE}/conformidade`, label: "Frameworks (CIS, NIST, ISO)" },
+      { href: `${BASE}/politica`, label: "Política" },
+      { href: `${BASE}/processo`, label: "Processo" },
     ],
   },
   {
     titulo: "Relatórios",
     itens: [
-      { href: `${BASE}/relatorio-executivo`, label: "Executivo" },
-      { href: `${BASE}/auditoria/relatorio`, label: "Auditoria", exige: "verAuditoria" },
+      { href: `${BASE}/relatorio-executivo`, label: "Relatório executivo" },
+      { href: `${BASE}/dashboard`, label: "Dashboard" },
+      { href: `${BASE}/tendencias`, label: "Tendências" },
     ],
   },
-];
-
-// Documentos de consulta: ficam no rodapé do menu, fora das telas de trabalho.
-const DOCUMENTOS: ItemMenu[] = [
-  { href: `${BASE}/politica`, label: "Política" },
-  { href: `${BASE}/processo`, label: "Processo" },
-  { href: `${BASE}/guia-de-uso`, label: "Guia de uso" },
 ];
 
 function casa(pathname: string, href: string, exato?: boolean): boolean {
@@ -129,6 +119,24 @@ function Moldura({ pathname, children }: { pathname: string; children: React.Rea
   const perfil = usePerfilRiscos();
   const [menuAberto, setMenuAberto] = useState(false);
   const [contadores, setContadores] = useState<Partial<Record<Contador, number>>>({});
+  // Sanfona: só um grupo aberto. Passar o mouse abre o grupo (com um pequeno
+  // atraso, para não piscar ao atravessar o menu); clicar no título fixa ou
+  // fecha. Ao tirar o mouse do menu, volta ao grupo fixado ou ao da página.
+  const [hover, setHover] = useState<string | null>(null);
+  const [fixo, setFixo] = useState<string | null | undefined>(undefined);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  function agendar(g: string | null, ms: number) {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => setHover(g), ms);
+  }
+  useEffect(() => () => {
+    if (timer.current) clearTimeout(timer.current);
+  }, []);
+  // Ao trocar de página, a sanfona volta a seguir a página atual.
+  useEffect(() => {
+    setFixo(undefined);
+    setHover(null);
+  }, [pathname]);
 
   // Atualiza os contadores a cada troca de tela (ex.: depois de auditar um
   // plano, o número da fila já cai ao voltar para outra página).
@@ -175,6 +183,20 @@ function Moldura({ pathname, children }: { pathname: string; children: React.Rea
     ...g,
     itens: g.itens.filter((i) => !i.exige || perfil.permissoes[i.exige]),
   })).filter((g) => g.itens.length > 0);
+  const grupoDaPagina = grupos.find((g) => g.itens.some((i) => ativo(pathname, i)))?.titulo ?? null;
+  const aberto = hover ?? (fixo === undefined ? grupoDaPagina : fixo);
+
+  // Soma dos contadores do grupo, para o alerta aparecer com o grupo fechado.
+  function somaGrupo(g: GrupoMenu) {
+    let alerta = 0;
+    let neutro = 0;
+    for (const i of g.itens) {
+      const n = i.contador ? contadores[i.contador] ?? 0 : 0;
+      if (i.alerta) alerta += n;
+      else neutro += n;
+    }
+    return { alerta, neutro };
+  }
 
   return (
     <div className={`riscos-shell ${s.shell}`}>
@@ -214,17 +236,49 @@ function Moldura({ pathname, children }: { pathname: string; children: React.Rea
 
       <div className={s.corpo}>
         <aside className={`${s.lateral} ${menuAberto ? s.lateralAberta : ""}`}>
-          <nav aria-label="Gestão de Riscos">
-            {grupos.map((g) => (
-              <div key={g.titulo} className={s.grupo}>
-                <div className={s.grupoTitulo}>{g.titulo}</div>
-                <ul>{g.itens.map(renderItem)}</ul>
-              </div>
-            ))}
+          <nav aria-label="Gestão de Riscos" onMouseLeave={() => agendar(null, 250)}>
+            <ul className={s.itensSoltos}>{renderItem(INICIO)}</ul>
+            {grupos.map((g) => {
+              const estaAberto = aberto === g.titulo;
+              const soma = somaGrupo(g);
+              const idLista = `menu-${g.titulo.replace(/\s+/g, "-").toLowerCase()}`;
+              return (
+                <div key={g.titulo} className={`${s.grupo} ${estaAberto ? s.grupoAberto : ""}`} onMouseEnter={() => agendar(g.titulo, 120)}>
+                  <button
+                    type="button"
+                    className={s.grupoBotao}
+                    aria-expanded={estaAberto}
+                    aria-controls={idLista}
+                    onClick={() => {
+                      if (timer.current) clearTimeout(timer.current);
+                      setHover(null);
+                      setFixo(estaAberto ? null : g.titulo);
+                    }}
+                  >
+                    <span>{g.titulo}</span>
+                    <span className={s.grupoLado}>
+                      {!estaAberto && soma.alerta > 0 && (
+                        <span className={`${s.contador} ${s.contadorAlerta}`} aria-label={`${soma.alerta} pendências atrasadas`}>
+                          {soma.alerta}
+                        </span>
+                      )}
+                      {!estaAberto && soma.alerta === 0 && soma.neutro > 0 && (
+                        <span className={s.contador} aria-label={`${soma.neutro} pendentes`}>
+                          {soma.neutro}
+                        </span>
+                      )}
+                      <span className={s.seta} aria-hidden="true" />
+                    </span>
+                  </button>
+                  <div className={s.grupoCorpo} id={idLista} inert={!estaAberto}>
+                    <ul>{g.itens.map(renderItem)}</ul>
+                  </div>
+                </div>
+              );
+            })}
           </nav>
           <div className={s.lateralRodape}>
-            <div className={s.grupoTitulo}>Documentos</div>
-            <ul>{DOCUMENTOS.map(renderItem)}</ul>
+            <ul>{renderItem(GUIA)}</ul>
             <span className={s.copyright}>© {new Date().getFullYear()} Rodrigo Tavares</span>
           </div>
         </aside>

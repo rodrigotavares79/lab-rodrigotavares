@@ -147,8 +147,90 @@
   padding: 0;
 }
 
-.grupo + .grupo {
-  margin-top: 1.25rem;
+.grupo {
+  margin-top: 0.35rem;
+}
+
+.itensSoltos {
+  margin-bottom: 0.5rem !important;
+}
+
+/* Título do grupo: botão da sanfona */
+.grupoBotao {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  background: none;
+  border: 0;
+  border-left: 2px solid var(--rs-border-strong);
+  margin-left: 0.25rem;
+  padding: 0.45rem 0.5rem 0.45rem 0.75rem;
+  font-family: var(--rs-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--rs-muted);
+  cursor: pointer;
+  text-align: left;
+  border-radius: 0 6px 6px 0;
+}
+
+.grupoBotao:hover,
+.grupoBotao:focus-visible {
+  color: var(--rs-text);
+  background: var(--rs-bg);
+}
+
+.grupoAberto .grupoBotao {
+  color: var(--rs-primaria);
+  border-left-color: var(--rs-primaria);
+}
+
+.grupoLado {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: inherit;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.seta {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 0.2s ease;
+}
+
+.grupoAberto .seta {
+  transform: rotate(45deg);
+}
+
+/* Corpo da sanfona: anima a altura com grid 0fr → 1fr */
+.grupoCorpo {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.25s ease;
+}
+
+.grupoCorpo > ul {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.grupoAberto .grupoCorpo {
+  grid-template-rows: 1fr;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grupoCorpo,
+  .seta {
+    transition: none;
+  }
 }
 
 .grupoTitulo {
