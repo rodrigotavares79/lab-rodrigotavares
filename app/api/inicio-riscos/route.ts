@@ -33,6 +33,8 @@ export async function GET() {
         CASE r.impacto_qualitativo
           WHEN 'Crítico' THEN 4 WHEN 'Alto' THEN 3
           WHEN 'Médio' THEN 2 WHEN 'Baixo' THEN 1 ELSE 0 END DESC,
+        -- B25: dentro do nível, primeiro quem está sem plano (e não aceito).
+        (r.status <> 'Aceito' AND COUNT(DISTINCT pa.id) FILTER (WHERE pa.status IS DISTINCT FROM 'Concluído') = 0) DESC,
         r.matrix_score DESC NULLS LAST,
         r.id DESC
       LIMIT 5
