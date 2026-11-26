@@ -194,6 +194,8 @@ export function ApetitePorCategoria({ linhas, projetoId }: { linhas: LinhaApetit
               const titulo = `${l.categoria} · ${g.rotulo}: ${n}`;
               return g.filtro ? (
                 <Link
+                  target="_blank"
+                  rel="noopener noreferrer"
                   key={g.chave}
                   href={linkRiscos({ categoria: l.categoria, apetite: g.filtro }, projetoId)}
                   className={s.segmento}
