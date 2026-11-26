@@ -46,7 +46,8 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
         r.impacto_critico_total, r.impacto_critico_p10, r.impacto_critico_p90,
         r.impacto_alto_total, r.impacto_alto_p10, r.impacto_alto_p90,
         r.criado_em,
-        rv.revisado_em, rv.dias_revisao, to_char(rv.proxima_revisao, 'YYYY-MM-DD') AS proxima_revisao
+        rv.revisado_em, rv.dias_revisao, to_char(rv.proxima_revisao, 'YYYY-MM-DD') AS proxima_revisao,
+        rv.revisao_antecipada, rv.revisao_antecipada_motivo
       FROM riscos r
       JOIN projetos p ON p.id = r.projeto_id
       LEFT JOIN sistemas_criticos s ON s.id = r.sistema_critico_id

@@ -22,6 +22,8 @@ type RevisaoVencida = {
   dias_revisao: number;
   proxima_revisao: string;
   dias_atraso: number;
+  revisao_antecipada?: boolean;
+  revisao_antecipada_motivo?: string | null;
 };
 
 const BADGE_POR_NIVEL: Record<string, string> = {
@@ -120,8 +122,15 @@ export default function RevisoesVencidas() {
                           </td>
                           <td>{formatData(r.revisado_em)}</td>
                           <td>{formatData(r.proxima_revisao)}</td>
-                          <td style={{ color: "var(--danger)", fontWeight: 600 }}>
-                            {r.dias_atraso} dia{r.dias_atraso === 1 ? "" : "s"}
+                          <td style={{ color: "var(--danger)", fontWeight: 600, whiteSpace: "normal", minWidth: "8rem" }}>
+                            {r.revisao_antecipada ? (
+                              <>
+                                Antecipada por KRI
+                                <div style={{ fontSize: "0.75rem", fontWeight: 400 }}>{r.revisao_antecipada_motivo}</div>
+                              </>
+                            ) : (
+                              <>{r.dias_atraso} dia{r.dias_atraso === 1 ? "" : "s"}</>
+                            )}
                           </td>
                         </tr>
                       ))}

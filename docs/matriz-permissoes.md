@@ -86,3 +86,9 @@ Aceitar um risco exige uma Carta de Risco (PDF ou DOCX) e a aprovação de algu�
 - Propor uma nova versão exige `editarRiscos`. Só cabe uma proposta pendente por vez.
 - Aprovar ou recusar: **CISO** (e **Administrador**, para operar a demonstração). Quem propôs a versão não decide sobre ela; tentativas sem alçada ou do próprio proponente ficam em `eventos_seguranca`.
 - Ao aprovar, a versão vira Vigente e a anterior, Substituída. Cada risco ativo é comparado pelo **nível atual** com o apetite e a tolerância da sua categoria; acima da tolerância aparece em destaque na lista, no menu ("Acima da tolerância") e no Relatório Executivo.
+
+## Indicadores-chave de risco — KRIs (B21)
+
+- Qualquer perfil com `ler` consulta os KRIs, as medições e a tendência.
+- Cadastrar, ajustar limiares, inativar, registrar medição e importar CSV exigem `editarRiscos`.
+- Medição no vermelho (a mais recente do KRI) antecipa a revisão do risco vinculado: ele entra na fila "Revisões vencidas" até ser reavaliado.

@@ -105,14 +105,14 @@ async function resumoAcoes(sql: any, p: number | null) {
 }
 
 // Revisão vencida: risco ativo com próxima revisão anterior a hoje (São
-// Paulo). A lista em app/api/revisoes-vencidas usa o mesmo critério.
+// Paulo), ou revisão antecipada por KRI no vermelho (B21). A lista em app/api/revisoes-vencidas usa o mesmo critério.
 async function contarRevisoesVencidas(sql: any, p: number | null): Promise<number> {
   const [linha] = await sql`
       SELECT COUNT(*)::int AS vencidas
       FROM riscos r
       JOIN riscos_revisao rv ON rv.risco_id = r.id
       WHERE r.status <> 'Mitigado'
-        AND rv.proxima_revisao < (now() AT TIME ZONE 'America/Sao_Paulo')::date
+        AND (rv.proxima_revisao < (now() AT TIME ZONE 'America/Sao_Paulo')::date OR rv.revisao_antecipada)
         AND (${p}::int IS NULL OR r.projeto_id = ${p}::int)
     `;
   return linha?.vencidas ?? 0;
