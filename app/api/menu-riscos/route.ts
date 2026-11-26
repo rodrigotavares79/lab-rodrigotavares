@@ -18,7 +18,7 @@ export async function GET() {
   try {
     const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
     const usuario = guarda.usuario;
-    const [kpis, [semDono], [controlesNaoAvaliados], pendentes, vig, ativosApetite, [apetitePend]] = await Promise.all([
+    const [kpis, [semDono], [controlesNaoAvaliados], pendentes, vig, ativosApetite, [apetitePend], [krisVermelho]] = await Promise.all([
       obterContadoresMenu(sql),
       sql`SELECT COUNT(*)::int AS n FROM riscos WHERE dono_email IS NULL AND status <> 'Mitigado'`,
       sql`
@@ -34,6 +34,11 @@ export async function GET() {
       limitesVigentes(sql),
       sql`SELECT categoria, impacto_qualitativo, status FROM riscos WHERE status <> 'Mitigado'`,
       sql`SELECT proposto_por_email FROM apetite_versoes WHERE situacao = 'Pendente'`,
+      // B21: KRIs ativos cuja medição mais recente está no vermelho.
+      sql`
+        SELECT COUNT(*)::int AS n FROM kris k
+        WHERE k.ativo AND (SELECT m.faixa FROM kri_medicoes m WHERE m.kri_id = k.id ORDER BY m.referencia DESC LIMIT 1) = 'vermelho'
+      `,
     ]);
     // B18: riscos ativos acima da tolerância da categoria; e a proposta de
     // apetite pendente conta só para quem pode decidi-la.
@@ -63,6 +68,7 @@ export async function GET() {
       controlesNaoAvaliados: controlesNaoAvaliados.n,
       acimaTolerancia,
       apetitePendente,
+      krisVermelho: krisVermelho.n,
       // B19: grupos de riscos repetidos (só para quem pode consolidar).
       duplicados: usuario.permissoes.editarRiscos ? (await listarGruposDuplicados(sql)).length : 0,
     });

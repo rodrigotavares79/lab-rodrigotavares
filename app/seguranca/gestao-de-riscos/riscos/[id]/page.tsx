@@ -1,5 +1,6 @@
 "use client";
 
+import KrisDoRisco from "@/components/riscos/KrisDoRisco";
 import BadgeApetite from "@/components/riscos/BadgeApetite";
 import type { SituacaoApetite } from "@/lib/apetiteRisco";
 import { useState, useEffect } from "react";
@@ -40,6 +41,8 @@ type RiscoDetalhe = {
   id: number;
   opcao_tratamento: string | null;
   revisado_em: string | null;
+  revisao_antecipada?: boolean | null;
+  revisao_antecipada_motivo?: string | null;
   dias_revisao: number | null;
   proxima_revisao: string | null;
   projeto_id: number;
@@ -335,6 +338,11 @@ function BlocoRevisao({ risco }: { risco: RiscoDetalhe }) {
           {" "}· prazo do nível {risco.impacto_qualitativo}: {risco.dias_revisao} dias
         </span>
       ) : null}
+      {risco.revisao_antecipada && (
+        <div style={{ marginTop: "0.35rem", color: "var(--danger)", fontWeight: 600 }}>
+          Revisão antecipada por indicador: {risco.revisao_antecipada_motivo} Reavalie o risco para encerrar o alerta.
+        </div>
+      )}
     </div>
   );
 }
@@ -1416,6 +1424,8 @@ export default function DetalheDoRisco() {
                 />
 
                 <OcorrenciasRisco riscoId={risco.id} />
+
+                <KrisDoRisco riscoId={risco.id} gatilho={risco.gatilho} podeEditar={podeEditarRisco && !riscoMitigado} />
 
                 <div className="dash-panel">
                   <div className="dash-panel-header">Identificação</div>

@@ -13,7 +13,7 @@ import { ProvedorPermissoesRiscos, SemPermissao, usePerfilRiscos, type Permissoe
 
 const BASE = "/seguranca/gestao-de-riscos";
 
-type Contador = "auditoriaPendentes" | "acoesAtrasadas" | "revisoesVencidas" | "semTratamento" | "aceitacoesPendentes" | "semDono" | "duplicados" | "controlesNaoAvaliados" | "acimaTolerancia" | "apetitePendente";
+type Contador = "auditoriaPendentes" | "acoesAtrasadas" | "revisoesVencidas" | "semTratamento" | "aceitacoesPendentes" | "semDono" | "duplicados" | "controlesNaoAvaliados" | "acimaTolerancia" | "apetitePendente" | "krisVermelho";
 type ItemMenu = {
   href: string;
   label: string;
@@ -45,6 +45,7 @@ const GRUPOS: GrupoMenu[] = [
       { href: `${BASE}/acoes-atrasadas`, label: "Ações atrasadas", contador: "acoesAtrasadas", alerta: true },
       { href: `${BASE}/revisoes-vencidas`, label: "Revisões vencidas", contador: "revisoesVencidas", alerta: true },
       { href: `${BASE}/sem-tratamento`, label: "Riscos sem tratamento", contador: "semTratamento", alerta: true },
+      { href: `${BASE}/kris?faixa=vermelho`, label: "KRIs no vermelho", contador: "krisVermelho", alerta: true },
       { href: `${BASE}/riscos?apetite=acima-tolerancia`, label: "Acima da tolerância", contador: "acimaTolerancia", alerta: true },
       { href: `${BASE}/riscos?dono=sem`, label: "Riscos sem dono", contador: "semDono", alerta: true },
       { href: `${BASE}/riscos?controles=nao-avaliados`, label: "Controles não avaliados", contador: "controlesNaoAvaliados" },
@@ -57,6 +58,7 @@ const GRUPOS: GrupoMenu[] = [
       { href: `${BASE}/riscos`, label: "Lista de riscos" },
       { href: `${BASE}/cadastro-de-riscos`, label: "Cadastrar risco", exige: "editarRiscos" },
       { href: `${BASE}/ativos-criticos`, label: "Ativos e processos" },
+      { href: `${BASE}/kris`, label: "Indicadores (KRIs)" },
       { href: `${BASE}/cenarios`, label: "Catálogo de cenários" },
       { href: `${BASE}/contatos-risco`, label: "Contatos de negócio" },
       { href: `${BASE}/riscos-duplicados`, label: "Riscos repetidos", contador: "duplicados", exige: "editarRiscos" },
