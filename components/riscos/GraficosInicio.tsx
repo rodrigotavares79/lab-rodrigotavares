@@ -1,12 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { pieSlices } from "@/lib/chartHelpers";
 import s from "./GraficosInicio.module.css";
 
 // Três gráficos pequenos da página inicial do Gestão de Riscos:
-// top 3 categorias (barras horizontais), riscos por criticidade (pizza, rótulo
-// só no hover) e mitigação trimestral de riscos críticos e altos (gauge).
+// top 3 categorias (barras horizontais), riscos por criticidade (barras com
+// rótulo, B25) e mitigação trimestral de riscos críticos e altos (gauge).
 
 type Categoria = { categoria: string; total: number };
 type Nivel = { nivel: string; total: number };
@@ -59,7 +58,7 @@ function BarrasCategorias({ dados, totalAtivos }: { dados: Categoria[]; totalAti
   const max = Math.max(1, ...dados.map((d) => d.total));
   return (
     <div className={s.card}>
-      <h2 className={s.titulo}>Top 3 riscos por categoria</h2>
+      <h2 className={s.titulo}>Top 3 categorias</h2>
       {dados.length === 0 ? (
         <p className={s.vazio}>Sem riscos ativos.</p>
       ) : (
@@ -97,60 +96,49 @@ function BarrasCategorias({ dados, totalAtivos }: { dados: Categoria[]; totalAti
   );
 }
 
-function PizzaCriticidade({ dados }: { dados: Nivel[] }) {
+// B25: barras com rótulo (no lugar da pizza), da criticidade mais grave para
+// a mais leve. Cada barra traz nome, quantidade e percentual escritos: a
+// leitura não depende do hover nem só da cor.
+function BarrasCriticidade({ dados }: { dados: Nivel[] }) {
   const { dica, mostrar, esconder } = useDica();
-  const [ativo, setAtivo] = useState<string | null>(null);
   const porNivel = new Map(dados.map((d) => [d.nivel, d.total]));
-  const serie = NIVEIS.map((n) => ({ label: n.nivel, value: porNivel.get(n.nivel) || 0, color: n.cor })).filter(
-    (d) => d.value > 0
-  );
-  const total = serie.reduce((t, d) => t + d.value, 0);
-  const fatias = pieSlices(serie, 80, 80, 76);
-  const resumo = serie.map((d) => `${d.label}: ${d.value}`).join(", ");
-
+  const linhas = [...NIVEIS].reverse().map((n) => ({ ...n, total: porNivel.get(n.nivel) || 0 }));
+  const total = linhas.reduce((t, d) => t + d.total, 0);
+  const max = Math.max(1, ...linhas.map((d) => d.total));
   return (
     <div className={s.card}>
       <h2 className={s.titulo}>Riscos por criticidade</h2>
       {total === 0 ? (
         <p className={s.vazio}>Sem riscos ativos.</p>
       ) : (
-        <div className={s.centro}>
-          <svg viewBox="0 0 160 160" className={s.pizza} role="img" aria-label={`Riscos ativos por criticidade. ${resumo}`}>
-            {fatias.map((f) => {
-              const texto = `${f.label}: ${plural(f.value)} (${Math.round(Number(f.pct))}%)`;
-              return (
-                <path
-                  key={f.label}
-                  d={f.path}
-                  fill={f.color}
-                  stroke="#ffffff"
-                  strokeWidth={2}
-                  strokeLinejoin="round"
-                  tabIndex={0}
-                  aria-label={texto}
-                  className={s.fatia}
-                  style={{ opacity: ativo && ativo !== f.label ? 0.45 : 1 }}
-                  onMouseMove={(e) => {
-                    setAtivo(f.label);
-                    mostrar(texto, e);
-                  }}
-                  onMouseLeave={() => {
-                    setAtivo(null);
-                    esconder();
-                  }}
-                  onFocus={(e) => {
-                    setAtivo(f.label);
-                    mostrar(texto, e);
-                  }}
-                  onBlur={() => {
-                    setAtivo(null);
-                    esconder();
-                  }}
-                />
-              );
-            })}
-          </svg>
-        </div>
+        <ul className={s.barras} aria-label="Riscos ativos por criticidade (nível atual)">
+          {linhas.map((d) => {
+            const pct = Math.round((d.total / total) * 100);
+            const texto = `${d.nivel}: ${plural(d.total)} (${pct}% dos ativos)`;
+            return (
+              <li
+                key={d.nivel}
+                className={s.barraLinha}
+                tabIndex={0}
+                aria-label={texto}
+                onMouseMove={(e) => mostrar(texto, e)}
+                onMouseLeave={esconder}
+                onFocus={(e) => mostrar(texto, e)}
+                onBlur={esconder}
+              >
+                <span className={s.barraRotulo}>
+                  <span>{d.nivel}</span>
+                  <strong>
+                    {d.total} <span style={{ fontWeight: 400, color: "var(--text-muted)" }}>· {pct}%</span>
+                  </strong>
+                </span>
+                <span className={s.barraTrilho}>
+                  <span className={s.barra} style={{ width: `${(d.total / max) * 100}%`, background: d.cor }} />
+                </span>
+              </li>
+            );
+          })}
+        </ul>
       )}
       <Tooltip dica={dica} />
     </div>
@@ -339,7 +327,7 @@ export default function GraficosInicio({
   return (
     <section aria-label="Gráficos" className={s.linha}>
       <BarrasCategorias dados={categorias} totalAtivos={totalAtivos} />
-      <PizzaCriticidade dados={niveis} />
+      <BarrasCriticidade dados={niveis} />
       <GaugeMitigacao trimestres={trimestres} />
     </section>
   );
