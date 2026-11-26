@@ -328,15 +328,15 @@ export default function Dashboard() {
                   {mitigacao && (
                     <div className="kpi-grid" style={{ gridTemplateColumns: "repeat(3, 1fr)", marginBottom: "1.5rem" }}>
                       <div className="kpi-card">
-                        <div className="kpi-card-header" style={{ background: "var(--success)" }}>Melhoraram de nível</div>
+                        <div className="kpi-card-header"><span aria-hidden="true" style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "var(--success)", marginRight: 6 }} />Melhoraram de nível</div>
                         <div className="kpi-card-value">{mitigacao.melhorou}</div>
                       </div>
                       <div className="kpi-card">
-                        <div className="kpi-card-header" style={{ background: "var(--text-muted)" }}>Sem mudança de nível</div>
+                        <div className="kpi-card-header"><span aria-hidden="true" style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "var(--text-muted)", marginRight: 6 }} />Sem mudança de nível</div>
                         <div className="kpi-card-value">{mitigacao.manteve}</div>
                       </div>
                       <div className="kpi-card">
-                        <div className="kpi-card-header" style={{ background: "var(--danger)" }}>Pioraram de nível</div>
+                        <div className="kpi-card-header"><span aria-hidden="true" style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "var(--danger)", marginRight: 6 }} />Pioraram de nível</div>
                         <div className="kpi-card-value">{mitigacao.piorou}</div>
                       </div>
                     </div>
