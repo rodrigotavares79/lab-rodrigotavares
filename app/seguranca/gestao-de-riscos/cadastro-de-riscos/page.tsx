@@ -1,5 +1,6 @@
 "use client";
 
+import { NOMES_CATEGORIAS } from "@/lib/politicaRiscos";
 import { useState, useEffect, FormEvent } from "react";
 import { montarTituloRisco, validarCenario, TAMANHO_MAXIMO_CAMPO } from "@/lib/cenarioRisco";
 import Footer from "@/components/Footer";
@@ -345,14 +346,17 @@ export default function CadastroDeRiscos() {
                   <label htmlFor="categoria">Categoria do Risco</label>
                   <select id="categoria" name="categoria" defaultValue="">
                     <option value="" disabled>Selecione</option>
-                    <option>Tecnológico</option>
-                    <option>Operacional</option>
-                    <option>Estratégico</option>
-                    <option>Financeiro</option>
-                    <option>Conformidade / Regulatório</option>
-                    <option>Segurança da Informação</option>
-                    <option>Reputacional</option>
+                    {NOMES_CATEGORIAS.map((c) => (
+                      <option key={c}>{c}</option>
+                    ))}
                   </select>
+                  <span className="field-helper">
+                    Dúvida entre categorias?{" "}
+                    <a href="/seguranca/gestao-de-riscos/politica#categorias" target="_blank" rel="noopener noreferrer">
+                      Veja a fronteira entre elas na Política
+                    </a>
+                    .
+                  </span>
                 </div>
 
                 <div className="form-field form-field-wide">

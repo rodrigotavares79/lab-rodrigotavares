@@ -105,8 +105,8 @@ export default function GuiaDeUso() {
             <p>
               Impacto e Probabilidade (1 a 5 cada) são cruzados numa matriz
               5×5. A pontuação é Probabilidade × Impacto (de 1 a 25) e define
-              o nível qualitativo, seguindo os critérios de avaliação de risco
-              da ISO/IEC 27005: <strong>Baixo</strong> (1 a 4),{" "}
+              o nível qualitativo, pelos critérios de avaliação definidos na
+              Política (seção 5): <strong>Baixo</strong> (1 a 4),{" "}
               <strong>Médio</strong> (5 a 9), <strong>Alto</strong> (10 a 16)
               e <strong>Crítico</strong> (20 a 25). Encontre a linha da
               Probabilidade e a coluna do Impacto: a célula onde elas se
