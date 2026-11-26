@@ -94,7 +94,7 @@ export default function Politica() {
               <li><strong>Dono do risco:</strong> pessoa com autoridade e responsabilidade para decidir o tratamento do risco.</li>
               <li><strong>Nível inerente:</strong> nível do risco sem considerar os controles existentes.</li>
               <li><strong>Nível atual:</strong> nível do risco considerando os controles existentes e o grau em que estão implementados.</li>
-              <li><strong>Nível projetado:</strong> nível esperado depois que o plano de ação for concluído.</li>
+              <li><strong>Nível projetado:</strong> nível esperado quando todos os controles cadastrados estiverem totalmente implementados.</li>
               <li>
                 <strong>Apetite a risco:</strong> o nível de risco que a organização aceita, em cada categoria, sem ação adicional.
               </li>
