@@ -1,5 +1,6 @@
 "use client";
 
+import { NOMES_CATEGORIAS } from "@/lib/politicaRiscos";
 import { useState } from "react";
 
 // B27 · Formulário de cenário do catálogo (novo ou edição).
@@ -13,15 +14,7 @@ export type DadosForm = {
   descricao: string;
 };
 
-const CATEGORIAS = [
-  "Tecnológico",
-  "Operacional",
-  "Estratégico",
-  "Financeiro",
-  "Conformidade / Regulatório",
-  "Segurança da Informação",
-  "Reputacional",
-];
+const CATEGORIAS = NOMES_CATEGORIAS;
 
 export default function FormCenarioCatalogo({
   inicial,

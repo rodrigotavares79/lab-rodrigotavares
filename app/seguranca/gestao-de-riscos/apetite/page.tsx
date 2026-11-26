@@ -1,5 +1,6 @@
 "use client";
 
+import { NOMES_CATEGORIAS } from "@/lib/politicaRiscos";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Footer from "@/components/Footer";
@@ -51,15 +52,7 @@ const BADGE_POR_NIVEL: Record<string, string> = {
   "Crítico": "badge-critico",
 };
 
-const CATEGORIAS_PADRAO = [
-  "Tecnológico",
-  "Segurança da Informação",
-  "Operacional",
-  "Estratégico",
-  "Financeiro",
-  "Conformidade / Regulatório",
-  "Reputacional",
-];
+const CATEGORIAS_PADRAO = NOMES_CATEGORIAS;
 
 function data(iso: string | null): string {
   return iso ? new Date(iso).toLocaleDateString("pt-BR") : "—";
