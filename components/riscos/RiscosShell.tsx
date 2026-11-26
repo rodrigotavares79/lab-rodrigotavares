@@ -35,6 +35,7 @@ const GRUPOS: GrupoMenu[] = [
     itens: [
       { href: BASE, label: "Início", exato: true },
       { href: `${BASE}/dashboard`, label: "Dashboard" },
+      { href: `${BASE}/tendencias`, label: "Tendências" },
     ],
   },
   {
