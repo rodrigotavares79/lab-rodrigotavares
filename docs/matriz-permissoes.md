@@ -98,3 +98,9 @@ Aceitar um risco exige uma Carta de Risco (PDF ou DOCX) e a aprovação de algu�
 - Qualquer perfil com `ler` vê a estimativa na tela do risco e o ranking no Relatório Executivo.
 - Estimar, revisar ou remover exige `editarRiscos` (risco mitigado não pode ser alterado).
 - Frequência anual e perda por evento em faixas (mín, provável, máx); a perda pode ser calculada pelo custo de indisponibilidade por hora do ativo crítico × horas de parada.
+
+## Mapeamento curado de frameworks (B24)
+
+- Qualquer perfil com `ler` vê a cobertura, as lacunas e os controles de cada risco na tela de Conformidade.
+- Confirmar (com status Implementado / Parcial / Ausente), descartar, desfazer ou incluir controle manualmente exige `editarRiscos`; o mesmo vale para a biblioteca de controles de cada cenário.
+- Palavra-chave e biblioteca só sugerem: a cobertura considera apenas controles confirmados.

@@ -1,5 +1,6 @@
 "use client";
 
+import ControlesCenario from "@/components/riscos/ControlesCenario";
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Footer from "@/components/Footer";
@@ -274,6 +275,7 @@ export default function CenarioDetalhe() {
                   )}
                 </div>
               </div>
+              <ControlesCenario cenarioId={c.id} />
             </>
           )}
 

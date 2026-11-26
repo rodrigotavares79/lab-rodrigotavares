@@ -92,6 +92,7 @@ type RelatorioData = {
   };
   planos: PlanoLinha[];
   recomendacoes: Recomendacao[];
+  coberturaFrameworks?: { framework: "cis" | "nist" | "iso"; controles: number; implementado: number; parcial: number; ausente: number; percentual: number | null }[];
   exposicao?: {
     total: number;
     totalMin: number;
@@ -434,6 +435,31 @@ function RelatorioConteudo() {
               </table>
             )}
           </div>
+
+          {dados.coberturaFrameworks && dados.coberturaFrameworks.some((c) => c.controles > 0) && (
+            <div className="report-section">
+              <h2>Conformidade com Frameworks</h2>
+              <p className="text-muted" style={{ fontSize: "0.82rem", margin: "0 0 0.5rem" }}>
+                Cobertura dos controles confirmados para os riscos ativos (Implementado = 100%, Parcial = 50%, Ausente = 0%;
+                cada controle conta uma vez, pelo pior status).
+              </p>
+              <table className="report-table">
+                <thead><tr><th>Framework</th><th>Cobertura</th><th>Controles</th><th>Implementados</th><th>Parciais</th><th>Ausentes</th></tr></thead>
+                <tbody>
+                  {dados.coberturaFrameworks.map((c) => (
+                    <tr key={c.framework}>
+                      <td>{{ cis: "CIS Controls v8.1", nist: "NIST CSF 2.0", iso: "ISO/IEC 27001:2022" }[c.framework]}</td>
+                      <td><strong>{c.percentual === null ? "—" : `${c.percentual}%`}</strong></td>
+                      <td>{c.controles}</td>
+                      <td style={{ color: "var(--success)" }}>{c.implementado}</td>
+                      <td style={{ color: "var(--warning-text)" }}>{c.parcial}</td>
+                      <td style={{ color: c.ausente ? "var(--danger)" : undefined, fontWeight: c.ausente ? 600 : undefined }}>{c.ausente}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
 
           <div className="report-section">
             <h2>Indicadores-Chave de Risco (KRIs) em Alerta</h2>
