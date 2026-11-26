@@ -29,6 +29,8 @@ type Dados = {
   custo_indisponibilidade_hora?: number | string | null;
 };
 
+const GRADE = { display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: "0.5rem" } as const;
+
 const s = (v: number | string | null | undefined) => (v === null || v === undefined ? "" : String(v).replace(".", ","));
 
 export default function ExposicaoRisco({ risco, podeEditar, onAtualizado }: { risco: Dados; podeEditar: boolean; onAtualizado: () => void }) {
@@ -82,9 +84,9 @@ export default function ExposicaoRisco({ risco, podeEditar, onAtualizado }: { ri
 
   const tem = risco.exposicao_ale !== null && risco.exposicao_ale !== undefined;
   const campo = (rotulo: string, valor: string, mudar: (v: string) => void, id: string) => (
-    <div className="form-field" style={{ margin: 0, flex: "1 1 6rem" }}>
+    <div className="form-field" style={{ margin: 0, minWidth: 0 }}>
       <label htmlFor={id} style={{ fontSize: "0.75rem" }}>{rotulo}</label>
-      <input id={id} inputMode="decimal" value={valor} onChange={(e) => mudar(e.target.value)} />
+      <input id={id} inputMode="decimal" value={valor} onChange={(e) => mudar(e.target.value)} style={{ width: "100%", minWidth: 0 }} />
     </div>
   );
 
@@ -141,7 +143,7 @@ export default function ExposicaoRisco({ risco, podeEditar, onAtualizado }: { ri
         {editando && (
           <>
             <p style={{ margin: "0 0 0.4rem", fontWeight: 600, fontSize: "0.85rem" }}>Frequência anual (ocorrências por ano)</p>
-            <div style={{ display: "flex", gap: "0.5rem" }}>
+            <div style={GRADE}>
               {campo("Mínimo", f.min, (v) => setF({ ...f, min: v }), "fMin")}
               {campo("Provável", f.provavel, (v) => setF({ ...f, provavel: v }), "fProv")}
               {campo("Máximo", f.max, (v) => setF({ ...f, max: v }), "fMax")}
@@ -157,8 +159,8 @@ export default function ExposicaoRisco({ risco, podeEditar, onAtualizado }: { ri
             )}
             {usarAtivo && temCustoHora && (
               <>
-                <div style={{ display: "flex", gap: "0.5rem" }}>
-                  {campo("Horas paradas (mín.)", h.min, (v) => setH({ ...h, min: v }), "hMin")}
+                <div style={GRADE}>
+                  {campo("Horas paradas: mín.", h.min, (v) => setH({ ...h, min: v }), "hMin")}
                   {campo("Provável", h.provavel, (v) => setH({ ...h, provavel: v }), "hProv")}
                   {campo("Máximo", h.max, (v) => setH({ ...h, max: v }), "hMax")}
                 </div>
@@ -170,7 +172,7 @@ export default function ExposicaoRisco({ risco, podeEditar, onAtualizado }: { ri
               </>
             )}
             {(!usarAtivo || !temCustoHora) && (
-              <div style={{ display: "flex", gap: "0.5rem" }}>
+              <div style={GRADE}>
                 {campo("Mínimo", p.min, (v) => setP({ ...p, min: v }), "pMin")}
                 {campo("Provável", p.provavel, (v) => setP({ ...p, provavel: v }), "pProv")}
                 {campo("Máximo", p.max, (v) => setP({ ...p, max: v }), "pMax")}

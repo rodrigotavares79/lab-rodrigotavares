@@ -277,8 +277,8 @@ function ImpactoDecisao({ risco, totalPlanos }: { risco: RiscoDetalhe; totalPlan
       <div className="dash-panel-body">
         {critP50 === null ? (
           <p className={s.nota} style={{ marginTop: 0 }}>
-            Sem estimativa financeira para este risco. A simulação é feita no cadastro
-            individual, quando o risco é vinculado a um Sistema Crítico.
+            Sem simulação de impacto do cadastro. A perda anual esperada fica no painel
+            Exposição financeira, logo abaixo.
           </p>
         ) : (
           <>
