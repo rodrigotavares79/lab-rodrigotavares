@@ -443,6 +443,13 @@
   background: var(--rs-primaria);
 }
 
+/* Botões e links dentro do cabeçalho não herdam o tamanho do título */
+.conteudo :global(.dash-panel-header) :is(button, a, select, span:not(:first-child)) {
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
 .conteudo :global(.dash-panel-body) {
   padding: 0.85rem 1.25rem 1.25rem;
 }
