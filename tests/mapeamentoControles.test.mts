@@ -28,6 +28,21 @@ test("palavra-chave vira sugestão; biblioteca vem antes e decididos somem", () 
   assert.ok(!restantes.some((s) => s.id === "CIS 7" || s.id === "A.8.8"));
 });
 
+test("palavra-chave: só o tema mais forte (até 2 se empatados)", () => {
+  const m = {
+    generico: false,
+    temas: [
+      { tema: { nome: "A", cis: [{ id: "CIS 7", titulo: "x" }], nist: [], iso: [] }, termos: ["a", "b", "c", "d"] },
+      { tema: { nome: "B", cis: [{ id: "CIS 11", titulo: "x" }], nist: [], iso: [] }, termos: ["e", "f"] },
+      { tema: { nome: "C", cis: [{ id: "CIS 14", titulo: "x" }], nist: [], iso: [] }, termos: ["g"] },
+    ],
+  };
+  assert.deepEqual(sugestoes(CAT, m as any, [], new Set()).map((s) => s.id), ["CIS 7"]);
+  m.temas[1].termos = ["e", "f", "g", "h"];
+  m.temas[2].termos = ["i", "j", "k", "l"];
+  assert.deepEqual(sugestoes(CAT, m as any, [], new Set()).map((s) => s.id), ["CIS 7", "CIS 11"]);
+});
+
 test("risco sem tema: só a biblioteca sugere (o genérico não vira sugestão)", () => {
   const m = mapearRisco("texto sem nenhum termo conhecido");
   assert.deepEqual(sugestoes(CAT, m, [], new Set()), []);

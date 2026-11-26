@@ -47,6 +47,9 @@ export function chave(fw: string, id: string) {
   return `${fw}|${id}`;
 }
 
+/** Temas por palavra-chave que viram sugestão para cada risco. */
+export const MAX_TEMAS_SUGERIDOS = 2;
+
 export type Sugestao = ControleFw & { fonte: "biblioteca" | "palavra-chave"; motivo: string };
 
 /**
@@ -67,7 +70,12 @@ export function sugestoes(
     if (c && !decididos.has(k) && !out.has(k)) out.set(k, { ...c, fonte: "biblioteca", motivo: `cenário ${b.cenario}` });
   }
   if (!m.generico) {
-    for (const t of m.temas) {
+    // Só o tema mais forte vira sugestão (ou os 2 mais fortes, se empatados):
+    // os demais costumam ser termos soltos e geram ruído na revisão. O que
+    // faltar entra pela biblioteca do cenário ou por inclusão manual.
+    const topo = Math.max(...m.temas.map((t) => t.termos.length));
+    const fortes = m.temas.filter((t) => t.termos.length === topo).slice(0, MAX_TEMAS_SUGERIDOS);
+    for (const t of fortes) {
       for (const fw of IDS_FRAMEWORK) {
         for (const c of t.tema[fw]) {
           const k = chave(fw, c.id);
