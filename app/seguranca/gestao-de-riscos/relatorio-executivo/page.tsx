@@ -26,8 +26,9 @@ export default function RelatorioExecutivoEntrada() {
           <span className="eyebrow">Relatórios</span>
           <h1>Relatório Executivo</h1>
           <p className="lede">
-            Resumo executivo de um projeto: indicadores, riscos críticos e altos em aberto e a situação dos planos de
-            ação, em formato pronto para imprimir ou salvar como PDF.
+            Resumo executivo do portfólio ou de um projeto: recomendações priorizadas, matriz, tendências de 12 meses,
+            riscos acima do apetite e da tolerância, indicadores (KRIs) em alerta e situação dos planos de ação, pronto
+            para imprimir ou salvar como PDF com a data de referência.
           </p>
 
           <div
@@ -47,7 +48,7 @@ export default function RelatorioExecutivoEntrada() {
             <div className="form-field" style={{ flex: "1 1 16rem", margin: 0 }}>
               <label htmlFor="relExecProjeto">Projeto</label>
               <select id="relExecProjeto" value={projetoId} onChange={(e) => setProjetoId(e.target.value)}>
-                <option value="">Selecione um projeto</option>
+                <option value="">Todos os projetos (consolidado)</option>
                 {projetos.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.nome}
@@ -55,21 +56,15 @@ export default function RelatorioExecutivoEntrada() {
                 ))}
               </select>
             </div>
-            {projetoId ? (
-              <a
-                href={`/seguranca/gestao-de-riscos/relatorio?projetoId=${projetoId}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn-primary"
-                style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", minHeight: "2.75rem" }}
-              >
-                Emitir relatório
-              </a>
-            ) : (
-              <button type="button" className="btn-primary" disabled style={{ minHeight: "2.75rem" }}>
-                Emitir relatório
-              </button>
-            )}
+            <a
+              href={projetoId ? `/seguranca/gestao-de-riscos/relatorio?projetoId=${projetoId}` : "/seguranca/gestao-de-riscos/relatorio"}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-primary"
+              style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", minHeight: "2.75rem" }}
+            >
+              Emitir relatório
+            </a>
           </div>
           <p className="field-helper" style={{ marginTop: "0.75rem" }}>O relatório abre numa nova aba.</p>
         </div>

@@ -1762,7 +1762,21 @@ table.report-table th {
   .site-header, .report-toolbar, .status-tag { display: none !important; }
   .report-page { border: none; margin: 0; padding: 0; max-width: none; }
   body { background: #fff; }
+  /* B26: cores da matriz, selos e gráficos também no PDF */
+  .report-page, .report-page * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .report-page h2 { break-after: avoid; }
+  .report-page table.report-table tr, .report-kpi-box, .report-grade-graficos > * { break-inside: avoid; }
+  .report-page button { display: none !important; }
+  .report-grade-graficos { grid-template-columns: 1fr 1fr; }
 }
+
+/* B26: dois gráficos de tendência lado a lado (um embaixo do outro em tela estreita) */
+.report-grade-graficos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+  gap: 1rem;
+}
+@page { size: A4; margin: 14mm; }
 /* --- Ícone de ajuda (tooltip) ao lado de rótulos de campo --- */
 
 .label-com-ajuda {

@@ -47,7 +47,7 @@ export async function listarKris(sql: any, filtro: { riscoId?: number | null; id
   const riscoId = filtro.riscoId ?? null;
   const id = filtro.id ?? null;
   return sql`
-    SELECT k.*, r.titulo AS risco_titulo, r.gatilho AS risco_gatilho, r.impacto_qualitativo AS risco_nivel,
+    SELECT k.*, r.projeto_id, r.titulo AS risco_titulo, r.gatilho AS risco_gatilho, r.impacto_qualitativo AS risco_nivel,
            r.status AS risco_status, p.nome AS projeto,
            u.referencia AS ultima_referencia, u.valor AS ultimo_valor, u.faixa AS ultima_faixa,
            COALESCE((
