@@ -10,7 +10,8 @@ import { fmt, ROTULO_SITUACAO_MEDICAO, type FaixaKri, type SituacaoMedicao } fro
 import { SeloFaixa, MiniGrafico } from "./KriVisual";
 
 // Peças visuais do Dashboard (cockpit). Cada número leva à lista ou à tela
-// onde se age sobre ele; a cor indica estado e vem sempre com rótulo.
+// onde se age sobre ele, sempre numa nova aba para não sair do Dashboard; a
+// cor indica estado e vem sempre com rótulo.
 
 export const BASE = "/seguranca/gestao-de-riscos";
 
@@ -114,7 +115,7 @@ export function TileKpi({
   );
   const classe = `${s.tile} ${alerta ? s.tileAlerta : ""}`;
   return href ? (
-    <Link href={href} className={classe}>
+    <Link href={href} className={classe} {...(href.startsWith("#") ? {} : { target: "_blank", rel: "noopener noreferrer" })}>
       {conteudo}
     </Link>
   ) : (
@@ -141,7 +142,7 @@ export function MatrizCalor({ celulas, projetoId }: { celulas: { prob: number; i
                   const estilo = { background: COR_NIVEL_MATRIZ[nivel].fundo, color: COR_NIVEL_MATRIZ[nivel].texto };
                   const titulo = `Probabilidade ${p} × Impacto ${i} (${NIVEL_RISCO_LABEL[nivel]}): ${n} risco(s)`;
                   return n > 0 ? (
-                    <Link role="cell" key={i} href={linkRiscos({ prob: p, imp: i }, projetoId)} className={s.celula} style={estilo} title={titulo} aria-label={titulo}>
+                    <Link target="_blank" rel="noopener noreferrer" role="cell" key={i} href={linkRiscos({ prob: p, imp: i }, projetoId)} className={s.celula} style={estilo} title={titulo} aria-label={titulo}>
                       {n}
                     </Link>
                   ) : (
@@ -184,7 +185,7 @@ export function ApetitePorCategoria({ linhas, projetoId }: { linhas: LinhaApetit
     <div>
       {linhas.map((l) => (
         <div key={l.categoria} className={s.linhaBarra}>
-          <Link className={s.rotuloBarra} href={linkRiscos({ categoria: l.categoria, ativos: 1 }, projetoId)} title={l.categoria}>
+          <Link target="_blank" rel="noopener noreferrer" className={s.rotuloBarra} href={linkRiscos({ categoria: l.categoria, ativos: 1 }, projetoId)} title={l.categoria}>
             {l.categoria}
           </Link>
           <div className={s.trilho} style={{ width: `${(l.total / max) * 100}%`, background: "transparent" }}>
@@ -245,7 +246,7 @@ export function FunilTratamento({ funil, projetoId }: { funil: Record<EstagioTra
         Todos os riscos do escopo, inclusive mitigados.{" "}
         {funil.aceito > 0 && (
           <>
-            <Link href={linkRiscos({ status: "Aceito" }, projetoId)}>{funil.aceito} risco(s) aceito(s)</Link> ficam fora do funil.
+            <Link target="_blank" rel="noopener noreferrer" href={linkRiscos({ status: "Aceito" }, projetoId)}>{funil.aceito} risco(s) aceito(s)</Link> ficam fora do funil.
           </>
         )}
       </p>
@@ -284,9 +285,9 @@ export function AcoesPorPrazo({ prazos }: { prazos: Record<FaixaPrazo, number> }
             </>
           );
           return k === "atrasada" ? (
-            <Link key={k} href={`${BASE}/acoes-atrasadas`} className={s.miniItem}>{corpo}</Link>
+            <Link target="_blank" rel="noopener noreferrer" key={k} href={`${BASE}/acoes-atrasadas`} className={s.miniItem}>{corpo}</Link>
           ) : (
-            <Link key={k} href={`${BASE}/planos-de-acao`} className={s.miniItem}>{corpo}</Link>
+            <Link target="_blank" rel="noopener noreferrer" key={k} href={`${BASE}/planos-de-acao`} className={s.miniItem}>{corpo}</Link>
           );
         })}
       </div>
@@ -298,18 +299,18 @@ export function AcoesPorPrazo({ prazos }: { prazos: Record<FaixaPrazo, number> }
 export function Aceitacoes({ a, projetoId }: { a: { vigentes: number; pendentes: number; vencendo: number }; projetoId: string }) {
   return (
     <div className={s.mini}>
-      <Link href={linkRiscos({ status: "Aceito" }, projetoId)} className={s.miniItem}>
+      <Link target="_blank" rel="noopener noreferrer" href={linkRiscos({ status: "Aceito" }, projetoId)} className={s.miniItem}>
         <span className={s.miniValor}>{a.vigentes}</span>
         <span className={s.miniRotulo}>Vigentes</span>
       </Link>
-      <Link href={`${BASE}/aceitacoes-pendentes`} className={s.miniItem}>
+      <Link target="_blank" rel="noopener noreferrer" href={`${BASE}/aceitacoes-pendentes`} className={s.miniItem}>
         <span className={s.miniValor}>{a.pendentes}</span>
         <span className={s.miniRotulo}>
           {a.pendentes > 0 && <span className={s.ponto} style={{ background: COR.alerta }} />}
           Aguardando aprovação
         </span>
       </Link>
-      <Link href={linkRiscos({ status: "Aceito" }, projetoId)} className={s.miniItem}>
+      <Link target="_blank" rel="noopener noreferrer" href={linkRiscos({ status: "Aceito" }, projetoId)} className={s.miniItem}>
         <span className={s.miniValor}>{a.vencendo}</span>
         <span className={s.miniRotulo}>
           {a.vencendo > 0 && <span className={s.ponto} style={{ background: COR.alerta }} />}
@@ -351,7 +352,7 @@ export function SemaforoKris({ kris }: { kris: KriCockpit[] }) {
           {visiveis.map((k) => (
             <tr key={k.id}>
               <td>
-                <Link href={`${BASE}/kris/${k.id}`} style={{ fontWeight: 600 }}>{k.codigo}</Link>{" "}
+                <Link target="_blank" rel="noopener noreferrer" href={`${BASE}/kris/${k.id}`} style={{ fontWeight: 600 }}>{k.codigo}</Link>{" "}
                 <span style={{ fontSize: "0.82rem" }}>{k.nome}</span>
                 {k.medicao !== "em_dia" && (
                   <div className="text-muted" style={{ fontSize: "0.72rem" }}>{ROTULO_SITUACAO_MEDICAO[k.medicao]}</div>
@@ -367,7 +368,7 @@ export function SemaforoKris({ kris }: { kris: KriCockpit[] }) {
           ))}
         </tbody>
       </table>
-      <Link href={`${BASE}/kris`} className={s.linkPainel}>
+      <Link target="_blank" rel="noopener noreferrer" href={`${BASE}/kris`} className={s.linkPainel}>
         {kris.length > visiveis.length ? `Ver todos os ${kris.length} KRIs →` : "Abrir KRIs →"}
       </Link>
     </div>
@@ -386,7 +387,7 @@ export function TopExposicao({
     <div>
       {exposicao.top.map((r) => (
         <div key={r.id} className={s.linhaBarra} style={{ gridTemplateColumns: "minmax(9rem, 14rem) 1fr auto" }}>
-          <Link className={s.rotuloBarra} href={`${BASE}/riscos/${r.id}`} title={r.titulo || r.gatilho || ""}>
+          <Link target="_blank" rel="noopener noreferrer" className={s.rotuloBarra} href={`${BASE}/riscos/${r.id}`} title={r.titulo || r.gatilho || ""}>
             <strong>#{r.id}</strong> {r.titulo || r.gatilho}
           </Link>
           <div className={s.trilho}>
@@ -413,7 +414,7 @@ export function CoberturaFrameworks({ cobertura, nome }: { cobertura: { framewor
         const cor = pct === null ? COR.neutro : pct >= 70 ? COR.ok : pct >= 40 ? COR.alerta : COR.perigo;
         return (
           <div key={c.framework} className={s.linhaBarra} style={{ gridTemplateColumns: "minmax(8rem, 11rem) 1fr auto" }}>
-            <Link className={s.rotuloBarra} href={`${BASE}/conformidade`}>{nome(c.framework)}</Link>
+            <Link target="_blank" rel="noopener noreferrer" className={s.rotuloBarra} href={`${BASE}/conformidade`}>{nome(c.framework)}</Link>
             <div className={s.trilho}>{pct ? <span className={s.segmento} style={{ width: `${pct}%`, background: cor }} /> : null}</div>
             <span className={s.numero} style={{ minWidth: "6.5rem" }}>
               {pct === null ? "—" : `${pct}%`}
@@ -435,7 +436,7 @@ export function Pendencias({ itens }: { itens: { rotulo: string; n: number | str
       {itens.map((i) => {
         const vazio = i.n === 0 || i.n === null;
         return (
-          <Link key={i.rotulo} href={i.href} className={`${s.pendencia} ${vazio ? s.pendenciaOk : ""}`}>
+          <Link target="_blank" rel="noopener noreferrer" key={i.rotulo} href={i.href} className={`${s.pendencia} ${vazio ? s.pendenciaOk : ""}`}>
             <span>{i.rotulo}</span>
             <span className={s.selo} style={{ color: vazio ? "var(--rs-ok)" : i.grave ? "var(--rs-perigo)" : "var(--rs-alerta)" }}>
               <span aria-hidden="true">{vazio ? "✓" : i.grave ? "▲▲" : "▲"}</span>
