@@ -9,6 +9,7 @@ import { situacaoMedicao } from "@/lib/kriRisco";
 import { altosOuCriticos, mesesAte, type FotoIndicadores } from "@/lib/fotosIndicadores";
 import { recomendacoes } from "@/lib/recomendacoesRisco";
 import { hojeSaoPaulo } from "@/lib/revisaoRisco";
+import { cobertura } from "@/lib/mapeamentoControles";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,7 @@ export async function GET(request: NextRequest) {
     const hoje = hojeSaoPaulo();
     const meses = mesesAte(hoje.slice(0, 7) + "-01", 12);
 
-    const [ind, vig, ativos, semTrat, acoesAtr, aceitPend, aceitVenc, [apetitePend], [semDono], [ctrlNao], todosKris, fotos, planos, exposicao] =
+    const [ind, vig, ativos, semTrat, acoesAtr, aceitPend, aceitVenc, [apetitePend], [semDono], [ctrlNao], todosKris, fotos, planos, exposicao, controlesConf] =
       await Promise.all([
         obterIndicadores(sql, p),
         limitesVigentes(sql),
@@ -116,6 +117,13 @@ export async function GET(request: NextRequest) {
           WHERE r.status <> 'Mitigado' AND r.exposicao_ale IS NOT NULL
             AND (${p}::int IS NULL OR r.projeto_id = ${p}::int)
           ORDER BY r.exposicao_ale DESC
+        `,
+        // B24: controles confirmados (mapeamento curado) dos riscos ativos do escopo.
+        sql`
+          SELECT rc.framework, rc.controle_id, rc.status
+          FROM riscos_controles rc JOIN riscos r ON r.id = rc.risco_id
+          WHERE rc.situacao = 'confirmado' AND r.status <> 'Mitigado'
+            AND (${p}::int IS NULL OR r.projeto_id = ${p}::int)
         `,
       ]);
 
@@ -214,6 +222,7 @@ export async function GET(request: NextRequest) {
       },
       planos,
       recomendacoes: recs,
+      coberturaFrameworks: cobertura(controlesConf as any[]),
       exposicao: {
         total: (exposicao as any[]).reduce((t, r) => t + Number(r.exposicao_ale), 0),
         totalMin: (exposicao as any[]).reduce((t, r) => t + Number(r.exposicao_min), 0),
