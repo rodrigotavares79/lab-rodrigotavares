@@ -11,8 +11,10 @@ const MARCAS_DO_MODULO = [
   /\briscos\b/, /\bplanos_acao\b/, /\bacoes\b/, /\bfatores_risco\b/, /\blog_alteracoes\b/,
   /\beventos_seguranca\b/, /indicadoresRiscos/, /usuariosRiscos/, /riscosAuth/,
 ];
-// Rotas que só devolvem o perfil do próprio usuário logado.
-const EXCECOES = new Set(["app/api/perfil-riscos/route.ts"]);
+// Rotas que só devolvem o perfil do próprio usuário logado, e a rotina
+// agendada de fotos (B22), chamada pela Vercel com CRON_SECRET, que só grava
+// fotos e não devolve dados de risco.
+const EXCECOES = new Set(["app/api/perfil-riscos/route.ts", "app/api/cron/fotos-mensais/route.ts"]);
 const FORA_DO_MODULO = /condominio|chamado|comunicado|sistemas-ia|catalogo|fornecedor/;
 
 function rotas(dir: string): string[] {
