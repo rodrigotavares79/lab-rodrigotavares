@@ -1,6 +1,8 @@
 import { exigirPermissao } from "@/lib/riscosAuth";
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
+import { situacaoDoRisco } from "@/lib/apetiteRisco";
+import { limitesVigentes } from "@/lib/apetiteServidor";
 
 export async function GET(request: NextRequest) {
   const guarda = await exigirPermissao("ler");
@@ -38,7 +40,10 @@ export async function GET(request: NextRequest) {
           ORDER BY r.criado_em DESC
         `;
 
-    return NextResponse.json({ riscos: rows });
+    // B18: situação de cada risco frente ao apetite/tolerância vigentes.
+    const vig = await limitesVigentes(sql);
+    const riscos = rows.map((r: any) => ({ ...r, apetite: situacaoDoRisco(r, vig.mapa) }));
+    return NextResponse.json({ riscos, apetiteVersao: vig.versao });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: "Erro ao buscar riscos." }, { status: 500 });

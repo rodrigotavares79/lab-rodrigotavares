@@ -2,6 +2,8 @@ import { exigirPermissao } from "@/lib/riscosAuth";
 import { NextRequest, NextResponse } from "next/server";
 import { neon } from "@neondatabase/serverless";
 import { obterIndicadores } from "@/lib/indicadoresRiscos";
+import { situacaoDoRisco } from "@/lib/apetiteRisco";
+import { limitesVigentes } from "@/lib/apetiteServidor";
 
 export async function GET(request: NextRequest) {
   const guarda = await exigirPermissao("ler");
@@ -45,8 +47,30 @@ export async function GET(request: NextRequest) {
       LIMIT 20
     `;
 
+    // B18: riscos ativos acima do apetite da categoria (tolerância primeiro).
+    const vig = await limitesVigentes(sql);
+    const ativos = await sql`
+      SELECT id, categoria, gatilho, titulo, impacto_qualitativo, status, dono_nome
+      FROM riscos
+      WHERE projeto_id = ${projetoId} AND status <> 'Mitigado'
+      ORDER BY matrix_score DESC NULLS LAST
+    `;
+    const acimaApetite = ativos
+      .map((r: any) => {
+        const lim = r.categoria ? vig.mapa.get(r.categoria) : undefined;
+        return { ...r, situacao: situacaoDoRisco(r, vig.mapa), apetite: lim?.apetite ?? null, tolerancia: lim?.tolerancia ?? null };
+      })
+      .filter((r: any) => r.situacao === "acima_tolerancia" || r.situacao === "acima_apetite")
+      .sort((a: any, b: any) => (a.situacao === b.situacao ? 0 : a.situacao === "acima_tolerancia" ? -1 : 1));
+
     return NextResponse.json({
       projeto,
+      apetite: {
+        versao: vig.versao,
+        acimaTolerancia: acimaApetite.filter((r: any) => r.situacao === "acima_tolerancia").length,
+        acimaApetite: acimaApetite.filter((r: any) => r.situacao === "acima_apetite").length,
+        riscos: acimaApetite,
+      },
       kpis: {
         total: ind.kpis.total,
         mitigados: ind.kpis.mitigados,
