@@ -17,6 +17,7 @@ export async function GET(request: NextRequest) {
             r.id, p.nome AS projeto, r.categoria, r.gatilho, r.titulo, r.levantado_por,
             r.data_levantamento, r.impacto_qualitativo, r.matrix_score,
             r.status, r.criado_em, r.sem_controles,
+            COALESCE(r.prob_nivel_atual, r.probabilidade)::int AS prob, COALESCE(r.imp_nivel_atual, r.impacto)::int AS imp,
             (SELECT COUNT(*) FROM fatores_risco f WHERE f.risco_id = r.id)::int AS fatores,
             r.dono_email, r.dono_nome, r.dono_contato_id, r.ponto_focal_nome,
             sc.nome AS ativo, sc.tipo AS ativo_tipo, sc.area_responsavel AS area
@@ -31,6 +32,7 @@ export async function GET(request: NextRequest) {
             r.id, p.nome AS projeto, r.categoria, r.gatilho, r.titulo, r.levantado_por,
             r.data_levantamento, r.impacto_qualitativo, r.matrix_score,
             r.status, r.criado_em, r.sem_controles,
+            COALESCE(r.prob_nivel_atual, r.probabilidade)::int AS prob, COALESCE(r.imp_nivel_atual, r.impacto)::int AS imp,
             (SELECT COUNT(*) FROM fatores_risco f WHERE f.risco_id = r.id)::int AS fatores,
             r.dono_email, r.dono_nome, r.dono_contato_id, r.ponto_focal_nome,
             sc.nome AS ativo, sc.tipo AS ativo_tipo, sc.area_responsavel AS area

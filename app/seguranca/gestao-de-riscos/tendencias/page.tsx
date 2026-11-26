@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Footer from "@/components/Footer";
 import GraficoLinhas from "@/components/riscos/GraficoLinhas";
+import EvolucaoMensal from "@/components/riscos/EvolucaoMensal";
 import {
   altosOuCriticos,
   conformidadeTratamento,
@@ -156,6 +157,7 @@ export default function Tendencias() {
                   maximo={100}
                   series={[{ nome: "Conformidade", cor: C1, valores: s((f) => conformidadeTratamento(f)) }]}
                 />
+                <EvolucaoMensal projetoId={projetoId} />
               </div>
             </>
           )}
