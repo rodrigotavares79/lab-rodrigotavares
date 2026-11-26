@@ -1,45 +1,139 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import Footer from "@/components/Footer";
-import { linePath, areaPath, donutSegments } from "@/lib/chartHelpers";
+import s from "@/components/riscos/Cockpit.module.css";
+import {
+  BASE,
+  linkRiscos,
+  TileKpi,
+  MatrizCalor,
+  ApetitePorCategoria,
+  FunilTratamento,
+  AcoesPorPrazo,
+  Aceitacoes,
+  SemaforoKris,
+  TopExposicao,
+  CoberturaFrameworks,
+  Pendencias,
+  type KriCockpit,
+} from "@/components/riscos/Cockpit";
+import { moeda } from "@/lib/exposicaoRisco";
+import { nomeFramework } from "@/lib/catalogoControles";
+import type { FrameworkId } from "@/lib/conformidadeFrameworks";
+import type { LinhaApetite, EstagioTratamento, FaixaPrazo } from "@/lib/cockpitRisco";
+
+// Dashboard (cockpit): a leitura gerencial ao vivo em cinco faixas — comando,
+// onde está o risco, andamento do tratamento, sinais de alerta e governança.
+// Início é a fila de trabalho; Relatório Executivo, o documento para enviar;
+// Tendências, o histórico.
 
 type Projeto = { id: number; nome: string };
-type Kpis = {
-  total: number;
-  mitigados: number;
-  criticos_abertos: number;
-  em_aberto: number;
-};
 type NivelRisco = { nivel: string; total: number };
-type Mitigacao = { melhorou: number; manteve: number; piorou: number };
-type Categoria = { categoria: string; total: number };
-type Evolucao = { mes: string; levantamento: number; cadastro: number };
-type ConsolidadoItem = { projeto: string; total: number; criticos: number };
 
 type DashboardData = {
-  kpis: Kpis;
-  niveis: NivelRisco[];
+  dataReferencia: string;
+  kpis: {
+    total: number;
+    ativos: number;
+    mitigados: number;
+    criticos: number;
+    altos: number;
+    criticosAltos: number;
+    acimaTolerancia: number;
+    acimaApetite: number;
+    perdaAnual: number;
+    comEstimativa: number;
+    conformidade: number | null;
+    altoCriticoTotal: number;
+    acoesAtrasadas: number;
+  };
+  tendencia: { meses: string[]; ativos: (number | null)[]; criticosAltos: (number | null)[]; conformidade: (number | null)[]; acoesAtrasadas: (number | null)[] };
+  matriz: { prob: number; imp: number; total: number }[];
+  apetite: { versao: number | null; porCategoria: LinhaApetite[] };
+  funil: Record<EstagioTratamento, number>;
+  acoesPrazo: Record<FaixaPrazo, number>;
+  aceitacoes: { vigentes: number; pendentes: number; vencendo: number };
+  mitigacao: { melhorou: number; manteve: number; piorou: number };
   niveisIniciais: NivelRisco[];
   niveisAtuaisTodos: NivelRisco[];
-  mitigacao: Mitigacao;
-  categorias: Categoria[];
-  evolucao: Evolucao[];
-  semDataLevantamento: number;
-  consolidado: ConsolidadoItem[];
+  kris: KriCockpit[];
+  exposicao: { total: number; comEstimativa: number; ativos: number; top: { id: number; titulo: string | null; gatilho: string | null; impacto_qualitativo: string | null; ale: number }[] };
+  coberturaFrameworks: { framework: string; controles: number; percentual: number | null }[];
+  pendencias: {
+    semTratamento: number;
+    revisoesVencidas: number;
+    auditoriaPendentes: number;
+    aceitacoesPendentes: number;
+    apetitePendente: number | null;
+    semDono: number;
+    krisSemMedicao: number;
+  };
+  consolidado: { projeto: string; projeto_id: number; total: number; ativos: number; criticos: number; acimaTolerancia: number; perdaAnual: number }[];
 };
 
-const CORES_NIVEL: Record<string, string> = {
-  "Baixo": "#9db4c4",
-  "Médio": "var(--warning)",
-  "Alto": "var(--accent)",
-  "Crítico": "var(--danger)",
-};
+const ORDEM_NIVEIS = ["Baixo", "Médio", "Alto", "Crítico"];
 
-const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
-function rotuloMes(mes: string): string {
-  const [ano, m] = mes.split("-");
-  return `${MESES[Number(m) - 1]}/${ano.slice(2)}`;
+function InerenteXAtual({ data }: { data: DashboardData }) {
+  const ini = new Map(data.niveisIniciais.map((n) => [n.nivel, n.total]));
+  const atu = new Map(data.niveisAtuaisTodos.map((n) => [n.nivel, n.total]));
+  const comp = ORDEM_NIVEIS.map((nivel) => ({ nivel, inicial: ini.get(nivel) || 0, atual: atu.get(nivel) || 0 }));
+  const W = 600, H = 130, topo = 18;
+  const max = Math.max(1, ...comp.flatMap((c) => [c.inicial, c.atual]));
+  const gap = 24, sub = 4;
+  const gw = (W - gap * (comp.length - 1)) / comp.length;
+  const sw = (gw - sub) / 2;
+  const m = data.mitigacao;
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 2fr) minmax(12rem, 1fr)", gap: "1.5rem", alignItems: "center" }}>
+      <div>
+        <div className="legend-row">
+          <span><span className="legend-dot" style={{ background: "#c7cdd3" }} />Nível inerente</span>
+          <span><span className="legend-dot" style={{ background: "var(--rs-primaria)" }} />Nível atual</span>
+        </div>
+        <svg viewBox={`0 0 ${W} ${H + topo + 22}`} width="100%" role="img" aria-label={comp.map((c) => `${c.nivel}: inerente ${c.inicial}, atual ${c.atual}`).join("; ")}>
+          {comp.map((c, i) => {
+            const x = i * (gw + gap);
+            const hI = (c.inicial / max) * H, hA = (c.atual / max) * H;
+            return (
+              <g key={c.nivel}>
+                <rect x={x} y={topo + H - hI} width={sw} height={hI} fill="#c7cdd3" rx="3" />
+                {c.inicial > 0 && <text x={x + sw / 2} y={topo + H - hI - 5} fontSize="11" fill="var(--rs-text)" textAnchor="middle">{c.inicial}</text>}
+                <rect x={x + sw + sub} y={topo + H - hA} width={sw} height={hA} fill="var(--rs-primaria)" rx="3" />
+                {c.atual > 0 && <text x={x + sw + sub + sw / 2} y={topo + H - hA - 5} fontSize="11" fill="var(--rs-text)" textAnchor="middle">{c.atual}</text>}
+                <text x={x + gw / 2} y={topo + H + 16} fontSize="11" fill="var(--rs-muted)" textAnchor="middle">{c.nivel}</text>
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+      <div className={s.mini} style={{ gridTemplateColumns: "1fr" }}>
+        {[
+          { rotulo: "Melhoraram de nível", n: m.melhorou, cor: "var(--rs-ok)" },
+          { rotulo: "Sem mudança de nível", n: m.manteve, cor: "#a7adb8" },
+          { rotulo: "Pioraram de nível", n: m.piorou, cor: "var(--rs-perigo)" },
+        ].map((x) => (
+          <div key={x.rotulo} className={s.miniItem} style={{ flexDirection: "row", alignItems: "baseline", justifyContent: "space-between" }}>
+            <span className={s.miniRotulo}>
+              <span className={s.ponto} style={{ background: x.cor }} />
+              {x.rotulo}
+            </span>
+            <span className={s.miniValor}>{x.n}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Painel({ titulo, children, id }: { titulo: string; children: React.ReactNode; id?: string }) {
+  return (
+    <div className="dash-panel" id={id}>
+      <div className="dash-panel-header">{titulo}</div>
+      <div className="dash-panel-body">{children}</div>
+    </div>
+  );
 }
 
 export default function Dashboard() {
@@ -48,9 +142,6 @@ export default function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
-  // B05: o gráfico mensal usa a data de levantamento; a de cadastro fica
-  // como alternativa (mostra quando o risco entrou no sistema).
-  const [baseMensal, setBaseMensal] = useState<"levantamento" | "cadastro">("levantamento");
 
   useEffect(() => {
     fetch("/api/projetos")
@@ -73,49 +164,12 @@ export default function Dashboard() {
       .finally(() => setCarregando(false));
   }, [projetoId]);
 
-  const kpis = data?.kpis;
-  const niveis = (data?.niveis || []).map((n) => ({
-    label: n.nivel,
-    value: n.total,
-    color: CORES_NIVEL[n.nivel] || "#9db4c4",
-  }));
-  const categorias = data?.categorias || [];
-  const evolucao = data?.evolucao || [];
-  const consolidado = data?.consolidado || [];
-  const mitigacao = data?.mitigacao;
+  const k = data?.kpis;
+  const t = data?.tendencia;
+  const pend = data?.pendencias;
+  const semDados = !carregando && !erro && k?.total === 0;
+  const dataRef = data?.dataReferencia ? data.dataReferencia.split("-").reverse().join("/") : "";
 
-  const ORDEM_NIVEIS = ["Baixo", "Médio", "Alto", "Crítico"];
-  // Inerente x Atual compara os dois sobre TODOS os riscos (inclusive
-  // mitigados); os demais gráficos mostram só os riscos ativos.
-  const totalPorNivelAtual = new Map((data?.niveisAtuaisTodos || []).map((n) => [n.nivel, n.total]));
-  const totalPorNivelInicial = new Map((data?.niveisIniciais || []).map((n) => [n.nivel, n.total]));
-  const comparativoNiveis = ORDEM_NIVEIS.map((nivel) => ({
-    nivel,
-    inicial: totalPorNivelInicial.get(nivel) || 0,
-    atual: totalPorNivelAtual.get(nivel) || 0,
-  }));
-
-  const donut = donutSegments(niveis, 70);
-
-  const evoW = 600, evoH = 160;
-  const evoValores = evolucao.map((e) => (baseMensal === "levantamento" ? e.levantamento : e.cadastro));
-  const evoMax = Math.max(1, ...evoValores);
-
-  const barW = 600, barH = 160;
-  const barTopPad = 18;
-  const catMax = Math.max(1, ...categorias.map((c) => c.total));
-  const barGap = 14;
-  const barWidth = categorias.length ? (barW - barGap * (categorias.length - 1)) / categorias.length : barW;
-
-  const compW = 600, compH = 160;
-  const compTopPad = 18;
-  const compMax = Math.max(1, ...comparativoNiveis.flatMap((c) => [c.inicial, c.atual]));
-  const compGroupGap = 20;
-  const compSubGap = 4;
-  const compGroupWidth = (compW - compGroupGap * (comparativoNiveis.length - 1)) / comparativoNiveis.length;
-  const compSubWidth = (compGroupWidth - compSubGap) / 2;
-
-  const semDados = !carregando && !erro && kpis?.total === 0;
   return (
     <>
       <section className="content-block">
@@ -123,37 +177,33 @@ export default function Dashboard() {
           <span className="eyebrow">Gestão de Riscos</span>
           <h1>Dashboard</h1>
           <p className="lede">
-            Visão executiva com indicadores e gráficos dos riscos cadastrados.
+            Cockpit gerencial: a posição de hoje, o que mudou desde o mês passado e onde agir. Clique em qualquer número para abrir a lista
+            correspondente.
           </p>
 
-          <div className="form-field" style={{ maxWidth: "20rem", marginTop: "1.5rem" }}>
-            <label htmlFor="filtroProjeto">Projeto</label>
-            <select
-              id="filtroProjeto"
-              value={projetoId}
-              onChange={(e) => setProjetoId(e.target.value)}
-            >
-              <option value="">Todos os Projetos</option>
-              {projetos.map((p) => (
-                <option key={p.id} value={p.id}>{p.nome}</option>
-              ))}
-            </select>
-          </div>
-
-          {projetoId && (
-              <a
-              href={`/seguranca/gestao-de-riscos/relatorio?projetoId=${projetoId}`}
+          <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", gap: "1rem", marginTop: "1.5rem" }}>
+            <div className="form-field" style={{ maxWidth: "20rem", flex: "1 1 14rem", margin: 0 }}>
+              <label htmlFor="filtroProjeto">Projeto</label>
+              <select id="filtroProjeto" value={projetoId} onChange={(e) => setProjetoId(e.target.value)}>
+                <option value="">Todos os Projetos</option>
+                {projetos.map((p) => (
+                  <option key={p.id} value={p.id}>{p.nome}</option>
+                ))}
+              </select>
+            </div>
+            <a
+              href={`${BASE}/relatorio${projetoId ? `?projetoId=${projetoId}` : ""}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="btn-primary"
-              style={{ display: "inline-block", textDecoration: "none", marginTop: "1rem" }}
+              className="btn-secondary"
+              style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", minHeight: "2.75rem" }}
             >
-              📄 Emitir Relatório Executivo
+              Emitir Relatório Executivo
             </a>
-          )}
+            {dataRef && <span className="text-muted" style={{ fontSize: "0.8rem", marginLeft: "auto" }}>Posição de {dataRef}</span>}
+          </div>
 
-          {carregando && <p className="text-muted" style={{ marginTop: "2rem" }}>Carregando...</p>}
-
+          {carregando && !data && <p className="text-muted" style={{ marginTop: "2rem" }}>Carregando...</p>}
 
           {erro && (
             <div className="error-banner" style={{ marginTop: "2rem" }}>
@@ -169,248 +219,185 @@ export default function Dashboard() {
             <div className="dash-panel" style={{ marginTop: "2rem" }}>
               <div className="dash-panel-body">
                 <p className="text-muted" style={{ margin: 0 }}>
-                  Nenhum risco cadastrado ainda {projetoId ? "para esse projeto" : ""}. Cadastre riscos na
-                  página <a href="/seguranca/gestao-de-riscos/cadastro-de-riscos">Cadastro de Riscos</a> para
-                  ver os indicadores aqui.
+                  Nenhum risco cadastrado ainda {projetoId ? "para esse projeto" : ""}. Cadastre riscos na página{" "}
+                  <a href={`${BASE}/cadastro-de-riscos`}>Cadastro de Riscos</a> para ver os indicadores aqui.
                 </p>
               </div>
             </div>
           )}
 
-          {!carregando && !erro && !semDados && kpis && (
-            <div className="dashboard">
-              {/* KPIs */}
-              <div className="kpi-grid" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
-                <div className="kpi-card">
-                  <div className="kpi-card-header">Riscos Cadastrados</div>
-                  <div className="kpi-card-value">{kpis.total}</div>
+          {!erro && !semDados && data && k && t && pend && (
+            <div className="dashboard" style={{ opacity: carregando ? 0.55 : 1, transition: "opacity 0.15s" }}>
+              {/* 1. Comando */}
+              <section className={s.faixa} aria-labelledby="f1">
+                <h2 id="f1" className={s.tituloFaixa}>Indicadores principais</h2>
+                <div className={s.tiles}>
+                  <TileKpi rotulo="Riscos ativos" valor={k.ativos} href={linkRiscos({ ativos: 1 }, projetoId)} serie={t.ativos} meses={t.meses} nota={`${k.mitigados} mitigados · ${k.total} no total`} />
+                  <TileKpi
+                    rotulo="Críticos e altos"
+                    valor={k.criticosAltos}
+                    href={linkRiscos({ nivel: "critico-alto" }, projetoId)}
+                    serie={t.criticosAltos}
+                    meses={t.meses}
+                    sentido="menor"
+                    nota={`${k.criticos} críticos · ${k.altos} altos`}
+                  />
+                  <TileKpi
+                    rotulo="Acima da tolerância"
+                    valor={k.acimaTolerancia}
+                    href={linkRiscos({ apetite: "acima-tolerancia" }, projetoId)}
+                    nota={`${k.acimaApetite} acima do apetite, dentro da tolerância`}
+                    alerta={k.acimaTolerancia > 0}
+                  />
+                  <TileKpi
+                    rotulo="Perda anual esperada"
+                    valor={moeda(k.perdaAnual, true)}
+                    href="#exposicao"
+                    nota={`${k.comEstimativa} de ${k.ativos} riscos ativos com estimativa`}
+                  />
+                  <TileKpi
+                    rotulo="Críticos e altos com tratamento"
+                    valor={k.conformidade === null ? "—" : `${k.conformidade}%`}
+                    href={`${BASE}/sem-tratamento`}
+                    serie={t.conformidade}
+                    meses={t.meses}
+                    sentido="maior"
+                    sufixoDelta=" p.p."
+                    nota="Plano de ação ou aceitação válida"
+                  />
+                  <TileKpi
+                    rotulo="Ações atrasadas"
+                    valor={k.acoesAtrasadas}
+                    href={`${BASE}/acoes-atrasadas`}
+                    serie={t.acoesAtrasadas}
+                    meses={t.meses}
+                    sentido="menor"
+                    alerta={k.acoesAtrasadas > 0}
+                  />
                 </div>
-                <div className="kpi-card">
-                  <div className="kpi-card-header">Riscos Críticos Abertos</div>
-                  <div className="kpi-card-value">{kpis.criticos_abertos}</div>
-                </div>
-                <div className="kpi-card">
-                  <div className="kpi-card-header">Riscos em Aberto</div>
-                  <div className="kpi-card-value">{kpis.em_aberto}</div>
-                </div>
-              </div>
+              </section>
 
-              {/* Gráficos */}
-              <div className="dash-row-charts" style={{ gridTemplateColumns: "1fr 1fr" }}>
-                <div className="dash-panel">
-                  <div className="dash-panel-header">
-                    Riscos por Mês ({baseMensal === "levantamento" ? "data de levantamento" : "data de cadastro"})
-                  </div>
-                  <div className="dash-panel-body">
-                    <div role="group" aria-label="Data usada no gráfico" style={{ display: "flex", gap: "0.4rem", marginBottom: "0.75rem" }}>
-                      {(["levantamento", "cadastro"] as const).map((b) => (
-                        <button
-                          key={b}
-                          type="button"
-                          aria-pressed={baseMensal === b}
-                          onClick={() => setBaseMensal(b)}
-                          className={baseMensal === b ? "btn-primary" : "btn-secondary"}
-                          style={{ fontSize: "0.75rem", padding: "0.25rem 0.6rem" }}
-                        >
-                          {b === "levantamento" ? "Levantamento" : "Cadastro"}
-                        </button>
-                      ))}
-                    </div>
-                    {evolucao.length === 0 ? (
-                      <p className="text-muted" style={{ margin: 0, fontSize: "0.85rem" }}>Sem dados suficientes.</p>
-                    ) : (
-                      <svg viewBox={`-22 0 ${evoW + 44} ${evoH + 40}`} width="100%" role="img" aria-label={`Riscos por mês pela data de ${baseMensal}`}>
-                        <g transform="translate(0, 14)">
-                          <path d={areaPath(evoValores, evoW, evoH, evoMax)} fill="var(--accent)" opacity="0.12" />
-                          <path d={linePath(evoValores, evoW, evoH, evoMax)} fill="none" stroke="var(--accent)" strokeWidth="2" />
-                          {evolucao.map((e, i) => {
-                            const v = evoValores[i];
-                            const x = evolucao.length > 1 ? (i / (evolucao.length - 1)) * evoW : evoW / 2;
-                            const y = evoH - (v / evoMax) * evoH;
-                            return (
-                              <g key={e.mes}>
-                                <circle cx={x} cy={y} r="3" fill="var(--accent)">
-                                  <title>{`${rotuloMes(e.mes)}: ${v} risco(s)`}</title>
-                                </circle>
-                                {v > 0 && (
-                                  <text x={x} y={y - 7} fontSize="9" fill="var(--text)" textAnchor="middle">{v}</text>
-                                )}
-                                <text x={x} y={evoH + 16} fontSize="9" fill="var(--text-muted)" textAnchor="middle">
-                                  {rotuloMes(e.mes)}
-                                </text>
-                              </g>
-                            );
-                          })}
-                        </g>
-                      </svg>
-                    )}
-                    {baseMensal === "levantamento" && (data?.semDataLevantamento ?? 0) > 0 && (
-                      <p className="text-muted" style={{ margin: "0.5rem 0 0", fontSize: "0.78rem" }}>
-                        {data!.semDataLevantamento} risco(s) sem data de levantamento não aparecem neste gráfico.
-                      </p>
-                    )}
-                  </div>
+              {/* 2. Onde está o risco */}
+              <section className={s.faixa} aria-labelledby="f2">
+                <h2 id="f2" className={s.tituloFaixa}>Onde está o risco</h2>
+                <div className={s.grade2}>
+                  <Painel titulo="Matriz de calor (nível atual)">
+                    <MatrizCalor celulas={data.matriz} projetoId={projetoId} />
+                  </Painel>
+                  <Painel titulo={`Apetite por categoria${data.apetite.versao ? ` · versão ${data.apetite.versao}` : ""}`}>
+                    <ApetitePorCategoria linhas={data.apetite.porCategoria} projetoId={projetoId} />
+                  </Painel>
                 </div>
+              </section>
 
-                <div className="dash-panel">
-                  <div className="dash-panel-header">Riscos Ativos por Categoria</div>
-                  <div className="dash-panel-body">
-                    {categorias.length === 0 ? (
-                      <p className="text-muted" style={{ margin: 0, fontSize: "0.85rem" }}>Sem dados suficientes.</p>
-                    ) : (
-                      <svg viewBox={`0 0 ${barW} ${barH + barTopPad + 40}`} width="100%" role="img" aria-label="Riscos por categoria">
-                        {categorias.map((c, i) => {
-                          const x = i * (barWidth + barGap);
-                          const h = (c.total / catMax) * barH;
-                          const y = barTopPad + (barH - h);
-                          return (
-                            <g key={c.categoria}>
-                              <rect x={x} y={y} width={barWidth} height={h} fill="var(--accent)" rx="2" />
-                              <text x={x + barWidth / 2} y={y - 6} fontSize="10" fill="var(--text)" textAnchor="middle">
-                                {c.total}
-                              </text>
-                              <text x={x + barWidth / 2} y={barTopPad + barH + 14} fontSize="8" fill="var(--text-muted)" textAnchor="middle">
-                                {c.categoria.length > 12 ? c.categoria.slice(0, 11) + "…" : c.categoria}
-                              </text>
-                            </g>
-                          );
-                        })}
-                      </svg>
-                    )}
-                  </div>
+              {/* 3. Tratamento */}
+              <section className={s.faixa} aria-labelledby="f3">
+                <h2 id="f3" className={s.tituloFaixa}>O tratamento está andando?</h2>
+                <div className={s.grade3}>
+                  <Painel titulo="Funil do tratamento">
+                    <FunilTratamento funil={data.funil} projetoId={projetoId} />
+                  </Painel>
+                  <Painel titulo="Ações por prazo">
+                    <AcoesPorPrazo prazos={data.acoesPrazo} />
+                  </Painel>
+                  <Painel titulo="Aceitações de risco">
+                    <Aceitacoes a={data.aceitacoes} projetoId={projetoId} />
+                  </Painel>
                 </div>
-              </div>
-
-              <div className="dash-panel">
-                <div className="dash-panel-header">Riscos Ativos por Nível</div>
-                <div className="dash-panel-body">
-                  {donut.length === 0 ? (
-                    <p className="text-muted" style={{ margin: 0, fontSize: "0.85rem" }}>Sem dados suficientes.</p>
-                  ) : (
-                    <>
-                      <svg viewBox="0 0 200 200" width="100%" style={{ maxWidth: "180px", display: "block", margin: "0 auto" }} role="img" aria-label="Distribuição de níveis de risco">
-                        <g transform="translate(100 100)">
-                          {donut.map((d) => (
-                            <circle
-                              key={d.label}
-                              r="70"
-                              fill="none"
-                              stroke={d.color}
-                              strokeWidth="30"
-                              strokeDasharray={`${d.dash} ${d.gap}`}
-                              strokeDashoffset={d.offset}
-                              transform="rotate(-90)"
-                            />
-                          ))}
-                        </g>
-                      </svg>
-                      <div style={{ marginTop: "1rem", display: "flex", flexDirection: "column", gap: "0.4rem" }}>
-                        {donut.map((d) => (
-                          <span key={d.label} style={{ fontSize: "0.78rem", color: "var(--text)" }}>
-                            <span className="legend-dot" style={{ background: d.color }} />
-                            {d.label} — {d.value} ({d.pct}%)
-                          </span>
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              <div className="dash-panel">
-                <div className="dash-panel-header">Nível Inerente x Nível Atual</div>
-                <div className="dash-panel-body">
-                  <p className="text-muted" style={{ fontSize: "0.82rem", marginTop: 0, marginBottom: "1rem" }}>
-                    Compara, em todos os riscos (inclusive mitigados), o nível calculado na criação com o nível atual, depois de
-                    eventuais reavaliações pós-mitigação{projetoId ? " neste projeto" : ""}.
+                <Painel titulo="Nível inerente x nível atual">
+                  <p className="text-muted" style={{ fontSize: "0.82rem", marginTop: 0 }}>
+                    Todos os riscos (inclusive mitigados): o nível calculado na criação comparado ao nível atual, depois dos controles e
+                    reavaliações. É a medida do efeito do tratamento.
                   </p>
+                  <InerenteXAtual data={data} />
+                </Painel>
+              </section>
 
-                  {mitigacao && (
-                    <div className="kpi-grid" style={{ gridTemplateColumns: "repeat(3, 1fr)", marginBottom: "1.5rem" }}>
-                      <div className="kpi-card">
-                        <div className="kpi-card-header"><span aria-hidden="true" style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "var(--success)", marginRight: 6 }} />Melhoraram de nível</div>
-                        <div className="kpi-card-value">{mitigacao.melhorou}</div>
-                      </div>
-                      <div className="kpi-card">
-                        <div className="kpi-card-header"><span aria-hidden="true" style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "var(--text-muted)", marginRight: 6 }} />Sem mudança de nível</div>
-                        <div className="kpi-card-value">{mitigacao.manteve}</div>
-                      </div>
-                      <div className="kpi-card">
-                        <div className="kpi-card-header"><span aria-hidden="true" style={{ display: "inline-block", width: 8, height: 8, borderRadius: "50%", background: "var(--danger)", marginRight: 6 }} />Pioraram de nível</div>
-                        <div className="kpi-card-value">{mitigacao.piorou}</div>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="legend-row">
-                    <span><span className="legend-dot" style={{ background: "#c7cdd3" }} />Nível inerente</span>
-                    <span><span className="legend-dot" style={{ background: "var(--accent)" }} />Nível atual</span>
-                  </div>
-
-                  {comparativoNiveis.every((c) => c.inicial === 0 && c.atual === 0) ? (
-                    <p className="text-muted" style={{ margin: 0, fontSize: "0.85rem" }}>Sem dados suficientes.</p>
-                  ) : (
-                    <svg viewBox={`0 0 ${compW} ${compH + compTopPad + 24}`} width="100%" role="img" aria-label="Comparativo entre nível inicial e nível atual dos riscos">
-                      {comparativoNiveis.map((c, i) => {
-                        const x = i * (compGroupWidth + compGroupGap);
-                        const hIni = (c.inicial / compMax) * compH;
-                        const hAtu = (c.atual / compMax) * compH;
-                        const yIni = compTopPad + (compH - hIni);
-                        const yAtu = compTopPad + (compH - hAtu);
-                        return (
-                          <g key={c.nivel}>
-                            <rect x={x} y={yIni} width={compSubWidth} height={hIni} fill="#c7cdd3" rx="2" />
-                            {c.inicial > 0 && (
-                              <text x={x + compSubWidth / 2} y={yIni - 6} fontSize="10" fill="var(--text)" textAnchor="middle">{c.inicial}</text>
-                            )}
-                            <rect x={x + compSubWidth + compSubGap} y={yAtu} width={compSubWidth} height={hAtu} fill="var(--accent)" rx="2" />
-                            {c.atual > 0 && (
-                              <text x={x + compSubWidth + compSubGap + compSubWidth / 2} y={yAtu - 6} fontSize="10" fill="var(--text)" textAnchor="middle">{c.atual}</text>
-                            )}
-                            <text x={x + compGroupWidth / 2} y={compTopPad + compH + 16} fontSize="9" fill="var(--text-muted)" textAnchor="middle">{c.nivel}</text>
-                          </g>
-                        );
-                      })}
-                    </svg>
-                  )}
+              {/* 4. Sinais de alerta */}
+              <section className={s.faixa} aria-labelledby="f4">
+                <h2 id="f4" className={s.tituloFaixa}>Sinais de alerta</h2>
+                <div className={s.grade2}>
+                  <Painel titulo="Semáforo dos KRIs">
+                    <SemaforoKris kris={data.kris} />
+                  </Painel>
+                  <Painel titulo="Maior exposição financeira" id="exposicao">
+                    <TopExposicao exposicao={data.exposicao} />
+                  </Painel>
                 </div>
-              </div>
+              </section>
 
-              {!projetoId && (
-                <div className="dash-panel">
-                  <div className="dash-panel-header">Consolidado por Projeto</div>
-                  <div className="dash-panel-body">
+              {/* 5. Governança e conformidade */}
+              <section className={s.faixa} aria-labelledby="f5">
+                <h2 id="f5" className={s.tituloFaixa}>Governança e conformidade</h2>
+                <div className={s.grade2}>
+                  <Painel titulo="Cobertura por framework">
+                    <CoberturaFrameworks cobertura={data.coberturaFrameworks} nome={(fw) => nomeFramework(fw as FrameworkId)} />
+                  </Painel>
+                  <Painel titulo="Pendências de governança">
+                    <Pendencias
+                      itens={[
+                        { rotulo: "Críticos e altos sem tratamento no prazo", n: pend.semTratamento, href: `${BASE}/sem-tratamento`, grave: true },
+                        { rotulo: "Revisões vencidas ou antecipadas", n: pend.revisoesVencidas, href: `${BASE}/revisoes-vencidas` },
+                        { rotulo: "Planos aguardando auditoria", n: pend.auditoriaPendentes, href: `${BASE}/auditoria` },
+                        { rotulo: "Aceitações aguardando aprovação", n: pend.aceitacoesPendentes, href: `${BASE}/aceitacoes-pendentes` },
+                        { rotulo: "Riscos ativos sem dono", n: pend.semDono, href: linkRiscos({ dono: "sem" }, projetoId) },
+                        { rotulo: "KRIs com medição atrasada", n: pend.krisSemMedicao, href: `${BASE}/kris` },
+                        {
+                          rotulo: "Versão de apetite aguardando o CISO",
+                          n: pend.apetitePendente === null ? 0 : `v${pend.apetitePendente}`,
+                          href: `${BASE}/apetite`,
+                        },
+                      ]}
+                    />
+                  </Painel>
+                </div>
+
+                {!projetoId && data.consolidado.length > 0 && (
+                  <Painel titulo="Consolidado por projeto">
                     <table className="dash-table">
                       <thead>
                         <tr>
                           <th>Projeto</th>
-                          <th>Riscos Cadastrados</th>
-                          <th>Críticos Ativos</th>
+                          <th style={{ textAlign: "right" }}>Ativos</th>
+                          <th style={{ textAlign: "right" }}>Críticos</th>
+                          <th style={{ textAlign: "right" }}>Acima da tolerância</th>
+                          <th style={{ textAlign: "right" }}>Perda anual esperada</th>
+                          <th style={{ textAlign: "right" }}>Total</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {consolidado.map((c) => (
+                        {data.consolidado.map((c) => (
                           <tr key={c.projeto}>
-                            <td>{c.projeto}</td>
-                            <td>{c.total}</td>
-                            <td>{c.criticos}</td>
+                            <td>
+                              <button
+                                type="button"
+                                onClick={() => setProjetoId(String(c.projeto_id))}
+                                style={{ background: "none", border: 0, padding: 0, font: "inherit", color: "var(--rs-primaria)", cursor: "pointer", fontWeight: 600 }}
+                                title="Ver o dashboard só deste projeto"
+                              >
+                                {c.projeto}
+                              </button>
+                            </td>
+                            <td style={{ textAlign: "right" }}>{c.ativos}</td>
+                            <td style={{ textAlign: "right" }}>{c.criticos}</td>
+                            <td style={{ textAlign: "right", color: c.acimaTolerancia ? "var(--rs-perigo)" : undefined, fontWeight: c.acimaTolerancia ? 700 : undefined }}>
+                              {c.acimaTolerancia ? `▲▲ ${c.acimaTolerancia}` : 0}
+                            </td>
+                            <td style={{ textAlign: "right" }}>{c.perdaAnual ? moeda(c.perdaAnual, true) : "—"}</td>
+                            <td style={{ textAlign: "right" }}>{c.total}</td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
-                  </div>
-                </div>
-              )}
+                  </Painel>
+                )}
+              </section>
+
+              <p className="text-muted" style={{ fontSize: "0.8rem", margin: 0 }}>
+                A evolução mensal de cadastros agora fica em <Link href={`${BASE}/tendencias`}>Tendências</Link>.
+              </p>
             </div>
           )}
-
-            <a
-            href="/seguranca/gestao-de-riscos"
-            className="status-tag"
-            style={{ marginTop: "2.5rem", display: "inline-block" }}
-          >
-            ← Voltar para Gestão de Riscos
-          </a>
         </div>
       </section>
       <Footer />

@@ -30,7 +30,30 @@ type RiscoLinha = {
   ativo?: string | null;
   area?: string | null;
   apetite?: SituacaoApetite;
+  prob?: number | null;
+  imp?: number | null;
 };
+
+// Filtros que chegam por link do Dashboard (cockpit). Aparecem como um aviso
+// removível acima da lista, sem campo próprio no formulário.
+type FiltroLink = {
+  ativos?: boolean;
+  nivel?: string[];
+  categoria?: string;
+  prob?: number;
+  imp?: number;
+  status?: string;
+};
+
+function descreverFiltroLink(f: FiltroLink): string {
+  const partes: string[] = [];
+  if (f.ativos) partes.push("riscos ativos");
+  if (f.nivel) partes.push(`nível ${f.nivel.join(" ou ")}`);
+  if (f.categoria) partes.push(`categoria ${f.categoria}`);
+  if (f.prob && f.imp) partes.push(`probabilidade ${f.prob} × impacto ${f.imp} (nível atual, ativos)`);
+  if (f.status) partes.push(`status ${f.status}`);
+  return partes.join(" · ");
+}
 
 // Valor especial do filtro de dono: riscos sem dono definido (B14).
 const SEM_DONO = "__sem_dono__";
@@ -80,11 +103,30 @@ export default function ListaDeRiscos() {
     if (params.get("controles") === "nao-avaliados") setFiltroControles("nao_avaliados");
     if (params.get("apetite") === "acima-tolerancia") setFiltroApetite("acima_tolerancia");
     if (params.get("apetite") === "acima") setFiltroApetite("acima");
+    if (params.get("apetite") === "acima-apetite") setFiltroApetite("acima_apetite");
+    if (params.get("apetite") === "dentro") setFiltroApetite("dentro");
+    const pid = params.get("projetoId");
+    if (pid && /^\d+$/.test(pid)) setProjetoId(pid);
+    const fl: FiltroLink = {};
+    if (params.get("ativos") === "1") fl.ativos = true;
+    const nivel = params.get("nivel");
+    if (nivel === "critico-alto") fl.nivel = ["Crítico", "Alto"];
+    else if (nivel && ["Crítico", "Alto", "Médio", "Baixo"].includes(nivel)) fl.nivel = [nivel];
+    if (params.get("categoria")) fl.categoria = params.get("categoria")!;
+    const prob = Number(params.get("prob")), imp = Number(params.get("imp"));
+    if (prob >= 1 && prob <= 5 && imp >= 1 && imp <= 5) {
+      fl.prob = prob;
+      fl.imp = imp;
+    }
+    const st = params.get("status");
+    if (st && ["Identificado", "Em Tratamento", "Aceito", "Mitigado"].includes(st)) fl.status = st;
+    if (Object.keys(fl).length) setFiltroLink(fl);
     // ?contato=ID (link da tela Contatos de negócio): filtra pelo dono externo.
     const contato = Number(params.get("contato"));
     if (Number.isInteger(contato) && contato > 0) setContatoParam(contato);
   }, []);
   const [contatoParam, setContatoParam] = useState<number | null>(null);
+  const [filtroLink, setFiltroLink] = useState<FiltroLink | null>(null);
   useEffect(() => {
     if (contatoParam === null) return;
     const r = riscos.find((x) => x.dono_contato_id === contatoParam);
@@ -111,11 +153,20 @@ export default function ListaDeRiscos() {
             situacaoControles({ fatores: r.fatores ?? 0, sem_controles: !!r.sem_controles }) !== filtroControles)
         )
           return false;
+        if (filtroLink) {
+          const ativo = r.status !== "Mitigado";
+          if (filtroLink.ativos && !ativo) return false;
+          // Nível e matriz seguem o Dashboard: só riscos ativos.
+          if (filtroLink.nivel && (!ativo || !filtroLink.nivel.includes(r.impacto_qualitativo || ""))) return false;
+          if (filtroLink.categoria && (filtroLink.categoria === "Sem categoria" ? !!r.categoria : r.categoria !== filtroLink.categoria)) return false;
+          if (filtroLink.prob && (!ativo || r.prob !== filtroLink.prob || r.imp !== filtroLink.imp)) return false;
+          if (filtroLink.status && (r.status || "Identificado") !== filtroLink.status) return false;
+        }
         if (filtroApetite === "acima" ? r.apetite !== "acima_apetite" && r.apetite !== "acima_tolerancia" : filtroApetite && r.apetite !== filtroApetite)
           return false;
         return true;
       }),
-    [riscos, filtroDono, filtroArea, filtroControles, filtroApetite]
+    [riscos, filtroDono, filtroArea, filtroControles, filtroApetite, filtroLink]
   );
 
   useEffect(() => {
@@ -225,6 +276,25 @@ export default function ListaDeRiscos() {
             </select>
           </div>
           </div>
+
+          {filtroLink && (
+            <div
+              role="status"
+              style={{ marginTop: "1rem", display: "inline-flex", alignItems: "center", gap: "0.6rem", padding: "0.4rem 0.75rem", borderRadius: 999, background: "var(--rs-primaria-tint, #e9eef7)", fontSize: "0.85rem" }}
+            >
+              <span>
+                <strong>Filtro do Dashboard:</strong> {descreverFiltroLink(filtroLink)}
+              </span>
+              <button
+                type="button"
+                onClick={() => setFiltroLink(null)}
+                style={{ background: "none", border: 0, cursor: "pointer", font: "inherit", fontWeight: 600, color: "var(--rs-primaria, var(--accent))" }}
+                aria-label="Remover o filtro do Dashboard"
+              >
+                ✕ limpar
+              </button>
+            </div>
+          )}
 
           {carregando && <p className="text-muted" style={{ marginTop: "2rem" }}>Carregando...</p>}
 

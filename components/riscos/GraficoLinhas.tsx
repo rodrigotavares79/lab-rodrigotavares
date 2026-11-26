@@ -18,12 +18,17 @@ export default function GraficoLinhas({
   series,
   sufixo = "",
   maximo,
+  topo,
+  rodape,
 }: {
   titulo: string;
   meses: string[];
   series: Serie[];
   sufixo?: string;
   maximo?: number;
+  /** Conteúdo extra no início e no fim do corpo do painel (ex.: alternador). */
+  topo?: React.ReactNode;
+  rodape?: React.ReactNode;
 }) {
   const [foco, setFoco] = useState<number | null>(null);
   const [tabela, setTabela] = useState(false);
@@ -83,6 +88,7 @@ export default function GraficoLinhas({
         </button>
       </div>
       <div className="dash-panel-body">
+        {topo}
         <div style={{ display: "flex", flexWrap: "wrap", gap: "0.9rem", fontSize: "0.78rem", marginBottom: "0.4rem" }}>
           {series.map((s) => (
             <span key={s.nome} style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem" }}>
@@ -194,6 +200,7 @@ export default function GraficoLinhas({
             )}
           </div>
         )}
+        {rodape}
       </div>
     </div>
   );
