@@ -1,5 +1,7 @@
 "use client";
 
+import BadgeApetite from "@/components/riscos/BadgeApetite";
+import type { SituacaoApetite } from "@/lib/apetiteRisco";
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import s from "@/components/riscos/riscos.module.css";
@@ -70,6 +72,7 @@ type RiscoDetalhe = {
   matrix_score: number | null;
   nivel_inicial: string | null;
   impacto_qualitativo: string | null;
+  apetite?: { situacao: SituacaoApetite; apetite: string | null; tolerancia: string | null; versao: number | null };
   nivel_projetado: string | null;
   prob_nivel_atual: number | null;
   imp_nivel_atual: number | null;
@@ -1344,6 +1347,14 @@ export default function DetalheDoRisco() {
                     <span className={`badge ${BADGE_POR_NIVEL[risco.impacto_qualitativo] || ""}`}>
                       Nível atual: {risco.impacto_qualitativo}
                     </span>
+                  )}
+                  {risco.apetite && risco.apetite.situacao !== "sem_referencia" && (
+                    <a href="/seguranca/gestao-de-riscos/apetite" style={{ textDecoration: "none" }}>
+                      <BadgeApetite
+                        situacao={risco.apetite.situacao}
+                        detalhe={`${risco.categoria}: apetite até ${risco.apetite.apetite}, tolerância até ${risco.apetite.tolerancia} (versão ${risco.apetite.versao})`}
+                      />
+                    </a>
                   )}
                   <span className={s.chip}>
                     <span className={s.chipRotulo}>Status</span>

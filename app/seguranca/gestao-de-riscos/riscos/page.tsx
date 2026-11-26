@@ -4,6 +4,8 @@ import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import Footer from "@/components/Footer";
 import { usePerfilRiscos } from "@/components/riscos/PermissoesRiscos";
+import BadgeApetite from "@/components/riscos/BadgeApetite";
+import { ROTULO_SITUACAO_APETITE, type SituacaoApetite } from "@/lib/apetiteRisco";
 import { situacaoControles, ROTULO_SITUACAO_CONTROLES, type SituacaoControles } from "@/lib/controlesRisco";
 
 type Projeto = { id: number; nome: string };
@@ -27,6 +29,7 @@ type RiscoLinha = {
   ponto_focal_nome?: string | null;
   ativo?: string | null;
   area?: string | null;
+  apetite?: SituacaoApetite;
 };
 
 // Valor especial do filtro de dono: riscos sem dono definido (B14).
@@ -67,12 +70,16 @@ export default function ListaDeRiscos() {
   const [filtroDono, setFiltroDono] = useState("");
   const [filtroArea, setFiltroArea] = useState("");
   const [filtroControles, setFiltroControles] = useState<"" | SituacaoControles>("");
+  // B18: filtro pela situação frente ao apetite/tolerância.
+  const [filtroApetite, setFiltroApetite] = useState<"" | SituacaoApetite | "acima">("");
 
   // ?dono=sem (link "Riscos sem dono" do menu) já abre filtrado.
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("dono") === "sem") setFiltroDono(SEM_DONO);
     if (params.get("controles") === "nao-avaliados") setFiltroControles("nao_avaliados");
+    if (params.get("apetite") === "acima-tolerancia") setFiltroApetite("acima_tolerancia");
+    if (params.get("apetite") === "acima") setFiltroApetite("acima");
     // ?contato=ID (link da tela Contatos de negócio): filtra pelo dono externo.
     const contato = Number(params.get("contato"));
     if (Number.isInteger(contato) && contato > 0) setContatoParam(contato);
@@ -104,9 +111,11 @@ export default function ListaDeRiscos() {
             situacaoControles({ fatores: r.fatores ?? 0, sem_controles: !!r.sem_controles }) !== filtroControles)
         )
           return false;
+        if (filtroApetite === "acima" ? r.apetite !== "acima_apetite" && r.apetite !== "acima_tolerancia" : filtroApetite && r.apetite !== filtroApetite)
+          return false;
         return true;
       }),
-    [riscos, filtroDono, filtroArea, filtroControles]
+    [riscos, filtroDono, filtroArea, filtroControles, filtroApetite]
   );
 
   useEffect(() => {
@@ -192,6 +201,20 @@ export default function ListaDeRiscos() {
             </select>
           </div>
           <div className="form-field" style={{ minWidth: "14rem", flex: "1 1 14rem", maxWidth: "20rem" }}>
+            <label htmlFor="filtroApetiteLista">Apetite e tolerância</label>
+            <select
+              id="filtroApetiteLista"
+              value={filtroApetite}
+              onChange={(e) => setFiltroApetite(e.target.value as "" | SituacaoApetite | "acima")}
+            >
+              <option value="">Todos</option>
+              <option value="acima">Acima do apetite (inclui tolerância)</option>
+              {(Object.keys(ROTULO_SITUACAO_APETITE) as SituacaoApetite[]).map((k) => (
+                <option key={k} value={k}>{ROTULO_SITUACAO_APETITE[k]}</option>
+              ))}
+            </select>
+          </div>
+          <div className="form-field" style={{ minWidth: "14rem", flex: "1 1 14rem", maxWidth: "20rem" }}>
             <label htmlFor="filtroAreaLista">Área responsável</label>
             <select id="filtroAreaLista" value={filtroArea} onChange={(e) => setFiltroArea(e.target.value)}>
               <option value="">Todas</option>
@@ -244,6 +267,7 @@ export default function ListaDeRiscos() {
                         <th>Categoria</th>
                         <th>Risco</th>
                         <th>Nível</th>
+                        <th>Apetite</th>
                         <th>Status</th>
                         <th>Dono</th>
                         <th>Ativo / Área</th>
@@ -252,7 +276,10 @@ export default function ListaDeRiscos() {
                     </thead>
                     <tbody>
                       {visiveis.map((r) => (
-                        <tr key={r.id}>
+                        <tr
+                          key={r.id}
+                          style={r.apetite === "acima_tolerancia" ? { boxShadow: "inset 4px 0 0 var(--danger)" } : undefined}
+                        >
                           <td>
                             <Link
                               href={`/seguranca/gestao-de-riscos/riscos/${r.id}`}
@@ -273,6 +300,7 @@ export default function ListaDeRiscos() {
                               "—"
                             )}
                           </td>
+                          <td><BadgeApetite situacao={r.apetite} /></td>
                           <td className={classeStatus(r.status)}>{r.status || "Identificado"}</td>
                           <td>
                             {r.dono_nome || r.dono_email || (

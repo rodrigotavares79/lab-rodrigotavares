@@ -31,8 +31,16 @@ type PlanoLinha = {
   acoes_concluidas: number;
 };
 
+type RiscoApetite = RiscoAberto & {
+  situacao: "acima_tolerancia" | "acima_apetite";
+  apetite: string | null;
+  tolerancia: string | null;
+  dono_nome: string | null;
+};
+
 type RelatorioData = {
   projeto: string;
+  apetite?: { versao: number | null; acimaTolerancia: number; acimaApetite: number; riscos: RiscoApetite[] };
   kpis: Kpis;
   mitigacao: Mitigacao;
   riscosAbertos: RiscoAberto[];
@@ -133,6 +141,12 @@ function RelatorioConteudo() {
                 <div className="report-kpi-label">Críticos em Aberto</div>
                 <div className="report-kpi-value">{dados.kpis.criticos_abertos}</div>
               </div>
+              {dados.apetite && (
+                <div className={`report-kpi-box ${dados.apetite.acimaTolerancia > 0 ? "report-alert" : ""}`}>
+                  <div className="report-kpi-label">Acima da Tolerância</div>
+                  <div className="report-kpi-value">{dados.apetite.acimaTolerancia}</div>
+                </div>
+              )}
               <div className="report-kpi-box report-ok">
                 <div className="report-kpi-label">Mitigados</div>
                 <div className="report-kpi-value">{dados.kpis.mitigados}</div>
@@ -151,6 +165,43 @@ function RelatorioConteudo() {
               <span><span className="report-dot" style={{ background: "var(--danger)" }} /><strong>{dados.mitigacao.piorou}</strong> pioraram de nível</span>
             </div>
           </div>
+
+          {dados.apetite && (
+            <div className="report-section">
+              <h2>Riscos Acima do Apetite e da Tolerância</h2>
+              <p className="text-muted" style={{ fontSize: "0.85rem", margin: "0 0 0.5rem" }}>
+                {dados.apetite.versao
+                  ? `Nível atual comparado aos limites da categoria (versão ${dados.apetite.versao} do apetite a risco). Acima da tolerância exige tratamento prioritário ou decisão da alta gestão.`
+                  : "O apetite e a tolerância a risco ainda não foram aprovados."}
+              </p>
+              {dados.apetite.versao && dados.apetite.riscos.length === 0 ? (
+                <p className="text-muted" style={{ fontSize: "0.85rem", margin: 0 }}>
+                  Todos os riscos ativos deste projeto estão dentro do apetite.
+                </p>
+              ) : dados.apetite.riscos.length > 0 ? (
+                <table className="report-table">
+                  <thead>
+                    <tr><th>ID</th><th>Categoria</th><th>Risco</th><th>Nível atual</th><th>Limite (apetite / tolerância)</th><th>Situação</th><th>Dono</th></tr>
+                  </thead>
+                  <tbody>
+                    {dados.apetite.riscos.map((r) => (
+                      <tr key={r.id}>
+                        <td>#{r.id}</td>
+                        <td>{r.categoria || "—"}</td>
+                        <td>{r.titulo || r.gatilho || "—"}</td>
+                        <td><span className={`badge ${BADGE_POR_NIVEL[r.impacto_qualitativo] || ""}`}>{r.impacto_qualitativo}</span></td>
+                        <td>{r.apetite} / {r.tolerancia}</td>
+                        <td style={{ fontWeight: 600, color: r.situacao === "acima_tolerancia" ? "var(--danger)" : "var(--warning-text)" }}>
+                          {r.situacao === "acima_tolerancia" ? "▲▲ Acima da tolerância" : "▲ Acima do apetite"}
+                        </td>
+                        <td>{r.dono_nome || "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : null}
+            </div>
+          )}
 
           <div className="report-section">
             <h2>Riscos Críticos e Altos em Aberto</h2>

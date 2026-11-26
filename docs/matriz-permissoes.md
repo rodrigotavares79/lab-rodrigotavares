@@ -79,3 +79,10 @@ Aceitar um risco exige uma Carta de Risco (PDF ou DOCX) e a aprovação de algu�
 
 - **Dono do risco**: depende do campo "dono do risco" (B14). Quando existir,
   o dono poderá editar o próprio risco e seus planos.
+
+## Apetite e tolerância a risco (B18)
+
+- Qualquer perfil com `ler` consulta a versão vigente, a proposta pendente e o histórico.
+- Propor uma nova versão exige `editarRiscos`. Só cabe uma proposta pendente por vez.
+- Aprovar ou recusar: **CISO** (e **Administrador**, para operar a demonstração). Quem propôs a versão não decide sobre ela; tentativas sem alçada ou do próprio proponente ficam em `eventos_seguranca`.
+- Ao aprovar, a versão vira Vigente e a anterior, Substituída. Cada risco ativo é comparado pelo **nível atual** com o apetite e a tolerância da sua categoria; acima da tolerância aparece em destaque na lista, no menu ("Acima da tolerância") e no Relatório Executivo.

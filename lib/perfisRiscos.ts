@@ -103,3 +103,11 @@ export function rotuloAlcada(nivel: string | null | undefined): string {
   const perfis = (nivel && ALCADA_ACEITACAO[nivel]) || [];
   return perfis.map((p) => ROTULO_PERFIL_RISCOS[p]).join(", ") || "ninguém";
 }
+
+// B18 · Apetite e tolerância a risco: decisão de alta gestão. Aprova o CISO;
+// o Administrador também, para operar a demonstração. Quem propõe não aprova.
+export const ALCADA_APETITE: PerfilRiscos[] = ["ciso", "administrador"];
+
+export function podeAprovarApetite(perfil: PerfilRiscos): boolean {
+  return ALCADA_APETITE.includes(perfil);
+}

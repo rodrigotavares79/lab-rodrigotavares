@@ -4,6 +4,9 @@ import { exigirPermissao } from "@/lib/riscosAuth";
 import { obterContadoresMenu } from "@/lib/indicadoresRiscos";
 import { podeAprovarAceitacao } from "@/lib/perfisRiscos";
 import { listarGruposDuplicados } from "@/lib/riscosDuplicados";
+import { podeAprovarApetite } from "@/lib/perfisRiscos";
+import { situacaoDoRisco } from "@/lib/apetiteRisco";
+import { limitesVigentes } from "@/lib/apetiteServidor";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +18,7 @@ export async function GET() {
   try {
     const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
     const usuario = guarda.usuario;
-    const [kpis, [semDono], [controlesNaoAvaliados], pendentes] = await Promise.all([
+    const [kpis, [semDono], [controlesNaoAvaliados], pendentes, vig, ativosApetite, [apetitePend]] = await Promise.all([
       obterContadoresMenu(sql),
       sql`SELECT COUNT(*)::int AS n FROM riscos WHERE dono_email IS NULL AND status <> 'Mitigado'`,
       sql`
@@ -28,7 +31,19 @@ export async function GET() {
         FROM aceitacoes_risco a JOIN riscos r ON r.id = a.risco_id
         WHERE a.situacao = 'Pendente'
       `,
+      limitesVigentes(sql),
+      sql`SELECT categoria, impacto_qualitativo, status FROM riscos WHERE status <> 'Mitigado'`,
+      sql`SELECT proposto_por_email FROM apetite_versoes WHERE situacao = 'Pendente'`,
     ]);
+    // B18: riscos ativos acima da tolerância da categoria; e a proposta de
+    // apetite pendente conta só para quem pode decidi-la.
+    const acimaTolerancia = ativosApetite.filter((r: any) => situacaoDoRisco(r, vig.mapa) === "acima_tolerancia").length;
+    const apetitePendente =
+      apetitePend &&
+      podeAprovarApetite(usuario.perfil) &&
+      String(apetitePend.proposto_por_email || "").toLowerCase() !== usuario.email.toLowerCase()
+        ? 1
+        : 0;
     // B16: conta só as aceitações que este usuário pode decidir (tem alçada
     // para o nível atual e não foi quem pediu).
     const aceitacoesPendentes = pendentes.filter(
@@ -46,6 +61,8 @@ export async function GET() {
       semDono: semDono.n,
       // B15: riscos ativos sem controles informados nem declaração.
       controlesNaoAvaliados: controlesNaoAvaliados.n,
+      acimaTolerancia,
+      apetitePendente,
       // B19: grupos de riscos repetidos (só para quem pode consolidar).
       duplicados: usuario.permissoes.editarRiscos ? (await listarGruposDuplicados(sql)).length : 0,
     });
