@@ -67,7 +67,7 @@ export function ApetiteVigente() {
         {pendente !== null && <>A versão {pendente} está aguardando aprovação e só passa a valer depois de aprovada. </>}
         <a href="/seguranca/gestao-de-riscos/apetite" target="_blank" rel="noopener noreferrer">Ver histórico de versões</a>.
       </p>
-      <div className="dash-table-scroll">
+      <div style={{ overflowX: "auto" }}>
         <table className="doc-table">
           <thead>
             <tr>
