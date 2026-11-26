@@ -178,7 +178,7 @@ export default function Dashboard() {
           <h1>Dashboard</h1>
           <p className="lede">
             Cockpit gerencial: a posição de hoje, o que mudou desde o mês passado e onde agir. Clique em qualquer número para abrir a lista
-            correspondente.
+            correspondente numa nova aba.
           </p>
 
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", gap: "1rem", marginTop: "1.5rem" }}>
@@ -394,7 +394,7 @@ export default function Dashboard() {
               </section>
 
               <p className="text-muted" style={{ fontSize: "0.8rem", margin: 0 }}>
-                A evolução mensal de cadastros agora fica em <Link href={`${BASE}/tendencias`}>Tendências</Link>.
+                A evolução mensal de cadastros agora fica em <Link href={`${BASE}/tendencias`} target="_blank" rel="noopener noreferrer">Tendências</Link>.
               </p>
             </div>
           )}
