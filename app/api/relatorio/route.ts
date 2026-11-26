@@ -4,87 +4,202 @@ import { neon } from "@neondatabase/serverless";
 import { obterIndicadores } from "@/lib/indicadoresRiscos";
 import { situacaoDoRisco } from "@/lib/apetiteRisco";
 import { limitesVigentes } from "@/lib/apetiteServidor";
+import { listarKris } from "@/lib/kriServidor";
+import { situacaoMedicao } from "@/lib/kriRisco";
+import { altosOuCriticos, mesesAte, type FotoIndicadores } from "@/lib/fotosIndicadores";
+import { recomendacoes } from "@/lib/recomendacoesRisco";
+import { hojeSaoPaulo } from "@/lib/revisaoRisco";
 
+export const dynamic = "force-dynamic";
+
+// B26 · Relatório Executivo. projetoId opcional: sem ele, o portfólio
+// consolidado. Junta indicadores, matriz, tendências (fotos mensais), apetite
+// e tolerância, KRIs, planos e as recomendações priorizadas. A data de
+// referência é a data da emissão (posição do dia, fuso de São Paulo).
 export async function GET(request: NextRequest) {
   const guarda = await exigirPermissao("ler");
   if (guarda.resposta) return guarda.resposta;
   try {
-    const projetoId = request.nextUrl.searchParams.get("projetoId");
-    if (!projetoId || !/^\d+$/.test(projetoId)) {
-      return NextResponse.json({ error: "projetoId é obrigatório e deve ser numérico." }, { status: 400 });
+    const param = request.nextUrl.searchParams.get("projetoId");
+    if (param && !/^\d+$/.test(param)) {
+      return NextResponse.json({ error: "projetoId deve ser numérico." }, { status: 400 });
     }
-
+    const p = param ? Number(param) : null;
     const sql = neon(process.env.DATABASE_URL!, { fetchOptions: { cache: "no-store" } });
 
-    const projetoRows = await sql`SELECT nome FROM projetos WHERE id = ${projetoId}`;
-    if (projetoRows.length === 0) {
-      return NextResponse.json({ error: "Projeto não encontrado." }, { status: 404 });
+    let projeto = "Todos os projetos (consolidado)";
+    if (p !== null) {
+      const projetoRows = await sql`SELECT nome FROM projetos WHERE id = ${p}`;
+      if (projetoRows.length === 0) return NextResponse.json({ error: "Projeto não encontrado." }, { status: 404 });
+      projeto = projetoRows[0].nome;
     }
-    const projeto = projetoRows[0].nome;
+    const hoje = hojeSaoPaulo();
+    const meses = mesesAte(hoje.slice(0, 7) + "-01", 12);
 
-    const ind = await obterIndicadores(sql, Number(projetoId));
+    const [ind, vig, ativos, semTrat, acoesAtr, aceitPend, aceitVenc, [apetitePend], [semDono], [ctrlNao], todosKris, fotos, planos] =
+      await Promise.all([
+        obterIndicadores(sql, p),
+        limitesVigentes(sql),
+        sql`
+          SELECT r.id, r.categoria, r.gatilho, r.titulo, r.impacto_qualitativo, r.status, r.dono_nome, r.matrix_score,
+                 EXISTS (SELECT 1 FROM planos_acao pa WHERE pa.risco_id = r.id AND pa.status IS DISTINCT FROM 'Concluído') AS tem_plano_aberto
+          FROM riscos r
+          WHERE r.status <> 'Mitigado' AND (${p}::int IS NULL OR r.projeto_id = ${p}::int)
+          ORDER BY r.matrix_score DESC NULLS LAST, r.id
+        `,
+        sql`
+          SELECT r.id FROM riscos_tratamento t JOIN riscos r ON r.id = t.risco_id
+          WHERE t.planos = 0 AND NOT t.aceito_valido
+            AND t.prazo_tratamento < (now() AT TIME ZONE 'America/Sao_Paulo')::date
+            AND (${p}::int IS NULL OR r.projeto_id = ${p}::int)
+        `,
+        sql`
+          SELECT DISTINCT r.id FROM acoes a
+          JOIN planos_acao pa ON pa.id = a.plano_acao_id JOIN riscos r ON r.id = pa.risco_id
+          WHERE a.status IS DISTINCT FROM 'Concluído' AND r.status <> 'Mitigado'
+            AND NULLIF(a.prazo::text, '')::date < (now() AT TIME ZONE 'America/Sao_Paulo')::date
+            AND (${p}::int IS NULL OR r.projeto_id = ${p}::int)
+        `,
+        sql`
+          SELECT COUNT(*)::int AS n FROM aceitacoes_risco a JOIN riscos r ON r.id = a.risco_id
+          WHERE a.situacao = 'Pendente' AND (${p}::int IS NULL OR r.projeto_id = ${p}::int)
+        `,
+        sql`
+          SELECT r.id FROM aceitacoes_risco a JOIN riscos r ON r.id = a.risco_id
+          WHERE a.situacao = 'Aprovada' AND r.status = 'Aceito'
+            AND a.valido_ate <= (now() AT TIME ZONE 'America/Sao_Paulo')::date + 60
+            AND (${p}::int IS NULL OR r.projeto_id = ${p}::int)
+        `,
+        sql`SELECT versao FROM apetite_versoes WHERE situacao = 'Pendente'`,
+        sql`SELECT COUNT(*)::int AS n FROM riscos WHERE dono_email IS NULL AND status <> 'Mitigado' AND (${p}::int IS NULL OR projeto_id = ${p}::int)`,
+        sql`
+          SELECT COUNT(*)::int AS n FROM riscos r
+          WHERE r.status <> 'Mitigado' AND NOT r.sem_controles
+            AND NOT EXISTS (SELECT 1 FROM fatores_risco f WHERE f.risco_id = r.id)
+            AND (${p}::int IS NULL OR r.projeto_id = ${p}::int)
+        `,
+        listarKris(sql),
+        sql`
+          SELECT to_char(referencia, 'YYYY-MM-DD') AS referencia, dados
+          FROM fotos_indicadores
+          WHERE COALESCE(projeto_id, 0) = ${p ?? 0} AND referencia >= ${meses[0]}
+          ORDER BY referencia
+        `,
+        sql`
+          SELECT pa.id, pa.titulo, pa.status, pa.auditoria_status, pa.risco_id,
+                 COUNT(a.id)::int AS total_acoes,
+                 COUNT(a.id) FILTER (WHERE a.status = 'Concluído')::int AS acoes_concluidas,
+                 COUNT(a.id) FILTER (
+                   WHERE a.status IS DISTINCT FROM 'Concluído'
+                     AND NULLIF(a.prazo::text, '')::date < (now() AT TIME ZONE 'America/Sao_Paulo')::date
+                 )::int AS acoes_atrasadas,
+                 to_char(MAX(a.prazo::date) FILTER (WHERE a.status IS DISTINCT FROM 'Concluído'), 'YYYY-MM-DD') AS proximo_prazo
+          FROM planos_acao pa
+          JOIN riscos r ON r.id = pa.risco_id
+          LEFT JOIN acoes a ON a.plano_acao_id = pa.id
+          WHERE (${p}::int IS NULL OR r.projeto_id = ${p}::int)
+          GROUP BY pa.id
+          ORDER BY (pa.status = 'Concluído' AND pa.auditoria_status = 'Conforme'),
+                   COUNT(a.id) FILTER (
+                     WHERE a.status IS DISTINCT FROM 'Concluído'
+                       AND NULLIF(a.prazo::text, '')::date < (now() AT TIME ZONE 'America/Sao_Paulo')::date
+                   ) DESC,
+                   pa.criado_em DESC
+          LIMIT 25
+        `,
+      ]);
 
-    // Riscos Críticos e Altos ainda em aberto (não Mitigado), mais graves primeiro.
-    const riscosAbertos = await sql`
-      SELECT id, categoria, gatilho, titulo, impacto_qualitativo, status
-      FROM riscos
-      WHERE projeto_id = ${projetoId} AND status <> 'Mitigado' AND impacto_qualitativo IN ('Alto', 'Crítico')
-      ORDER BY (impacto_qualitativo = 'Crítico') DESC, matrix_score DESC
-    `;
+    // Apetite e tolerância (B18)
+    const comApetite = (ativos as any[]).map((r) => {
+      const lim = r.categoria ? vig.mapa.get(r.categoria) : undefined;
+      return { ...r, situacao: situacaoDoRisco(r, vig.mapa), apetite: lim?.apetite ?? null, tolerancia: lim?.tolerancia ?? null };
+    });
+    const acimaApetite = comApetite
+      .filter((r) => r.situacao === "acima_tolerancia" || r.situacao === "acima_apetite")
+      .sort((a, b) => (a.situacao === b.situacao ? 0 : a.situacao === "acima_tolerancia" ? -1 : 1));
 
-    // Lista dos Planos de Ação do projeto, com contagem de ações (total e concluídas).
-    const planos = await sql`
-      SELECT
-        pa.id, pa.titulo, pa.status, pa.risco_id,
-        COUNT(a.id)::int AS total_acoes,
-        COUNT(a.id) FILTER (WHERE a.status = 'Concluído')::int AS acoes_concluidas
-      FROM planos_acao pa
-      JOIN riscos r ON r.id = pa.risco_id
-      LEFT JOIN acoes a ON a.plano_acao_id = pa.id
-      WHERE r.projeto_id = ${projetoId}
-      GROUP BY pa.id, pa.titulo, pa.status, pa.risco_id
-      ORDER BY (pa.status != 'Concluído') DESC, pa.criado_em DESC
-      LIMIT 20
-    `;
+    // KRIs (B21) do escopo
+    const kris = (todosKris as any[]).filter((k) => k.ativo && (p === null || k.projeto_id === p));
+    const krisAlerta = kris
+      .filter((k) => k.ultima_faixa === "vermelho" || k.ultima_faixa === "amarelo")
+      .map((k) => ({
+        codigo: k.codigo, nome: k.nome, unidade: k.unidade, risco_id: k.risco_id, ultimo_valor: k.ultimo_valor,
+        ultima_referencia: k.ultima_referencia, ultima_faixa: k.ultima_faixa, direcao: k.direcao,
+        limite_amarelo: k.limite_amarelo, limite_vermelho: k.limite_vermelho, historico: k.historico,
+      }));
+    const krisSemMedicao = kris.filter((k) => situacaoMedicao(k.ultima_referencia, k.frequencia, hoje) !== "em_dia").length;
 
-    // B18: riscos ativos acima do apetite da categoria (tolerância primeiro).
-    const vig = await limitesVigentes(sql);
-    const ativos = await sql`
-      SELECT id, categoria, gatilho, titulo, impacto_qualitativo, status, dono_nome
-      FROM riscos
-      WHERE projeto_id = ${projetoId} AND status <> 'Mitigado'
-      ORDER BY matrix_score DESC NULLS LAST
-    `;
-    const acimaApetite = ativos
-      .map((r: any) => {
-        const lim = r.categoria ? vig.mapa.get(r.categoria) : undefined;
-        return { ...r, situacao: situacaoDoRisco(r, vig.mapa), apetite: lim?.apetite ?? null, tolerancia: lim?.tolerancia ?? null };
-      })
-      .filter((r: any) => r.situacao === "acima_tolerancia" || r.situacao === "acima_apetite")
-      .sort((a: any, b: any) => (a.situacao === b.situacao ? 0 : a.situacao === "acima_tolerancia" ? -1 : 1));
+    // Tendência de Alto/Crítico atual (B22): agora x três meses antes
+    const porMes = new Map((fotos as any[]).map((f) => [f.referencia, f.dados as FotoIndicadores]));
+    const agora = porMes.get(meses[11]);
+    const antes = porMes.get(meses[8]);
 
+    const recs = recomendacoes({
+      acimaTolerancia: comApetite
+        .filter((r) => r.situacao === "acima_tolerancia")
+        .map((r) => ({ id: r.id, nivel: r.impacto_qualitativo, temPlanoAberto: r.tem_plano_aberto, aceito: r.status === "Aceito" })),
+      acimaApetite: comApetite.filter((r) => r.situacao === "acima_apetite").length,
+      krisVermelho: kris.filter((k) => k.ultima_faixa === "vermelho").map((k) => ({ codigo: k.codigo, riscoId: k.risco_id })),
+      krisSemMedicao,
+      semTratamento: (semTrat as any[]).map((r) => r.id),
+      acoesAtrasadas: { total: ind.kpis.acoesAtrasadas, riscos: (acoesAtr as any[]).map((r) => r.id) },
+      revisoesVencidas: ind.kpis.revisoesVencidas,
+      planosAguardandoAuditoria: ind.kpis.auditoriaPendentes,
+      aceitacoesPendentes: (aceitPend as any[])[0]?.n ?? 0,
+      aceitacoesVencendo: (aceitVenc as any[]).map((r) => r.id),
+      apetitePendente: apetitePend?.versao ?? null,
+      semDono: semDono.n,
+      controlesNaoAvaliados: ctrlNao.n,
+      altoCriticoAgora: agora ? altosOuCriticos(agora.atual) : null,
+      altoCriticoTresMesesAntes: antes ? altosOuCriticos(antes.atual) : null,
+    });
+
+    const k = ind.kpis;
     return NextResponse.json({
       projeto,
+      consolidado: p === null,
+      dataReferencia: hoje,
+      kpis: {
+        total: k.total,
+        ativos: k.ativos,
+        mitigados: k.mitigados,
+        criticos_abertos: k.criticos,
+        altos_abertos: k.altos,
+        acimaTolerancia: acimaApetite.filter((r) => r.situacao === "acima_tolerancia").length,
+        krisVermelho: kris.filter((x) => x.ultima_faixa === "vermelho").length,
+        conformidade: k.altoCriticoTotal ? Math.round((k.altoCriticoComTratamento / k.altoCriticoTotal) * 100) : null,
+        acoesAtrasadas: k.acoesAtrasadas,
+        revisoesVencidas: k.revisoesVencidas,
+      },
+      matriz: ind.matriz,
+      mitigacao: ind.inerenteXAtual,
+      tendencias: { meses, fotos },
       apetite: {
         versao: vig.versao,
-        acimaTolerancia: acimaApetite.filter((r: any) => r.situacao === "acima_tolerancia").length,
-        acimaApetite: acimaApetite.filter((r: any) => r.situacao === "acima_apetite").length,
-        riscos: acimaApetite,
+        acimaTolerancia: acimaApetite.filter((r) => r.situacao === "acima_tolerancia").length,
+        acimaApetite: acimaApetite.filter((r) => r.situacao === "acima_apetite").length,
+        riscos: acimaApetite.map((r) => ({
+          id: r.id, categoria: r.categoria, gatilho: r.gatilho, titulo: r.titulo, impacto_qualitativo: r.impacto_qualitativo,
+          status: r.status, dono_nome: r.dono_nome, situacao: r.situacao, apetite: r.apetite, tolerancia: r.tolerancia,
+          tem_plano_aberto: r.tem_plano_aberto,
+        })),
       },
-      kpis: {
-        total: ind.kpis.total,
-        mitigados: ind.kpis.mitigados,
-        criticos_abertos: ind.kpis.criticos,
-      },
-      mitigacao: ind.inerenteXAtual,
-      riscosAbertos,
+      kris: { total: kris.length, semMedicao: krisSemMedicao, alerta: krisAlerta },
+      riscosAbertos: comApetite
+        .filter((r) => r.impacto_qualitativo === "Alto" || r.impacto_qualitativo === "Crítico")
+        .sort((a, b) => Number(b.impacto_qualitativo === "Crítico") - Number(a.impacto_qualitativo === "Crítico"))
+        .map((r) => ({ id: r.id, categoria: r.categoria, gatilho: r.gatilho, titulo: r.titulo, impacto_qualitativo: r.impacto_qualitativo, status: r.status, tem_plano_aberto: r.tem_plano_aberto })),
       planosResumo: {
-        total: ind.kpis.planosTotal,
-        concluidos: ind.kpis.planosConcluidos,
-        abertos: ind.kpis.planosAbertos,
-        acoesVencidas: ind.kpis.acoesAtrasadas,
+        total: k.planosTotal,
+        concluidos: k.planosConcluidos,
+        abertos: k.planosAbertos,
+        acoesVencidas: k.acoesAtrasadas,
+        aguardandoAuditoria: k.auditoriaPendentes,
+        acoesTotal: k.acoesTotal,
+        acoesConcluidas: k.acoesConcluidas,
       },
       planos,
+      recomendacoes: recs,
     });
   } catch (err) {
     console.error(err);
