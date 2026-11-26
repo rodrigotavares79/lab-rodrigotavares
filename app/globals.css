@@ -1767,13 +1767,12 @@ table.report-table th {
   .report-page h2 { break-after: avoid; }
   .report-page table.report-table tr, .report-kpi-box, .report-grade-graficos > * { break-inside: avoid; }
   .report-page button { display: none !important; }
-  .report-grade-graficos { grid-template-columns: 1fr 1fr; }
 }
 
-/* B26: dois gráficos de tendência lado a lado (um embaixo do outro em tela estreita) */
+/* B26: gráficos de tendência um por linha, para os rótulos ficarem legíveis também no PDF */
 .report-grade-graficos {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+  grid-template-columns: 1fr;
   gap: 1rem;
 }
 @page { size: A4; margin: 14mm; }
