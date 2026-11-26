@@ -38,6 +38,24 @@ export default function GraficoLinhas({
   const y = (v: number) => M.topo + h - (v / topoEscala) * h;
   const linhasGrade = [0, 1, 2, 3, 4].map((k) => (topoEscala * k) / 4);
 
+  // Rótulo direto no último ponto de cada série, afastados verticalmente
+  // (mínimo 13 px) para não se sobreporem quando os valores são próximos.
+  const rotulosDiretos = (() => {
+    const itens = series
+      .map((s) => {
+        const ultimo = s.valores.reduce<number | null>((u, v, i) => (v !== null ? i : u), null);
+        if (ultimo === null) return null;
+        const v = s.valores[ultimo] as number;
+        return { nome: s.nome, x: x(ultimo), y: y(v), texto: `${v}${sufixo} ${s.nome.length <= 12 ? s.nome : ""}` };
+      })
+      .filter((r): r is { nome: string; x: number; y: number; texto: string } => r !== null)
+      .sort((a, b) => a.y - b.y);
+    for (let i = 1; i < itens.length; i++) {
+      if (itens[i].y - itens[i - 1].y < 13) itens[i].y = itens[i - 1].y + 13;
+    }
+    return itens;
+  })();
+
   function caminho(vs: (number | null)[]) {
     let d = "";
     let aberto = false;
@@ -121,25 +139,21 @@ export default function GraficoLinhas({
               {foco !== null && (
                 <line x1={x(foco)} x2={x(foco)} y1={M.topo} y2={M.topo + h} stroke="var(--text-muted)" strokeWidth="1" strokeDasharray="3 3" />
               )}
-              {series.map((s) => {
-                const ultimo = s.valores.reduce<number | null>((u, v, i) => (v !== null ? i : u), null);
-                return (
-                  <g key={s.nome}>
-                    <path d={caminho(s.valores)} fill="none" stroke={s.cor} strokeWidth="2" strokeLinejoin="round" strokeDasharray={s.tracejada ? "5 4" : undefined} />
-                    {s.valores.map((v, i) =>
-                      v === null ? null : (
-                        <circle key={i} cx={x(i)} cy={y(v)} r={foco === i ? 5 : 4} fill={s.cor} stroke="var(--surface, #fff)" strokeWidth="2" />
-                      )
-                    )}
-                    {ultimo !== null && (
-                      <text x={x(ultimo) + 8} y={y(s.valores[ultimo] as number) + 4} fontSize="11" fill="var(--text)">
-                        {s.valores[ultimo]}
-                        {sufixo} {s.nome.length <= 12 ? s.nome : ""}
-                      </text>
-                    )}
-                  </g>
-                );
-              })}
+              {series.map((s) => (
+                <g key={s.nome}>
+                  <path d={caminho(s.valores)} fill="none" stroke={s.cor} strokeWidth="2" strokeLinejoin="round" strokeDasharray={s.tracejada ? "5 4" : undefined} />
+                  {s.valores.map((v, i) =>
+                    v === null ? null : (
+                      <circle key={i} cx={x(i)} cy={y(v)} r={foco === i ? 5 : 4} fill={s.cor} stroke="var(--surface, #fff)" strokeWidth="2" />
+                    )
+                  )}
+                </g>
+              ))}
+              {rotulosDiretos.map((r) => (
+                <text key={r.nome} x={r.x + 8} y={r.y + 4} fontSize="11" fill="var(--text)">
+                  {r.texto}
+                </text>
+              ))}
               {meses.map((m, i) => (
                 <rect
                   key={m}
