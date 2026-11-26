@@ -159,8 +159,9 @@ export default function ExposicaoRisco({ risco, podeEditar, onAtualizado }: { ri
             )}
             {usarAtivo && temCustoHora && (
               <>
+                <p style={{ margin: "0 0 0.3rem", fontSize: "0.78rem" }}>Horas de parada por evento</p>
                 <div style={GRADE}>
-                  {campo("Horas paradas: mín.", h.min, (v) => setH({ ...h, min: v }), "hMin")}
+                  {campo("Mínimo", h.min, (v) => setH({ ...h, min: v }), "hMin")}
                   {campo("Provável", h.provavel, (v) => setH({ ...h, provavel: v }), "hProv")}
                   {campo("Máximo", h.max, (v) => setH({ ...h, max: v }), "hMax")}
                 </div>
