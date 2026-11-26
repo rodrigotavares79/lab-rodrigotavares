@@ -232,7 +232,7 @@ export default function Dashboard() {
               <section className={s.faixa} aria-labelledby="f1">
                 <h2 id="f1" className={s.tituloFaixa}>Indicadores principais</h2>
                 <div className={s.tiles}>
-                  <TileKpi rotulo="Riscos ativos" valor={k.ativos} href={linkRiscos({ ativos: 1 }, projetoId)} serie={t.ativos} meses={t.meses} nota={`${k.mitigados} mitigados · ${k.total} no total`} />
+                  <TileKpi rotulo="Riscos ativos" valor={k.ativos} href={linkRiscos({ ativos: 1 }, projetoId)} serie={t.ativos} meses={t.meses} nota={`${k.mitigados} ${k.mitigados === 1 ? "mitigado" : "mitigados"} · ${k.total} no total`} />
                   <TileKpi
                     rotulo="Críticos e altos"
                     valor={k.criticosAltos}
