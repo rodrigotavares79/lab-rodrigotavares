@@ -148,6 +148,18 @@ não pode usar).
 Exemplo: `{"perfilRiscos": "administrador"}`. Valores antigos ainda aceitos:
 `"gestor"` = gerente, `"analista_senior"` = analista GRC.
 
+## Gestão de Riscos — Assessments (B28)
+
+Assessments de segurança sob demanda (ambiente, projeto ou área de negócio),
+com banco de 145 perguntas em 17 áreas, maturidade por área e riscos
+registrados a partir das respostas.
+
+- Schema e banco de perguntas: `db/migrations/0036_assessments.sql` (rode no
+  Neon antes de usar: `psql "$DATABASE_URL" -f db/migrations/0036_assessments.sql`).
+- Regras (maturidade, fluxo de revisão, sugestão de risco):
+  `lib/assessmentRegras.ts`, testadas em `tests/assessmentRegras.test.mts`.
+- Permissões: seção B28 de `docs/matriz-permissoes.md`.
+
 ## Gestão de Riscos — Conformidade
 
 Tela `/seguranca/gestao-de-riscos/conformidade`, visível para todos os perfis e

@@ -122,3 +122,12 @@ Aceitar um risco exige uma Carta de Risco (PDF ou DOCX) e a aprovação de algu�
 - Qualquer perfil com `ler` vê a cobertura, as lacunas e os controles de cada risco na tela de Conformidade.
 - Confirmar (com status Implementado / Parcial / Ausente), descartar, desfazer ou incluir controle manualmente exige `editarRiscos`; o mesmo vale para a biblioteca de controles de cada cenário.
 - Palavra-chave e biblioteca só sugerem: a cobertura considera apenas controles confirmados.
+
+## Assessments de segurança (B28)
+
+- Qualquer perfil com `ler` consulta assessments e relatórios.
+- Criar um assessment, responder o questionário e registrar riscos a partir de uma resposta exigem `editarRiscos`, e só enquanto o assessment está em **Rascunho**.
+- Enviar para revisão exige todas as perguntas das áreas escolhidas respondidas (objetiva com Sim / Não / Parcial / N/A; descritiva com texto).
+- Aprovar (Concluído) ou devolver a Rascunho (com motivo obrigatório) exige `auditar`. **Quem conduziu não revisa o próprio assessment**: a regra está em `lib/assessmentRegras.ts` e também numa restrição do banco (`revisor_email` diferente de `analista_email`).
+- Concluído trava o assessment; o relatório guarda uma foto (`snapshot`) das respostas, da maturidade e dos riscos vinculados naquele momento.
+- Uma resposta Não ou Parcial **sugere** um risco (categoria, causa e ponto de gatilho pré-preenchidos); o analista decide se registra. O vínculo fica em `assessment_riscos`.
