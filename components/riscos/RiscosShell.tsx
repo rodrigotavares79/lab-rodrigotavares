@@ -91,6 +91,10 @@ const GRUPOS: GrupoMenu[] = [
       { href: `${BASE}/tendencias`, label: "Tendências" },
     ],
   },
+  {
+    titulo: "Administração",
+    itens: [{ href: `${BASE}/usuarios`, label: "Usuários e perfis", exige: "gerirUsuarios" }],
+  },
 ];
 
 function casa(pathname: string, href: string, exato?: boolean): boolean {

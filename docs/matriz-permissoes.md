@@ -3,21 +3,22 @@
 Fonte no código: `lib/perfisRiscos.ts` (mantenha os dois iguais). Testes:
 `tests/perfisRiscos.test.mts` e `tests/rotasProtegidas.test.mts`.
 
-O perfil fica no Clerk: **Users > usuário > Metadata > Public**, chave
-`perfilRiscos`. Exemplo: `{"perfilRiscos": "analista_grc"}`.
+O perfil fica no Clerk, no `publicMetadata`, chave `perfilRiscos`. Exemplo:
+`{"perfilRiscos": "analista_grc"}`. Administrador e CISO o definem pela tela
+**Administração → Usuários e perfis**, sem precisar do painel do Clerk.
 Conta **sem a chave** não tem acesso nenhum ao módulo (ex.: moradores do
 Gestão de Condomínio).
 
-| Perfil (`perfilRiscos`) | Rótulo | Ler | Editar riscos | Editar planos | Ver auditoria | Auditar |
-|---|---|:-:|:-:|:-:|:-:|:-:|
-| *(sem a chave)* | Sem acesso | — | — | — | — | — |
-| `usuario` | Leitura | ✓ | — | — | — | — |
-| `analista_grc` | Analista GRC | ✓ | ✓ | ✓ | ✓ | — |
-| `auditor` | Auditor | ✓ | — | — | ✓ | ✓ |
-| `coordenador` | Coordenador | ✓ | ✓ | — | ✓ | ✓ |
-| `gerente` | Gerente | ✓ | ✓ | — | ✓ | ✓ |
-| `ciso` | CISO | ✓ | ✓ | — | ✓ | ✓ |
-| `administrador` | Administrador | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Perfil (`perfilRiscos`) | Rótulo | Ler | Editar riscos | Editar planos | Ver auditoria | Auditar | Gerir usuários |
+|---|---|:-:|:-:|:-:|:-:|:-:|:-:|
+| *(sem a chave)* | Sem acesso | — | — | — | — | — | — |
+| `usuario` | Leitura | ✓ | — | — | — | — | — |
+| `analista_grc` | Analista GRC | ✓ | ✓ | ✓ | ✓ | — | — |
+| `auditor` | Auditor | ✓ | — | — | ✓ | ✓ | — |
+| `coordenador` | Coordenador | ✓ | ✓ | — | ✓ | ✓ | — |
+| `gerente` | Gerente | ✓ | ✓ | — | ✓ | ✓ | — |
+| `ciso` | CISO | ✓ | ✓ | — | ✓ | ✓ | ✓ |
+| `administrador` | Administrador | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 
 Valores antigos aceitos: `gestor` = `gerente`, `analista_senior` = `analista_grc`.
 Valor desconhecido = Leitura.
@@ -32,6 +33,23 @@ Valor desconhecido = Leitura.
 - **Ver auditoria**: Auditoria de Planos, Relatório de Auditoria, log de
   alterações (CSV) e registros de auditoria na linha do tempo.
 - **Auditar**: classificar planos como Conforme / Não conforme.
+- **Gerir usuários**: convidar por e-mail, mudar perfis e remover o acesso
+  ao módulo (tela Usuários e perfis).
+
+## Usuários e perfis
+
+- Só **Administrador** e **CISO** gerenciam usuários.
+- Ninguém altera o próprio perfil.
+- Só um Administrador concede, altera ou convida o perfil Administrador.
+- O último Administrador não pode ser rebaixado.
+- Remover o acesso grava `perfilRiscos = "sem_acesso"`; a conta continua no
+  lab (os metadados de outros módulos não são tocados).
+- Com SSO, `perfilRiscosOrigem = "grupo"` marca o perfil definido por grupo
+  do provedor de identidade: a tela o mostra travado.
+- Cada convite, mudança e remoção grava em `log_alteracoes` (tabela
+  `usuarios`), com autor, valor anterior e novo.
+- Regras em `lib/perfisRiscos.ts` (`validarMudancaPerfil`, `validarConvite`),
+  testadas em `tests/gestaoUsuarios.test.mts`.
 
 ## Dono do risco e inventário de ativos (B14)
 
