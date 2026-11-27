@@ -239,3 +239,23 @@ export function validarNovoAssessment(d: { titulo?: unknown; tipo?: unknown; pro
   if (invalida !== undefined) return `Área desconhecida: ${String(invalida)}.`;
   return null;
 }
+
+export type RespostaValidada = { resposta: RespostaObjetiva | null; descritivo: string | null; evidencia: string | null; entrevistados: string | null };
+
+const texto = (v: unknown, max: number) => (typeof v === "string" && v.trim() ? v.trim().slice(0, max) : null);
+
+/** Normaliza o corpo de uma resposta. Devolve a mensagem de erro ou os campos limpos. */
+export function validarResposta(tipo: string, d: { resposta?: unknown; descritivo?: unknown; evidencia?: unknown; entrevistados?: unknown }): RespostaValidada | string {
+  let resposta: RespostaObjetiva | null = null;
+  if (d.resposta !== undefined && d.resposta !== null && d.resposta !== "") {
+    if (tipo !== "objetiva") return "Pergunta descritiva não aceita Sim / Não / Parcial / N/A.";
+    if (!RESPOSTAS_OBJETIVAS.includes(d.resposta as RespostaObjetiva)) return "Resposta inválida.";
+    resposta = d.resposta as RespostaObjetiva;
+  }
+  return {
+    resposta,
+    descritivo: texto(d.descritivo, 4000),
+    evidencia: texto(d.evidencia, 1000),
+    entrevistados: texto(d.entrevistados, 300),
+  };
+}

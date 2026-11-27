@@ -1,0 +1,229 @@
+/* B28 · Assessments: lista, criação e questionário. */
+
+.areasGrade {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: 0.35rem 1rem;
+  margin: 0.25rem 0 0.5rem;
+}
+
+.areasGrade label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  min-height: 2rem;
+  cursor: pointer;
+}
+
+.barra {
+  display: flex;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--border);
+  min-width: 6rem;
+}
+
+.barra span {
+  display: block;
+  height: 100%;
+}
+
+.corSim { background: var(--success); }
+.corParcial { background: var(--warning); }
+.corNao { background: var(--danger); }
+.corNa { background: var(--text-muted); opacity: 0.55; }
+.corDescritiva { background: var(--accent); }
+
+.legenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.legenda i {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  margin-right: 0.35rem;
+  vertical-align: -1px;
+}
+
+.resumoAreas {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.linhaArea {
+  display: grid;
+  grid-template-columns: minmax(0, 14rem) minmax(0, 1fr) 4.5rem 7.5rem;
+  gap: 0.75rem;
+  align-items: center;
+  width: 100%;
+  padding: 0.35rem 0.4rem;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 0.85rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.linhaArea:hover { background: var(--surface); }
+
+.linhaArea .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--text-muted);
+}
+
+.indice {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.barraFiltros {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.6rem 0;
+  background: var(--bg, #fff);
+  border-bottom: 1px solid var(--border);
+}
+
+.barraFiltros input,
+.barraFiltros select {
+  min-height: 2.5rem;
+}
+
+.salvando {
+  margin-left: auto;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.area {
+  margin-top: 2rem;
+  scroll-margin-top: 4.5rem;
+}
+
+.areaCabecalho {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  border-bottom: 2px solid var(--text);
+  padding-bottom: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
+.areaCabecalho h2 { margin: 0; }
+
+.pergunta {
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  background: var(--surface);
+}
+
+.respondida { border-left-color: var(--accent); }
+
+.perguntaTopo {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.15rem 0.75rem;
+  align-items: baseline;
+}
+
+.codigo {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.textoPergunta { font-weight: 600; }
+
+.tipo {
+  grid-column: 2;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.opcoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.75rem 0 0.25rem;
+}
+
+.opcao {
+  min-height: 2.5rem;
+  min-width: 4.5rem;
+  padding: 0 0.9rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.opcao:disabled { cursor: default; opacity: 0.7; }
+.opcao[aria-pressed="true"] { color: #fff; }
+.opcao[aria-pressed="true"][data-v="Sim"] { background: var(--success); border-color: var(--success); }
+.opcao[aria-pressed="true"][data-v="Não"] { background: var(--danger); border-color: var(--danger); }
+.opcao[aria-pressed="true"][data-v="Parcial"] { background: var(--warning); border-color: var(--warning); color: #3a2a00; }
+.opcao[aria-pressed="true"][data-v="N/A"] { background: var(--text-muted); border-color: var(--text-muted); }
+
+.campos {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: 0 1rem;
+  margin-top: 0.5rem;
+}
+
+.campos :global(.form-field) { margin-bottom: 0.5rem; }
+
+.leitura {
+  white-space: pre-wrap;
+  margin: 0.2rem 0 0.4rem;
+  font-size: 0.9rem;
+}
+
+.riscosPergunta {
+  margin-top: 0.4rem;
+  font-size: 0.85rem;
+}
+
+.erroPergunta {
+  color: var(--danger);
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
+}
+
+@media (max-width: 720px) {
+  .campos { grid-template-columns: minmax(0, 1fr); }
+  .linhaArea { grid-template-columns: minmax(0, 1fr) 4rem 6.5rem; }
+  .linhaArea .barra { grid-column: 1 / -1; grid-row: 2; }
+}
+
+@media print {
+  .barraFiltros, .opcoes button:not([aria-pressed="true"]) { display: none; }
+}

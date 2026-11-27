@@ -159,6 +159,11 @@ registrados a partir das respostas.
 - Regras (maturidade, fluxo de revisão, sugestão de risco):
   `lib/assessmentRegras.ts`, testadas em `tests/assessmentRegras.test.mts`.
 - Permissões: seção B28 de `docs/matriz-permissoes.md`.
+- Telas: `app/seguranca/gestao-de-riscos/assessments/` (lista e criação) e
+  `assessments/[id]` (questionário com gravação automática por resposta,
+  progresso e maturidade por área, envio para revisão, aprovação e devolução).
+- API: `GET/POST /api/assessments`, `GET/PATCH /api/assessments/[id]`,
+  `PUT /api/assessments/[id]/respostas`, `POST /api/assessments/[id]/status`.
 
 ## Gestão de Riscos — Conformidade
 

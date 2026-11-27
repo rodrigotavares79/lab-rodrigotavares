@@ -133,3 +133,15 @@ test("código sequencial e validação do cadastro", () => {
   assert.match(validarNovoAssessment({ ...ok, areas: ["Inventada"] }) ?? "", /desconhecida/);
   assert.match(validarNovoAssessment({ ...ok, tipo: "Outro" }) ?? "", /Tipo/);
 });
+
+import { validarResposta } from "../lib/assessmentRegras.ts";
+
+test("validarResposta normaliza e recusa combinações inválidas", () => {
+  assert.deepEqual(validarResposta("objetiva", { resposta: "Parcial", descritivo: "  só na matriz  ", evidencia: "", entrevistados: null }), {
+    resposta: "Parcial", descritivo: "só na matriz", evidencia: null, entrevistados: null,
+  });
+  assert.equal(validarResposta("objetiva", { resposta: "Talvez" }), "Resposta inválida.");
+  assert.match(validarResposta("descritiva", { resposta: "Sim" }) as string, /descritiva/);
+  assert.equal((validarResposta("descritiva", { descritivo: "x".repeat(5000) }) as any).descritivo.length, 4000);
+  assert.deepEqual(validarResposta("objetiva", { resposta: "" }), { resposta: null, descritivo: null, evidencia: null, entrevistados: null });
+});
