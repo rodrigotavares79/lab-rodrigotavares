@@ -163,7 +163,15 @@ registrados a partir das respostas.
   `assessments/[id]` (questionário com gravação automática por resposta,
   progresso e maturidade por área, envio para revisão, aprovação e devolução).
 - API: `GET/POST /api/assessments`, `GET/PATCH /api/assessments/[id]`,
-  `PUT /api/assessments/[id]/respostas`, `POST /api/assessments/[id]/status`.
+  `PUT /api/assessments/[id]/respostas`, `POST /api/assessments/[id]/status`,
+  `GET /api/assessments/[id]/sugestao-risco?pergunta=ID` e
+  `GET /api/assessments/[id]/relatorio`.
+- Registrar risco: o botão nas respostas Não/Parcial abre
+  `cadastro-de-riscos?assessment=ID&pergunta=ID` com projeto, categoria, causa
+  e ponto de gatilho preenchidos; `POST /api/cadastro-risco` com
+  `origemAssessment` grava o vínculo em `assessment_riscos`.
+- Relatório: `relatorio-assessment/[id]` (sem a moldura, para imprimir ou
+  salvar em PDF). Concluído lê a foto gravada na conclusão; antes disso, prévia.
 
 ## Gestão de Riscos — Conformidade
 

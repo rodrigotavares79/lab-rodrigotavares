@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Footer from "@/components/Footer";
 import {
   AREAS_ASSESSMENT,
@@ -66,6 +66,7 @@ function idArea(area: string) {
 
 export default function AssessmentDetalhe() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const [dados, setDados] = useState<Dados | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [campos, setCampos] = useState<Record<number, Campos>>({});
@@ -155,6 +156,15 @@ export default function AssessmentDetalhe() {
     timers.current[perguntaId] = setTimeout(() => salvar(perguntaId), imediato ? 0 : 900);
   }
 
+  // Volta do cadastro de risco com #q-ID: rola até a pergunta quando os dados chegam.
+  const rolou = useRef(false);
+  useEffect(() => {
+    if (!dados || rolou.current) return;
+    rolou.current = true;
+    const alvo = window.location.hash.startsWith("#q-") ? document.getElementById(window.location.hash.slice(1)) : null;
+    alvo?.scrollIntoView();
+  }, [dados]);
+
   const respostasAtuais = useMemo(
     () => Object.entries(campos).map(([k, v]) => ({ pergunta_id: Number(k), resposta: v.resposta, descritivo: v.descritivo })),
     [campos]
@@ -187,6 +197,12 @@ export default function AssessmentDetalhe() {
     } finally {
       setAgindo(false);
     }
+  }
+
+  // Grava a resposta antes de abrir o cadastro, que confere Não/Parcial no banco.
+  async function registrarRisco(perguntaId: number) {
+    if (naoGravadas.current.has(perguntaId) || estado[perguntaId] === "salvando") await salvar(perguntaId);
+    router.push(`${BASE}/cadastro-de-riscos?assessment=${id}&pergunta=${perguntaId}`);
   }
 
   function abrirEdicao() {
@@ -258,7 +274,12 @@ export default function AssessmentDetalhe() {
                 {a.status === "Concluído" && <> · concluído em {dataBr(a.concluido_em)}, revisado por {a.revisor_nome}</>}
               </p>
             </div>
-            {editavel && !edicao && <button className="status-tag" onClick={abrirEdicao}>Editar dados</button>}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+              <Link href={`${BASE}/relatorio-assessment/${a.id}`} className="btn-primary" target="_blank">
+                {a.status === "Concluído" ? "Relatório" : "Prévia do relatório"}
+              </Link>
+              {editavel && !edicao && <button className="status-tag" onClick={abrirEdicao}>Editar dados</button>}
+            </div>
           </div>
 
           {a.status === "Rascunho" && a.devolvido_motivo && (
@@ -491,7 +512,7 @@ export default function AssessmentDetalhe() {
                   const riscos = riscosPorPergunta.get(p.id) ?? [];
                   const rotuloTexto = p.tipo === "objetiva" ? "Descritivo / observações" : "Resposta";
                   return (
-                    <article key={p.id} className={`${s.pergunta} ${feita ? s.respondida : ""}`}>
+                    <article key={p.id} id={`q-${p.id}`} className={`${s.pergunta} ${feita ? s.respondida : ""}`}>
                       <div className={s.perguntaTopo}>
                         <span className={s.codigo}>{p.codigo}</span>
                         <span className={s.textoPergunta}>{p.texto}</span>
@@ -537,6 +558,13 @@ export default function AssessmentDetalhe() {
                           {c.evidencia && <p className={s.leitura}><strong>Evidência:</strong> {c.evidencia}</p>}
                           {c.entrevistados && <p className={s.leitura}><strong>Entrevistado(s):</strong> {c.entrevistados}</p>}
                           {!c.resposta && !c.descritivo && <p className="text-muted" style={{ margin: 0, fontSize: "0.85rem" }}>Sem resposta.</p>}
+                        </div>
+                      )}
+                      {editavel && p.tipo === "objetiva" && (c.resposta === "Não" || c.resposta === "Parcial") && (
+                        <div className={s.riscosPergunta}>
+                          <button type="button" className="status-tag" onClick={() => registrarRisco(p.id)}>
+                            + Registrar risco a partir desta resposta
+                          </button>
                         </div>
                       )}
                       {riscos.length > 0 && (

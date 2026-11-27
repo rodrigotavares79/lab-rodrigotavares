@@ -259,3 +259,52 @@ export function validarResposta(tipo: string, d: { resposta?: unknown; descritiv
     entrevistados: texto(d.entrevistados, 300),
   };
 }
+
+// ---------------------------------------------------------------- relatório
+
+export type Achado = { pergunta: Pergunta; resposta: "Não" | "Parcial"; descritivo: string | null; evidencia: string | null };
+
+/** Respostas Não e Parcial, na ordem do questionário: os achados do relatório. */
+export function listarAchados(
+  perguntas: Pergunta[],
+  respostas: (Resposta & { evidencia?: string | null })[],
+  areas: readonly string[]
+): Achado[] {
+  const porPergunta = new Map(respostas.map((r) => [r.pergunta_id, r]));
+  return perguntas
+    .filter((p) => areas.includes(p.area) && p.tipo === "objetiva")
+    .flatMap((p) => {
+      const r = porPergunta.get(p.id);
+      if (r?.resposta !== "Não" && r?.resposta !== "Parcial") return [];
+      return [{ pergunta: p, resposta: r.resposta, descritivo: r.descritivo?.trim() || null, evidencia: r.evidencia?.trim() || null }];
+    });
+}
+
+const fmtPct = (n: number) => `${n.toLocaleString("pt-BR")}%`;
+
+/**
+ * Texto do resumo executivo: maturidade geral, as áreas mais frágeis (até 3,
+ * abaixo de 70%) e as mais maduras (até 2, a partir de 70%), e o total de
+ * lacunas. Só fatos calculados; a conclusão é do analista.
+ */
+export function resumoExecutivo(m: Maturidade, achados: Achado[], riscos: number): string[] {
+  const linhas: string[] = [];
+  if (m.geral === null) {
+    linhas.push("Nenhuma pergunta objetiva aplicável foi respondida: não há índice de maturidade para este escopo.");
+  } else {
+    linhas.push(`Maturidade geral de ${fmtPct(m.geral)}, na faixa ${faixaMaturidade(m.geral)}, em ${m.areas.length} área(s) avaliada(s).`);
+  }
+  const comIndice = m.areas.filter((a) => a.indice !== null) as (MaturidadeArea & { indice: number })[];
+  const frageis = [...comIndice].filter((a) => a.indice < 70).sort((a, b) => a.indice - b.indice || a.area.localeCompare(b.area)).slice(0, 3);
+  const maduras = [...comIndice].filter((a) => a.indice >= 70).sort((a, b) => b.indice - a.indice || a.area.localeCompare(b.area)).slice(0, 2);
+  if (frageis.length) linhas.push(`Áreas que pedem prioridade: ${frageis.map((a) => `${a.area} (${fmtPct(a.indice)})`).join(", ")}.`);
+  if (maduras.length) linhas.push(`Pontos fortes: ${maduras.map((a) => `${a.area} (${fmtPct(a.indice)})`).join(", ")}.`);
+  const nao = achados.filter((a) => a.resposta === "Não").length;
+  const parcial = achados.length - nao;
+  if (achados.length) {
+    linhas.push(`Foram identificadas ${achados.length} lacuna(s): ${nao} controle(s) ausente(s) e ${parcial} parcial(is); ${riscos} risco(s) registrado(s) a partir delas.`);
+  } else {
+    linhas.push("Nenhuma lacuna (Não ou Parcial) foi registrada nas perguntas objetivas.");
+  }
+  return linhas;
+}

@@ -24,6 +24,19 @@ const NIVEIS = [
 ];
 
 type Projeto = { id: number; nome: string };
+// B28: risco registrado a partir de uma resposta Não/Parcial de um assessment.
+type OrigemAssessment = {
+  assessmentId: number;
+  assessmentCodigo: string;
+  perguntaId: number;
+  perguntaCodigo: string;
+  perguntaTexto: string;
+  area: string;
+  resposta: string;
+  evidencia: string | null;
+  categoria: string;
+  gatilho: string;
+};
 type SistemaCritico = {
   id: number;
   nome: string;
@@ -146,6 +159,9 @@ export default function CadastroDeRiscos() {
 
   const [projetos, setProjetos] = useState<Projeto[]>([]);
   const [projetoId, setProjetoId] = useState("");
+  const [origem, setOrigem] = useState<OrigemAssessment | null>(null);
+  const [origemErro, setOrigemErro] = useState<string | null>(null);
+  const [voltarAssessment, setVoltarAssessment] = useState<OrigemAssessment | null>(null);
 
   const [sistemas, setSistemas] = useState<SistemaCritico[]>([]);
   // B14: dono do risco (usuário ou contato de negócio), distinto de quem levantou.
@@ -166,6 +182,24 @@ export default function CadastroDeRiscos() {
       .then((r) => r.json())
       .then((d) => setProjetos(d.projetos || []))
       .catch(() => setProjetos([]));
+  }, []);
+
+  // B28: ?assessment=ID&pergunta=ID pré-preenche projeto, categoria, causa e
+  // ponto de gatilho a partir da resposta; o cadastro grava o vínculo.
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    const a = p.get("assessment");
+    const q = p.get("pergunta");
+    if (!a || !q || !/^\d+$/.test(a) || !/^\d+$/.test(q)) return;
+    fetch(`/api/assessments/${a}/sugestao-risco?pergunta=${q}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.error) throw new Error(d.error);
+        setOrigem({ ...d.origem, categoria: d.sugestao.categoria, gatilho: d.sugestao.gatilho });
+        setProjetoId(String(d.projetoId));
+        setCausa(d.sugestao.causa);
+      })
+      .catch((e) => setOrigemErro(e.message || "Não foi possível carregar a origem do assessment."));
   }, []);
 
   useEffect(() => {
@@ -239,6 +273,7 @@ export default function CadastroDeRiscos() {
       percentualDegradacao: faixaParaEstimativa(percentualDegradacao),
       restauracaoPessoas: faixaParaEstimativa(restauracaoPessoas),
       restauracaoHoras: faixaParaEstimativa(restauracaoHoras),
+      origemAssessment: origem ? { assessmentId: origem.assessmentId, perguntaId: origem.perguntaId } : undefined,
     };
 
     setEnviando(true);
@@ -259,6 +294,8 @@ export default function CadastroDeRiscos() {
       setEmailEnviadoPara(corpo.email?.enviado ? corpo.email.para : "");
       setAvisoEmail(corpo.email?.enviado ? null : corpo.email?.aviso || null);
       setEnviado(true);
+      setVoltarAssessment(origem);
+      setOrigem(null);
       form.reset();
       setCausa("");
       setCenarioCatalogo(null);
@@ -319,6 +356,30 @@ export default function CadastroDeRiscos() {
             </button>
           </div>
 
+          {origemErro && (
+            <div className="error-banner" style={{ marginBottom: "1rem" }}>
+              <span className="success-icon error-icon">!</span>
+              <span className="success-text">
+                <strong>O risco não será vinculado ao assessment.</strong>
+                <span>{origemErro}</span>
+              </span>
+            </div>
+          )}
+          {origem && modo === "form" && (
+            <div className="dash-panel" style={{ marginBottom: "1.25rem", borderLeft: "4px solid var(--accent)" }}>
+              <div className="dash-panel-body">
+                <strong>Origem: assessment {origem.assessmentCodigo}, pergunta {origem.perguntaCodigo} ({origem.resposta})</strong>
+                <div style={{ margin: "0.25rem 0" }}>{origem.area} · {origem.perguntaTexto}</div>
+                {origem.evidencia && <div className="text-muted" style={{ fontSize: "0.85rem" }}>Evidência: {origem.evidencia}</div>}
+                <p className="field-helper" style={{ margin: "0.4rem 0 0" }}>
+                  Projeto, categoria, causa e ponto de gatilho vieram da resposta; revise-os e descreva o evento e a
+                  consequência. Ao cadastrar, o risco fica vinculado à pergunta.{" "}
+                  <a href={`/seguranca/gestao-de-riscos/assessments/${origem.assessmentId}`}>Voltar ao assessment sem cadastrar</a>
+                </p>
+              </div>
+            </div>
+          )}
+
           {modo === "csv" ? (
             <ImportarRiscosCSV />
           ) : (
@@ -344,7 +405,7 @@ export default function CadastroDeRiscos() {
 
                 <div className="form-field">
                   <label htmlFor="categoria">Categoria do Risco</label>
-                  <select id="categoria" name="categoria" defaultValue="">
+                  <select id="categoria" name="categoria" key={origem ? `cat-${origem.perguntaId}` : "cat"} defaultValue={origem?.categoria ?? ""}>
                     <option value="" disabled>Selecione</option>
                     {NOMES_CATEGORIAS.map((c) => (
                       <option key={c}>{c}</option>
@@ -420,6 +481,8 @@ export default function CadastroDeRiscos() {
                   <input
                     id="gatilho"
                     name="gatilho"
+                    key={origem ? `gat-${origem.perguntaId}` : "gat"}
+                    defaultValue={origem?.gatilho ?? ""}
                     type="text"
                     maxLength={500}
                     placeholder="Sinal observável de que o risco está se materializando"
@@ -637,6 +700,12 @@ export default function CadastroDeRiscos() {
                       ? `Uma cópia dos dados foi enviada para ${emailEnviadoPara}.`
                       : avisoEmail || "O risco foi cadastrado."}
                   </span>
+                  {voltarAssessment && (
+                    <span>
+                      Vinculado ao assessment {voltarAssessment.assessmentCodigo}, pergunta {voltarAssessment.perguntaCodigo}.{" "}
+                      <a href={`/seguranca/gestao-de-riscos/assessments/${voltarAssessment.assessmentId}#q-${voltarAssessment.perguntaId}`}>Voltar ao assessment</a>
+                    </span>
+                  )}
                 </span>
               </div>
             )}
