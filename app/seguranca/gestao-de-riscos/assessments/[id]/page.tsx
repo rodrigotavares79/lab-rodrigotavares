@@ -208,7 +208,7 @@ export default function AssessmentDetalhe() {
   function abrirEdicao() {
     if (!a) return;
     setEdicao({ titulo: a.titulo, tipo: a.tipo, projetoId: String(a.projeto_id), escopo: a.escopo, objetivo: a.objetivo ?? "", dataInicio: a.data_inicio ?? "", areas: [...a.areas] });
-    fetch("/api/projetos").then((r) => r.json()).then((d) => setProjetos(d.projetos || [])).catch(() => setProjetos([]));
+    fetch("/api/projetos").then((r) => r.json()).then((d) => setProjetos((d.projetos || []).filter((p: any) => p.ativo || p.id === a.projeto_id))).catch(() => setProjetos([]));
   }
 
   async function salvarEdicao() {
@@ -275,7 +275,7 @@ export default function AssessmentDetalhe() {
               </p>
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-              <Link href={`${BASE}/relatorio-assessment/${a.id}`} className="btn-primary" target="_blank">
+              <Link href={`${BASE}/relatorio-assessment/${a.id}`} className="btn-primary" target="_blank" style={{ textDecoration: "none" }}>
                 {a.status === "Concluído" ? "Relatório" : "Prévia do relatório"}
               </Link>
               {editavel && !edicao && <button className="status-tag" onClick={abrirEdicao}>Editar dados</button>}

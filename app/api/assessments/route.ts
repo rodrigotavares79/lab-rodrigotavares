@@ -45,8 +45,8 @@ export async function POST(request: NextRequest) {
     if (invalido) return NextResponse.json({ error: invalido }, { status: 400 });
     const dataInicio = typeof d.dataInicio === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d.dataInicio) ? d.dataInicio : null;
     const sql = sqlAuditado(guarda.usuario);
-    const [projeto] = await sql`SELECT id FROM projetos WHERE id = ${Number(d.projetoId)}`;
-    if (!projeto) return NextResponse.json({ error: "Projeto não encontrado." }, { status: 404 });
+    const [projeto] = await sql`SELECT id FROM projetos WHERE id = ${Number(d.projetoId)} AND ativo`;
+    if (!projeto) return NextResponse.json({ error: "Projeto não encontrado ou inativo." }, { status: 404 });
     const codigos = await sql`SELECT codigo FROM assessments`;
     const codigo = proximoCodigo(codigos.map((c: any) => c.codigo));
     const areas = AREAS_ASSESSMENT.filter((a) => d.areas.includes(a));

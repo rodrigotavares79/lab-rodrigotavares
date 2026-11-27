@@ -3,13 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import Footer from "@/components/Footer";
 import { TIPOS_ATIVO } from "@/lib/ativosCriticos";
+import SolicitarProjeto from "@/components/riscos/SolicitarProjeto";
 
 // B14 · Inventário de ativos e processos críticos. Cada risco aponta para um
 // item daqui (ativo ou processo afetado), e a área responsável do item é a
 // área usada nos filtros da lista de riscos. Custos são opcionais: só itens
 // com os dois custos geram a estimativa financeira no cadastro do risco.
 
-type Projeto = { id: number; nome: string };
+type Projeto = { id: number; nome: string; ativo?: boolean };
 type Ativo = {
   id: number;
   projeto_id: number;
@@ -193,10 +194,11 @@ export default function AtivosCriticos() {
                     <label htmlFor="atProjeto">Projeto *</label>
                     <select id="atProjeto" {...campo("projetoId")} disabled={!!form.id}>
                       <option value="">Selecione</option>
-                      {projetos.map((p) => (
+                      {projetos.filter((p) => p.ativo !== false || String(p.id) === String(form.projetoId)).map((p) => (
                         <option key={p.id} value={p.id}>{p.nome}</option>
                       ))}
                     </select>
+                    {!form.id && <SolicitarProjeto />}
                   </div>
                   <div className="form-field">
                     <label htmlFor="atTipo">Tipo *</label>

@@ -126,6 +126,11 @@ export async function POST(request: NextRequest) {
 
     const sql = sqlAuditado(guarda.usuario);
 
+    // B29: projeto inativo não recebe riscos novos.
+    const [projetoAtivo] = await sql`SELECT ativo FROM projetos WHERE id = ${projetoId}`;
+    if (!projetoAtivo) return NextResponse.json({ error: "Projeto não encontrado." }, { status: 404 });
+    if (!projetoAtivo.ativo) return NextResponse.json({ error: "Este projeto está inativo e não recebe riscos novos." }, { status: 409 });
+
     // B28: risco nascido de uma resposta Não/Parcial de um assessment. Confere
     // antes de gravar o risco, para não deixar risco sem o vínculo pedido.
     let origem: { assessment_id: number; pergunta_id: number } | null = null;

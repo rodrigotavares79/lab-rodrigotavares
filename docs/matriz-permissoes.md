@@ -132,3 +132,11 @@ Aceitar um risco exige uma Carta de Risco (PDF ou DOCX) e a aprovação de algu�
 - Concluído trava o assessment; o relatório guarda uma foto (`snapshot`) das respostas, da maturidade e dos riscos vinculados naquele momento.
 - Relatório (prévia antes da conclusão, versão aprovada depois): qualquer perfil com `ler`.
 - Uma resposta Não ou Parcial **sugere** um risco (categoria, causa e ponto de gatilho pré-preenchidos); o analista decide se registra, pelo cadastro de riscos normal (exige `editarRiscos` e o assessment em Rascunho). O vínculo fica em `assessment_riscos`; a Fonte do risco é escolhida na lista do próprio cadastro.
+
+## Cadastros da Administração (B29)
+
+- **Projetos** (Administração → Projetos): cadastrar, renomear, descrever, desativar e reativar exige `gerirUsuarios` (Administrador e CISO). Projeto não se exclui: inativo sai das listas de cadastro (riscos, ativos críticos, assessments) e continua nos filtros, relatórios e no histórico. Nome único, sem diferenciar maiúsculas, acentos e espaços.
+- **Solicitação de inclusão de projeto**: quem tem `editarRiscos` e não acha o projeto pede a inclusão pelo link embaixo do campo Projeto, com justificativa. Administrador ou CISO aprova (cria o projeto ou aponta um existente, reativando-o se preciso) ou recusa com motivo. Quem pediu não decide a própria solicitação e vê a decisão no mesmo lugar onde pediu. O menu mostra o número de solicitações pendentes.
+- **Parâmetros da política** (prazo de tratamento e periodicidade de revisão por nível): consulta com `ler`, alteração com `gerirUsuarios`. Nível mais grave tem revisão igual ou mais frequente que um mais leve.
+- **Perguntas dos assessments**: cadastrar, corrigir e ativar/desativar exige `gerirUsuarios`. Texto e tipo só mudam enquanto a pergunta não tem respostas; depois, desativa-se e cadastra-se outra. Pergunta não se exclui.
+- Tudo grava em `log_alteracoes` com autor, valor anterior e novo.

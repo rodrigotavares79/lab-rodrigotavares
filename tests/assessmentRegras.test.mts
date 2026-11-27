@@ -175,3 +175,17 @@ test("resumo executivo: frágeis abaixo de 70%, fortes a partir de 70%", () => {
   assert.match(t[3], /2 lacuna\(s\): 1 controle\(s\) ausente\(s\) e 1 parcial\(is\); 1 risco/);
   assert.match(resumoExecutivo(calcularMaturidade(P, [], ["Gestão de riscos"]), [], 0)[0], /não há índice/);
 });
+
+import { podeAlterarPergunta, proximoCodigoPergunta, validarPergunta } from "../lib/assessmentRegras.ts";
+
+test("banco de perguntas: código sequencial por área e validação", () => {
+  assert.deepEqual(proximoCodigoPergunta("Endpoint gerenciado", ["13.01", "13.12", "14.01"]), { codigo: "13.13", areaOrdem: 13, ordem: 13 });
+  assert.deepEqual(proximoCodigoPergunta("Dados de segurança", []), { codigo: "17.01", areaOrdem: 17, ordem: 1 });
+  assert.equal(proximoCodigoPergunta("Inventada", []), null);
+  assert.equal(validarPergunta({ area: "Endpoint gerenciado", texto: "Existe inventário de software?", tipo: "objetiva" }), null);
+  assert.match(validarPergunta({ area: "Endpoint gerenciado", texto: "Curta", tipo: "objetiva" }) ?? "", /10 caracteres/);
+  assert.match(validarPergunta({ area: "X", texto: "Existe inventário de software?", tipo: "objetiva" }) ?? "", /áreas/);
+  assert.match(validarPergunta({ area: "Endpoint gerenciado", texto: "Existe inventário de software?", tipo: "sim" }) ?? "", /tipo/);
+  assert.equal(podeAlterarPergunta(0), null);
+  assert.match(podeAlterarPergunta(3) ?? "", /desative/);
+});

@@ -56,11 +56,11 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
     const invalido = validarNovoAssessment(d ?? {});
     if (invalido) return NextResponse.json({ error: invalido }, { status: 400 });
     const sql = sqlAuditado(guarda.usuario);
-    const [a] = await sql`SELECT status FROM assessments WHERE id = ${id}`;
+    const [a] = await sql`SELECT status, projeto_id FROM assessments WHERE id = ${id}`;
     if (!a) return NextResponse.json({ error: "Assessment não encontrado." }, { status: 404 });
     if (a.status !== "Rascunho") return NextResponse.json({ error: "Só é possível alterar um assessment em Rascunho." }, { status: 409 });
-    const [projeto] = await sql`SELECT id FROM projetos WHERE id = ${Number(d.projetoId)}`;
-    if (!projeto) return NextResponse.json({ error: "Projeto não encontrado." }, { status: 404 });
+    const [projeto] = await sql`SELECT id FROM projetos WHERE id = ${Number(d.projetoId)} AND (ativo OR id = ${a.projeto_id})`;
+    if (!projeto) return NextResponse.json({ error: "Projeto não encontrado ou inativo." }, { status: 404 });
     const areas = AREAS_ASSESSMENT.filter((x) => d.areas.includes(x));
     const dataInicio = typeof d.dataInicio === "string" && /^\d{4}-\d{2}-\d{2}$/.test(d.dataInicio) ? d.dataInicio : null;
     await sql`
