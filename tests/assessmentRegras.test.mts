@@ -145,3 +145,33 @@ test("validarResposta normaliza e recusa combinações inválidas", () => {
   assert.equal((validarResposta("descritiva", { descritivo: "x".repeat(5000) }) as any).descritivo.length, 4000);
   assert.deepEqual(validarResposta("objetiva", { resposta: "" }), { resposta: null, descritivo: null, evidencia: null, entrevistados: null });
 });
+
+import { listarAchados, resumoExecutivo } from "../lib/assessmentRegras.ts";
+
+test("achados: só Não e Parcial das áreas do escopo, na ordem das perguntas", () => {
+  const r = [
+    { pergunta_id: 5, resposta: "Não", descritivo: " sem BitLocker ", evidencia: null },
+    { pergunta_id: 2, resposta: "Parcial", descritivo: null, evidencia: "ata" },
+    { pergunta_id: 1, resposta: "Sim", descritivo: null },
+  ];
+  const a = listarAchados(P, r, ["Gestão de riscos", "Endpoint gerenciado"]);
+  assert.deepEqual(a.map((x) => x.pergunta.codigo), ["03.02", "13.05"]);
+  assert.equal(a[1].descritivo, "sem BitLocker");
+  assert.equal(listarAchados(P, r, ["Gestão de riscos"]).length, 1);
+});
+
+test("resumo executivo: frágeis abaixo de 70%, fortes a partir de 70%", () => {
+  const m = calcularMaturidade(P, [
+    { pergunta_id: 1, resposta: "Sim", descritivo: null },
+    { pergunta_id: 2, resposta: "Sim", descritivo: null },
+    { pergunta_id: 5, resposta: "Não", descritivo: null },
+    { pergunta_id: 6, resposta: "Parcial", descritivo: null },
+  ], ["Gestão de riscos", "Endpoint gerenciado"]);
+  const achados = listarAchados(P, [{ pergunta_id: 5, resposta: "Não", descritivo: null }, { pergunta_id: 6, resposta: "Parcial", descritivo: null }], m.areas.map((a) => a.area));
+  const t = resumoExecutivo(m, achados, 1);
+  assert.match(t[0], /Maturidade geral de 62,5%, na faixa Em desenvolvimento, em 2 área/);
+  assert.equal(t[1], "Áreas que pedem prioridade: Endpoint gerenciado (25%).");
+  assert.equal(t[2], "Pontos fortes: Gestão de riscos (100%).");
+  assert.match(t[3], /2 lacuna\(s\): 1 controle\(s\) ausente\(s\) e 1 parcial\(is\); 1 risco/);
+  assert.match(resumoExecutivo(calcularMaturidade(P, [], ["Gestão de riscos"]), [], 0)[0], /não há índice/);
+});

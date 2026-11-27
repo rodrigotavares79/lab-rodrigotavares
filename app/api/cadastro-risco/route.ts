@@ -10,6 +10,7 @@ import { nivelRisco } from "@/lib/metodologiaRisco";
 import { sqlAuditado } from "@/lib/sqlAuditado";
 import { LIMITE_EMAILS_POR_HORA, podeEnviarConfirmacao } from "@/lib/levantadoPor";
 import { exigirPermissao } from "@/lib/riscosAuth";
+import { origemRiscoAssessment } from "@/lib/assessmentServidor";
 
 export const dynamic = "force-dynamic";
 
@@ -74,6 +75,7 @@ export async function POST(request: NextRequest) {
       percentualDegradacao,
       restauracaoPessoas,
       restauracaoHoras,
+      origemAssessment,
     } = data ?? {};
 
     // B10: "Levantado por" é sempre o usuário logado; o que vier do navegador
@@ -123,6 +125,15 @@ export async function POST(request: NextRequest) {
       (dono.ponto_focal_nome ? ` · ponto focal: ${dono.ponto_focal_nome}` : "");
 
     const sql = sqlAuditado(guarda.usuario);
+
+    // B28: risco nascido de uma resposta Não/Parcial de um assessment. Confere
+    // antes de gravar o risco, para não deixar risco sem o vínculo pedido.
+    let origem: { assessment_id: number; pergunta_id: number } | null = null;
+    if (origemAssessment) {
+      const r = await origemRiscoAssessment(sql, origemAssessment.assessmentId, origemAssessment.perguntaId);
+      if ("erro" in r) return NextResponse.json({ error: r.erro }, { status: 409 });
+      origem = r.origem;
+    }
 
     // ---- Cálculo do impacto financeiro (feito no servidor, nunca confiando no cliente) ----
     let sistemaNome: string | null = null;
@@ -221,6 +232,14 @@ export async function POST(request: NextRequest) {
       RETURNING id
     `;
     const riscoId = riscoCriado[0].id;
+
+    if (origem) {
+      await sql`
+        INSERT INTO assessment_riscos (assessment_id, pergunta_id, risco_id, vinculado_por_email)
+        VALUES (${origem.assessment_id}, ${origem.pergunta_id}, ${riscoId}, ${guarda.usuario.email})
+        ON CONFLICT DO NOTHING
+      `;
+    }
 
     // B15: grava os controles informados e recalcula o nível atual.
     for (const [i, c] of listaControles.entries()) {

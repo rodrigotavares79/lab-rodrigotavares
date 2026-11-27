@@ -130,4 +130,5 @@ Aceitar um risco exige uma Carta de Risco (PDF ou DOCX) e a aprovação de algu�
 - Enviar para revisão exige todas as perguntas das áreas escolhidas respondidas (objetiva com Sim / Não / Parcial / N/A; descritiva com texto).
 - Aprovar (Concluído) ou devolver a Rascunho (com motivo obrigatório) exige `auditar`. **Quem conduziu não revisa o próprio assessment**: a regra está em `lib/assessmentRegras.ts` e também numa restrição do banco (`revisor_email` diferente de `analista_email`).
 - Concluído trava o assessment; o relatório guarda uma foto (`snapshot`) das respostas, da maturidade e dos riscos vinculados naquele momento.
-- Uma resposta Não ou Parcial **sugere** um risco (categoria, causa e ponto de gatilho pré-preenchidos); o analista decide se registra. O vínculo fica em `assessment_riscos`.
+- Relatório (prévia antes da conclusão, versão aprovada depois): qualquer perfil com `ler`.
+- Uma resposta Não ou Parcial **sugere** um risco (categoria, causa e ponto de gatilho pré-preenchidos); o analista decide se registra, pelo cadastro de riscos normal (exige `editarRiscos` e o assessment em Rascunho). O vínculo fica em `assessment_riscos`; a Fonte do risco é escolhida na lista do próprio cadastro.

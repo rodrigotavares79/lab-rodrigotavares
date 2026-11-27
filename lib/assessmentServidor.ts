@@ -70,3 +70,28 @@ export function montarSnapshot(dados: NonNullable<Awaited<ReturnType<typeof carr
     maturidade: dados.maturidade,
   };
 }
+
+/**
+ * Confere se uma pergunta de um assessment pode dar origem a um risco:
+ * assessment em Rascunho, pergunta objetiva dentro das áreas e resposta
+ * gravada Não ou Parcial. Usado pela sugestão e pelo cadastro do risco.
+ */
+export async function origemRiscoAssessment(sql: Sql, assessmentId: unknown, perguntaId: unknown) {
+  const aId = Number(assessmentId);
+  const pId = Number(perguntaId);
+  if (!Number.isInteger(aId) || aId <= 0 || !Number.isInteger(pId) || pId <= 0) return { erro: "Origem do assessment inválida." } as const;
+  const [linha] = await sql`
+    SELECT a.id AS assessment_id, a.codigo AS assessment_codigo, a.status, a.areas, a.projeto_id,
+           p.id AS pergunta_id, p.codigo, p.area, p.texto, p.tipo,
+           r.resposta, r.descritivo, r.evidencia
+    FROM assessments a
+    JOIN assessment_perguntas p ON p.id = ${pId}
+    LEFT JOIN assessment_respostas r ON r.assessment_id = a.id AND r.pergunta_id = p.id
+    WHERE a.id = ${aId}
+  `;
+  if (!linha) return { erro: "Assessment ou pergunta não encontrados." } as const;
+  if (linha.status !== "Rascunho") return { erro: "Riscos só podem ser registrados enquanto o assessment está em Rascunho." } as const;
+  if (!linha.areas.includes(linha.area) || linha.tipo !== "objetiva") return { erro: "Pergunta fora do escopo do assessment." } as const;
+  if (linha.resposta !== "Não" && linha.resposta !== "Parcial") return { erro: "Só respostas Não ou Parcial dão origem a risco. Grave a resposta antes." } as const;
+  return { origem: linha } as const;
+}
