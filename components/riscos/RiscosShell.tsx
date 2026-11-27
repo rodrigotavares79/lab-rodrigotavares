@@ -60,6 +60,13 @@ const GRUPOS: GrupoMenu[] = [
     ],
   },
   {
+    titulo: "Assessments",
+    itens: [
+      { href: `${BASE}/assessments`, label: "Todos os assessments" },
+      { href: `${BASE}/assessments?novo=1`, label: "Novo assessment", exige: "editarRiscos" },
+    ],
+  },
+  {
     titulo: "Planos de Ação",
     itens: [
       { href: `${BASE}/planos-de-acao`, label: "Todos os planos" },
