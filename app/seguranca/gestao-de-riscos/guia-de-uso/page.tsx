@@ -96,6 +96,7 @@ export default function GuiaDeUso() {
                 <tr><td>Auditoria</td><td>Fila de auditoria e relatório de auditoria.</td></tr>
                 <tr><td>Conformidade</td><td>Apetite e tolerância, frameworks, Política e Processo.</td></tr>
                 <tr><td>Relatórios</td><td>Relatório executivo, Dashboard e Tendências.</td></tr>
+                <tr><td>Administração</td><td>Usuários e perfis (só Administrador e CISO).</td></tr>
               </tbody>
             </table>
             <p>
@@ -118,12 +119,32 @@ export default function GuiaDeUso() {
                 <tr><td>Analista GRC</td><td>Cadastrar e editar riscos, planos, ações e evidências; propor versões do apetite.</td></tr>
                 <tr><td>Auditor</td><td>Auditar planos concluídos; ver auditoria e trilha de alterações.</td></tr>
                 <tr><td>Coordenador e Gerente</td><td>Editar riscos, auditar e aprovar aceitações dentro da sua alçada.</td></tr>
-                <tr><td>CISO</td><td>Tudo do Gerente, mais aceitar riscos Críticos e aprovar o apetite a risco.</td></tr>
+                <tr><td>CISO</td><td>Tudo do Gerente, mais aceitar riscos Críticos, aprovar o apetite a risco e gerenciar usuários.</td></tr>
                 <tr><td>Administrador</td><td>Todas as funções (usado na demonstração).</td></tr>
               </tbody>
             </table>
             <p className="field-helper">
               Toda permissão é verificada também no servidor: esconder um botão não é a única barreira.
+            </p>
+            <h3>Gerenciar usuários e perfis</h3>
+            <p>
+              Em <strong>Administração → Usuários e perfis</strong>, o Administrador e o CISO:
+            </p>
+            <ol>
+              <li>
+                <strong>Convidam</strong> uma pessoa pelo e-mail, já escolhendo o perfil. Ela recebe o convite (válido por 7 dias),
+                cria a conta e entra com esse perfil. Convites pendentes podem ser cancelados.
+              </li>
+              <li><strong>Mudam o perfil</strong> de quem já tem conta: escolha o novo perfil na linha da pessoa e clique em Salvar.</li>
+              <li>
+                <strong>Removem o acesso</strong> ao Gestão de Riscos. A conta continua valendo para os outros módulos do lab.
+              </li>
+            </ol>
+            <p>
+              Regras: ninguém altera o próprio perfil; só um Administrador concede ou altera o perfil Administrador; o último
+              Administrador não pode ser rebaixado. Cada convite, mudança e remoção fica na trilha de auditoria e na lista
+              &quot;Últimas alterações&quot; da própria tela. Com SSO, o perfil que vier de um grupo do provedor de identidade
+              aparece travado e deve ser mudado no próprio provedor.
             </p>
 
             <h2 id="cadastrar">3. Cadastrar um risco</h2>

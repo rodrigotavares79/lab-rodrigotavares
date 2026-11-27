@@ -11,6 +11,7 @@ export type PermissoesRiscos = {
   editarPlanos: boolean;
   verAuditoria: boolean;
   auditar: boolean;
+  gerirUsuarios: boolean;
 };
 
 export type PerfilRiscosCliente = {
@@ -22,7 +23,7 @@ export type PerfilRiscosCliente = {
   permissoes: PermissoesRiscos;
 };
 
-const NADA: PermissoesRiscos = { ler: false, editarRiscos: false, editarPlanos: false, verAuditoria: false, auditar: false };
+const NADA: PermissoesRiscos = { ler: false, editarRiscos: false, editarPlanos: false, verAuditoria: false, auditar: false, gerirUsuarios: false };
 const INICIAL: PerfilRiscosCliente = { carregado: false, nome: "", email: "", perfil: "sem_acesso", rotulo: "", permissoes: NADA };
 
 const Contexto = createContext<PerfilRiscosCliente>(INICIAL);

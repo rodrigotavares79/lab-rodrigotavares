@@ -14,7 +14,7 @@ test("conta sem perfilRiscos não tem acesso nenhum", () => {
 
 test("Leitura só lê", () => {
   assert.deepEqual(permissoesDoPerfil(parsePerfilRiscos({ perfilRiscos: "usuario" })), {
-    ler: true, editarRiscos: false, editarPlanos: false, verAuditoria: false, auditar: false,
+    ler: true, editarRiscos: false, editarPlanos: false, verAuditoria: false, auditar: false, gerirUsuarios: false,
   });
 });
 
@@ -26,7 +26,7 @@ test("Analista GRC executa, mas não audita", () => {
 
 test("Auditor audita, mas não edita riscos nem planos", () => {
   const p = permissoesDoPerfil(parsePerfilRiscos({ perfilRiscos: "auditor" }));
-  assert.deepEqual(p, { ler: true, editarRiscos: false, editarPlanos: false, verAuditoria: true, auditar: true });
+  assert.deepEqual(p, { ler: true, editarRiscos: false, editarPlanos: false, verAuditoria: true, auditar: true, gerirUsuarios: false });
 });
 
 test("Coordenador e Gerente auditam, mas não editam planos", () => {
@@ -45,7 +45,7 @@ test("quem pode auditar nunca pode editar planos, exceto Administrador (B07 cobr
 
 test("toda permissão exige ler", () => {
   for (const [perfil, p] of Object.entries(MATRIZ_PERMISSOES)) {
-    if (p.editarRiscos || p.editarPlanos || p.verAuditoria || p.auditar) assert.ok(p.ler, perfil);
+    if (p.editarRiscos || p.editarPlanos || p.verAuditoria || p.auditar || p.gerirUsuarios) assert.ok(p.ler, perfil);
   }
 });
 
