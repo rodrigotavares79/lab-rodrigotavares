@@ -284,7 +284,6 @@ export default function Usuarios() {
                           <th>Usuário</th>
                           <th>Perfil</th>
                           <th>Último acesso</th>
-                          <th>Conta criada</th>
                           <th style={{ textAlign: "right" }}>Ações</th>
                         </tr>
                       </thead>
@@ -321,8 +320,9 @@ export default function Usuarios() {
                                   </select>
                                 )}
                               </td>
-                              <td style={{ whiteSpace: "nowrap" }}>{dataHora(u.ultimoAcesso)}</td>
-                              <td>{data(u.criadoEm)}</td>
+                              <td style={{ whiteSpace: "nowrap" }} title={`Conta criada em ${data(u.criadoEm)}`}>
+                                {u.ultimoAcesso ? dataHora(u.ultimoAcesso) : "Nunca acessou"}
+                              </td>
                               <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
                                 {!trava && mudou && (
                                   <span style={{ display: "inline-flex", gap: "0.4rem" }}>
@@ -376,7 +376,7 @@ export default function Usuarios() {
                           );
                         })}
                         {visiveis.length === 0 && (
-                          <tr><td colSpan={5} className="text-muted">Nenhum usuário encontrado.</td></tr>
+                          <tr><td colSpan={4} className="text-muted">Nenhum usuário encontrado.</td></tr>
                         )}
                       </tbody>
                     </table>
