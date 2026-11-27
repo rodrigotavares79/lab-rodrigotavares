@@ -13,6 +13,7 @@ import RiscosSemelhantes from "@/components/riscos/RiscosSemelhantes";
 import ControlesCadastro, { type ControleCadastro } from "@/components/riscos/ControlesCadastro";
 import { validarControlesCadastro } from "@/lib/controlesRisco";
 import CenariosSugeridos, { type CenarioCatalogo } from "@/components/riscos/CenariosSugeridos";
+import SolicitarProjeto from "@/components/riscos/SolicitarProjeto";
 import SeletorDono, { DONO_VAZIO, donoPreenchido, type ValorDono } from "@/components/riscos/SeletorDono";
 
 const NIVEIS = [
@@ -178,7 +179,7 @@ export default function CadastroDeRiscos() {
   const probabilidadeLabel = NIVEIS.find((n) => n.value === probabilidade)?.label ?? "";
 
   useEffect(() => {
-    fetch("/api/projetos")
+    fetch("/api/projetos?ativos=1")
       .then((r) => r.json())
       .then((d) => setProjetos(d.projetos || []))
       .catch(() => setProjetos([]));
@@ -401,6 +402,7 @@ export default function CadastroDeRiscos() {
                       <option key={p.id} value={p.id}>{p.nome}</option>
                     ))}
                   </select>
+                  <SolicitarProjeto />
                 </div>
 
                 <div className="form-field">

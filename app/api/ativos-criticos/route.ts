@@ -47,8 +47,8 @@ export async function POST(request: NextRequest) {
     if ("erro" in v) return NextResponse.json({ error: v.erro }, { status: 400 });
     const a = v.ativo;
     const sql = sqlAuditado(guarda.usuario);
-    const [projeto] = await sql`SELECT id FROM projetos WHERE id = ${projetoId}`;
-    if (!projeto) return NextResponse.json({ error: "Projeto não encontrado." }, { status: 404 });
+    const [projeto] = await sql`SELECT id FROM projetos WHERE id = ${projetoId} AND ativo`;
+    if (!projeto) return NextResponse.json({ error: "Projeto não encontrado ou inativo." }, { status: 404 });
     const [duplicado] = await sql`
       SELECT id FROM sistemas_criticos
       WHERE projeto_id = ${projetoId} AND lower(nome) = lower(${a.nome}) AND ativo

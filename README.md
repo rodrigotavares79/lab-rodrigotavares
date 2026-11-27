@@ -173,6 +173,25 @@ registrados a partir das respostas.
 - Relatório: `relatorio-assessment/[id]` (sem a moldura, para imprimir ou
   salvar em PDF). Concluído lê a foto gravada na conclusão; antes disso, prévia.
 
+## Gestão de Riscos — Cadastros da Administração (B29)
+
+Projetos, solicitações de inclusão de projeto, parâmetros da política e
+perguntas dos assessments são mantidos pela tela (menu Administração), sem
+alteração direta no banco.
+
+- Schema: `db/migrations/0037_cadastro_projetos.sql` (projetos ganham
+  `ativo`, descrição e autoria; nova tabela `solicitacoes_projeto`).
+- Regras: `lib/projetosRegras.ts`, `lib/parametrosRegras.ts` e a seção de
+  banco de perguntas de `lib/assessmentRegras.ts`, com testes.
+- Telas: `projetos`, `parametros` e `perguntas-assessment`. O link
+  "Solicitar inclusão" fica embaixo do campo Projeto nos cadastros de risco,
+  ativo crítico e assessment (`components/riscos/SolicitarProjeto.tsx`).
+- API: `GET/POST /api/projetos` (`?ativos=1`, `?detalhes=1`),
+  `PATCH /api/projetos/[id]`, `GET/POST /api/projetos/solicitacoes`,
+  `POST /api/projetos/solicitacoes/[id]`, `GET/PUT /api/parametros-riscos`,
+  `GET/POST /api/assessments/perguntas`, `PATCH /api/assessments/perguntas/[id]`.
+- Permissões: seção B29 de `docs/matriz-permissoes.md`.
+
 ## Gestão de Riscos — Conformidade
 
 Tela `/seguranca/gestao-de-riscos/conformidade`, visível para todos os perfis e

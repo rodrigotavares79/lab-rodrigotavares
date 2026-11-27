@@ -308,3 +308,34 @@ export function resumoExecutivo(m: Maturidade, achados: Achado[], riscos: number
   }
   return linhas;
 }
+
+// ---------------------------------------------------------------- banco de perguntas (B29)
+
+/** Próximo código livre da área: "13.12" existente → "13.13". A área é a posição em AREAS_ASSESSMENT. */
+export function proximoCodigoPergunta(area: string, codigosExistentes: string[]): { codigo: string; areaOrdem: number; ordem: number } | null {
+  const areaOrdem = (AREAS_ASSESSMENT as readonly string[]).indexOf(area) + 1;
+  if (areaOrdem === 0) return null;
+  const prefixo = String(areaOrdem).padStart(2, "0") + ".";
+  const ordem = codigosExistentes.filter((c) => c.startsWith(prefixo)).reduce((m, c) => Math.max(m, Number(c.slice(3)) || 0), 0) + 1;
+  return { codigo: prefixo + String(ordem).padStart(2, "0"), areaOrdem, ordem };
+}
+
+export function validarPergunta(d: { area?: unknown; texto?: unknown; tipo?: unknown }): string | null {
+  if (!(AREAS_ASSESSMENT as readonly string[]).includes(d.area as string)) return "Escolha uma das áreas do questionário.";
+  const t = typeof d.texto === "string" ? d.texto.trim() : "";
+  if (t.length < 10) return "Escreva a pergunta com pelo menos 10 caracteres.";
+  if (t.length > 500) return "Use no máximo 500 caracteres na pergunta.";
+  if (d.tipo !== "objetiva" && d.tipo !== "descritiva") return "Escolha o tipo: objetiva ou descritiva.";
+  return null;
+}
+
+/**
+ * Texto e tipo só mudam enquanto a pergunta não tem resposta: depois disso,
+ * mudar o texto alteraria o sentido de respostas já dadas. O caminho é
+ * desativar e criar outra.
+ */
+export function podeAlterarPergunta(totalRespostas: number): string | null {
+  return totalRespostas > 0
+    ? "Esta pergunta já tem respostas em assessments. Para mudar o texto ou o tipo, desative-a e cadastre uma nova."
+    : null;
+}

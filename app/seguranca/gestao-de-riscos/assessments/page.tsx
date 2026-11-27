@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Footer from "@/components/Footer";
 import { usePerfilRiscos } from "@/components/riscos/PermissoesRiscos";
+import SolicitarProjeto from "@/components/riscos/SolicitarProjeto";
 import { AREAS_ASSESSMENT, TIPOS_ASSESSMENT, faixaMaturidade, validarNovoAssessment } from "@/lib/assessmentRegras";
 import s from "./assessments.module.css";
 
@@ -70,7 +71,7 @@ export default function Assessments() {
   function abrirForm() {
     setMsg(null);
     setForm({ ...VAZIO });
-    fetch("/api/projetos")
+    fetch("/api/projetos?ativos=1")
       .then((r) => r.json())
       .then((d) => setProjetos(d.projetos || []))
       .catch(() => setProjetos([]));
@@ -147,6 +148,7 @@ export default function Assessments() {
                       <option value="">Selecione o projeto</option>
                       {projetos.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
                     </select>
+                    <SolicitarProjeto />
                   </div>
                   <div className="form-field">
                     <label htmlFor="asData">Data de início</label>

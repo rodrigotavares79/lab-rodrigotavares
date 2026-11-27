@@ -13,7 +13,7 @@ import { ProvedorPermissoesRiscos, SemPermissao, usePerfilRiscos, type Permissoe
 
 const BASE = "/seguranca/gestao-de-riscos";
 
-type Contador = "auditoriaPendentes" | "acoesAtrasadas" | "revisoesVencidas" | "semTratamento" | "aceitacoesPendentes" | "semDono" | "duplicados" | "controlesNaoAvaliados" | "acimaTolerancia" | "apetitePendente" | "krisVermelho";
+type Contador = "auditoriaPendentes" | "acoesAtrasadas" | "revisoesVencidas" | "semTratamento" | "aceitacoesPendentes" | "semDono" | "duplicados" | "controlesNaoAvaliados" | "acimaTolerancia" | "apetitePendente" | "krisVermelho" | "projetosPendentes";
 type ItemMenu = {
   href: string;
   label: string;
@@ -100,7 +100,12 @@ const GRUPOS: GrupoMenu[] = [
   },
   {
     titulo: "Administração",
-    itens: [{ href: `${BASE}/usuarios`, label: "Usuários e perfis", exige: "gerirUsuarios" }],
+    itens: [
+      { href: `${BASE}/usuarios`, label: "Usuários e perfis", exige: "gerirUsuarios" },
+      { href: `${BASE}/projetos`, label: "Projetos", contador: "projetosPendentes", exige: "gerirUsuarios" },
+      { href: `${BASE}/parametros`, label: "Parâmetros da política", exige: "gerirUsuarios" },
+      { href: `${BASE}/perguntas-assessment`, label: "Perguntas dos assessments", exige: "gerirUsuarios" },
+    ],
   },
 ];
 
